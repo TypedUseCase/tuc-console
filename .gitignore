@@ -1,0 +1,31 @@
+data/
+
+# Build results
+[Dd]ebug/
+[Dd]ebugPublic/
+[Rr]elease/
+[Rr]eleases/
+x64/
+x86/
+bld/
+[Bb]in/
+[Oo]bj/
+[Ll]og/
+AssemblyInfo.fs
+
+!bin/tests
+!bin/console
+
+# ionide
+.ionide/
+
+# Paket dependency manager
+.paket/paket.exe
+paket-files/
+
+# FAKE - F# Make
+.fake/
+
+# application
+output
+.neo4j.json
