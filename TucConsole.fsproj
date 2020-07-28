@@ -17,6 +17,15 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Compile Include="src/Domain/Types.fs" />
+    <Compile Include="src/Domain/Parser.fs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="src/Tuc/Parser.fs" />
+  </ItemGroup>
+
+  <ItemGroup>
     <!-- commands -->
   </ItemGroup>
 
