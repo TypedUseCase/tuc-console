@@ -25,14 +25,14 @@ and ServiceParticipant = {
     Domain: string
     Context: string
     Alias: string
-    Type: ParsedType
+    Type: ResolvedType
 }
 
 and StreamParticipant = {
     Domain: string
     Context: string
     Alias: string
-    Type: ParsedType
+    Type: ResolvedType
 }
 
 and TucPart =
@@ -77,21 +77,21 @@ and Lifeline = {
 and ServiceMethodCall = {
     Caller: Participant
     Service: Participant
-    Method: FunctionType
-    Returns: ParsedType
+    Method: MethodDefinition
+    Returns: ResolvedType
     Execution: TucPart list
 }
 
 and PostEvent = {
     Caller: Participant
-    Event: ParsedType
+    Event: ResolvedType
     Stream: Participant
 }
 
 and HandleEventInStream = {
     Stream: Participant
     Service: Participant
-    Method: FunctionType
+    Method: MethodDefinition
     Execution: TucPart list
 }
 

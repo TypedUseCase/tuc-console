@@ -10,28 +10,33 @@ module Console =
 
     [<RequireQualifiedAccess>]
     module Argument =
-        let domains = Argument.requiredArray "domains" "Path to a file or dir containing a domain specification (in F# type notation)."
+        let domain = Argument.required "domain" "Path to a file or dir containing a domain specification (in F# type notation)."
 
-    (* [<RequireQualifiedAccess>]
-    module Option =
-        let outputFile = Option.optional "output" (Some "o") "File where the output will be written." None *)
+    type DomainArgument =
+        | SingleFile of string
+        | Dir of string * string list
 
     [<RequireQualifiedAccess>]
     module Input =
         open System.IO
 
-        let getDomains ((input, output): IO) =
-            let domains =
-                input
-                |> Input.getArgumentValueAsList "domains"
-                |> List.collect (function
-                    | fsx when fsx |> File.Exists && fsx.EndsWith ".fsx" -> [ fsx ]
-                    | dir when dir |> Directory.Exists -> [ dir ] |> FileSystem.getAllFiles |> List.filter (fun f -> f.EndsWith ".fsx")
-                    | _ -> []
-                )
+        let getDomain ((input, output): IO) =
+            let domain =
+                match input |> Input.getArgumentValueAsString "domain" with
+                | Some fsx when fsx |> File.Exists && fsx.EndsWith ".fsx" ->
+                    SingleFile fsx
 
-            domains
-            |> List.map List.singleton
+                | Some dir when dir |> Directory.Exists ->
+                    Dir (
+                        dir,
+                        [ dir ] |> FileSystem.getAllFiles |> List.filter (fun f -> f.EndsWith ".fsx")
+                    )
+
+                | invalidPath -> failwithf "Domain path %A is invalid." invalidPath
+
+            match domain with
+            | SingleFile file -> [[ file ]]
+            | Dir (_, files) -> files |> List.map List.singleton
             |> output.Options "Domain files:"
 
-            domains
+            domain

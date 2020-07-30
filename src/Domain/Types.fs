@@ -1,64 +1,161 @@
 namespace MF.Domain
 
+type FieldName = FieldName of string
+
+[<RequireQualifiedAccess>]
+module FieldName =
+    let value (FieldName name) = name
+
 type TypeName = TypeName of string
 
-type ParsedType =
+[<RequireQualifiedAccess>]
+module TypeName =
+    let value (TypeName name) = name
+
+type TypeDefinition =
+    | Type of TypeName
+    | Function of FunctionDefinition
+    | Tuple of TypeDefinition list
+    | Option of TypeDefinition
+    | List of TypeDefinition
+    | GenericParameter of TypeName
+    | GenericType of GenericDefinition
+
+and FunctionDefinition = {
+    Arguments: TypeDefinition list
+    Returns: TypeDefinition
+}
+
+and GenericDefinition = {
+    Type: TypeName
+    Argument: TypeDefinition
+}
+
+type MethodDefinition = {
+    Name: FieldName
+    Function: FunctionDefinition
+}
+
+[<RequireQualifiedAccess>]
+module TypeDefinition =
+    let rec value = function
+        | Type name -> name |> TypeName.value
+        | Function { Arguments = args; Returns = returns } ->
+            sprintf "%s -> %s"
+                (args |> List.map value |> String.concat " -> ")
+                (returns |> value)
+        | Tuple values -> values |> List.map value |> String.concat " * "
+        | Option ofType -> ofType |> value |> sprintf "%s option"
+        | List ofType -> ofType |> value |> sprintf "%s list"
+        | GenericParameter parameter -> parameter |> TypeName.value |> sprintf "'%s"
+        | GenericType { Type = gType; Argument = argument } ->
+            sprintf "%s<%s>"
+                (gType |> TypeName.value)
+                (argument |> value)
+
+type ResolvedType =
+    | ScalarType of ScalarType
     | SingleCaseUnion of SingleCaseUnion
+    | DiscriminatedUnion of DiscriminatedUnion
     | UnionCase of UnionCase
-    | Record of RecordType
-    | DiscriminatedUnion of DiscriminatedUnionType
-    | Service of ServiceType
-    | Stream of StreamType
+    | Record of Record
+    | Stream of Stream
+    | Unresolved of TypeName
+
+and ScalarType =
+    | String
+    | Int
+    | Float
+    | Bool
+    | Unit
 
 and SingleCaseUnion = {
     Name: TypeName
     ConstructorName: string
-    ConstructorArguments: string list
+    ConstructorArgument: TypeDefinition
+}
+
+and DiscriminatedUnion = {
+    Name: TypeName
+    Cases: UnionCase list
 }
 
 and UnionCase = {
     Name: TypeName
-    Arguments: ParsedType list
+    Argument: TypeDefinition
 }
 
-and RecordType = {
+and Record = {
     Name: TypeName
-    Members: Map<string, ParsedType>
+    Fields: Map<FieldName, TypeDefinition>
+    Methods: Map<FieldName, FunctionDefinition>
 }
 
-and FunctionType = {
+and Stream = {
     Name: TypeName
-    Arguments: ParsedType list
-    Returns: ParsedType option
+    EventType: TypeName
 }
 
-and ServiceType = {
-    Name: TypeName
-    Methods: FunctionType list
-}
+[<RequireQualifiedAccess>]
+module ScalarType =
+    let name = function
+        | String -> TypeName "string"
+        | Int -> TypeName "int"
+        | Float -> TypeName "float"
+        | Bool -> TypeName "bool"
+        | Unit -> TypeName "unit"
 
-and StreamType = {
-    Name: TypeName
-    EventType: ParsedType
-}
+    let isScalar = function
+        | "string"
+        | "int"
+        | "float"
+        | "bool"
+        | "unit" -> true
+        | _ -> false
 
-and DiscriminatedUnionType = {
-    Name: TypeName
-    Cases: UnionCase list
-}
+    let all =
+        [
+            String
+            Int
+            Float
+            Bool
+            Unit
+        ]
+
+[<RequireQualifiedAccess>]
+module ResolvedType =
+    let name = function
+        | ScalarType scalar -> scalar |> ScalarType.name
+        | SingleCaseUnion { Name = name }
+        | UnionCase { Name = name }
+        | Record { Name = name }
+        | DiscriminatedUnion { Name = name }
+        //| Service { Name = name }
+        | Stream { Name = name }
+        | Unresolved name -> name
+
+    let getType = function
+        | ScalarType _ -> "ScalarType"
+        | SingleCaseUnion _ -> "SingleCaseUnion"
+        | UnionCase _ -> "UnionCase"
+        | Record _ -> "Record"
+        | DiscriminatedUnion _ -> "DiscriminatedUnion"
+        //| Service _ -> "Service"
+        | Stream _ -> "Stream"
+        | Unresolved _ -> "Unresolved"
 
 module internal Example =
 (* type Email = Email of string *)
     let email = SingleCaseUnion {
         Name = TypeName "Email"
         ConstructorName = "Email"
-        ConstructorArguments = [ "string" ]
+        ConstructorArgument = Type (TypeName "string")
     }
 (* type Phone = Phone of string *)
     let phone = SingleCaseUnion {
         Name = TypeName "Phone"
         ConstructorName = "Phone"
-        ConstructorArguments = [ "string" ]
+        ConstructorArgument = Type (TypeName "string")
     }
 
 (*
@@ -69,8 +166,8 @@ type InteractionEvent =
     let interactionEvent = DiscriminatedUnion {
         Name = TypeName "InteractionEvent"
         Cases = [
-            { Name = TypeName "Confirmation"; Arguments = [] }
-            { Name = TypeName "Rejection"; Arguments = [] }
+            { Name = TypeName "Confirmation"; Argument = Type (TypeName "unit") }
+            { Name = TypeName "Rejection"; Argument = Type (TypeName "unit") }
         ]
     }
 
@@ -85,23 +182,25 @@ and Contact = {
  *)
     let contact = Record {
         Name = TypeName "Contact"
-        Members = Map.ofList [
-            "Email", email
-            "Phone", phone
+        Fields = Map.ofList [
+            FieldName "Email", Type (email |> ResolvedType.name)
+            FieldName "Phone", Type (phone |> ResolvedType.name)
         ]
+        Methods = Map.empty
     }
     let indentityMatchingSet = Record {
         Name = TypeName "IdentityMatchingSet"
-        Members = Map.ofList [
-            "Contact", contact
+        Fields = Map.ofList [
+            FieldName "Contact", Type (contact |> ResolvedType.name)
         ]
+        Methods = Map.empty
     }
 
-(* type PersonId = PersonId of System.Guis *)
+(* type PersonId = PersonId of Id *)
     let personId = SingleCaseUnion {
         Name = TypeName "PersonId"
         ConstructorName = "PersonId"
-        ConstructorArguments = [ "System.Guid" ]
+        ConstructorArgument = Type (TypeName "Id")
     }
     (*
 type Person =
@@ -113,10 +212,10 @@ type Person =
     let person = DiscriminatedUnion {
         Name = TypeName "Person"
         Cases = [
-            { Name = TypeName "Complete"; Arguments = [ personId; indentityMatchingSet(* ; personAttributes *) ] }
-            { Name = TypeName "Incomplete"; Arguments = [ personId ] }
-            { Name = TypeName "Inconsistent"; Arguments = [ personId ] }
-            { Name = TypeName "Nonexisting"; Arguments = [  ] }
+            { Name = TypeName "Complete"; Argument = Tuple [ Type (personId |> ResolvedType.name); Type (indentityMatchingSet |> ResolvedType.name) (* ; personAttributes *) ] }
+            { Name = TypeName "Incomplete"; Argument = Type (personId |> ResolvedType.name) }
+            { Name = TypeName "Inconsistent"; Argument = Type (personId |> ResolvedType.name) }
+            { Name = TypeName "Nonexisting"; Argument = Type (TypeName "unit") }
         ]
     }
 
@@ -128,17 +227,18 @@ type CommandResult =
     let commandResult = DiscriminatedUnion {
         Name = TypeName "CommandResult"
         Cases = [
-            { Name = TypeName "Accepted"; Arguments = [] }
-            { Name = TypeName "Error"; Arguments = [] }
+            { Name = TypeName "Accepted"; Argument = Type (TypeName "unit") }
+            { Name = TypeName "Error"; Argument = Type (TypeName "unit") }
         ]
     }
 
 (*
 type GenericService = Initiator
  *)
-    let genericService = Service {
+    let genericService = Record {
         Name = TypeName "GenericService"
-        Methods = []
+        Fields = Map.empty
+        Methods = Map.empty
     }
 
 (*
@@ -146,15 +246,22 @@ type InteractionCollector = {
     PostInteraction: InteractionEvent -> CommandResult
 }
  *)
-    let postInteractionMethod = {
-        Name = TypeName "PostInteraction"
-        Arguments = [ interactionEvent ]
-        Returns = Some commandResult
+    let postInteraction = {
+        Arguments = [ Type (interactionEvent |> ResolvedType.name) ]
+        Returns = Type (commandResult |> ResolvedType.name)
     }
 
-    let interactionCollector = Service {
+    let interactionCollector = Record {
         Name = TypeName "InteractionCollector"
-        Methods = [ postInteractionMethod ]
+        Fields = Map.empty
+        Methods = Map.ofList [
+            FieldName "PostInteraction", postInteraction
+        ]
+    }
+
+    let postInteractionMethod = {
+        Name = FieldName "PostInteraction"
+        Function = postInteraction
     }
 
 (*
@@ -162,15 +269,22 @@ type PersonIdentificationEngine = {
     OnInteractionEvent: InteractionEvent -> unit
 }
  *)
-    let onInteractionEventMethod = {
-        Name = TypeName "OnInteractionEvent"
-        Arguments = [ interactionEvent ]
-        Returns = None
+    let onInteractionEvent = {
+        Arguments = [ Type (interactionEvent |> ResolvedType.name) ]
+        Returns = Type (TypeName "unit")
     }
 
-    let personIdentificationEngine = Service {
+    let personIdentificationEngine = Record {
         Name = TypeName "PersonIdentificationEngine"
-        Methods = [ onInteractionEventMethod ]
+        Fields = Map.empty
+        Methods = Map.ofList [
+            FieldName "OnInteractionEvent", onInteractionEvent
+        ]
+    }
+
+    let onInteractionEventMethod = {
+        Name = FieldName "OnInteractionEvent"
+        Function = onInteractionEvent
     }
 
 (*
@@ -178,15 +292,22 @@ type PersonAggregate = {
     IdentifyPerson: IdentityMatchingSet -> Person
 }
  *)
-    let identifyPersonMethod = {
-        Name = TypeName "IdentifyPerson"
-        Arguments = [ indentityMatchingSet ]
-        Returns = Some person
+    let identifyPerson = {
+        Arguments = [ Type (indentityMatchingSet |> ResolvedType.name) ]
+        Returns = Type (person |> ResolvedType.name)
     }
 
-    let personAggregate = Service {
+    let personAggregate = Record {
         Name = TypeName "PersonAggregate"
-        Methods = [ identifyPersonMethod ]
+        Fields = Map.empty
+        Methods = Map.ofList [
+            FieldName "IdentifyPerson", identifyPerson
+        ]
+    }
+
+    let identifyPersonMethod = {
+        Name = FieldName "IdentifyPerson"
+        Function = identifyPerson
     }
 
 (*
@@ -194,5 +315,5 @@ type InteractionCollectorStream = InteractionEvent list
  *)
     let interactionCollectorStream = Stream {
         Name = TypeName "InteractionCollectorStream"
-        EventType = interactionEvent
+        EventType = interactionEvent |> ResolvedType.name
     }

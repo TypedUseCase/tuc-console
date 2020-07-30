@@ -14,11 +14,21 @@
 
   <ItemGroup>
     <Compile Include="src/Utils.fs" />
+
+    <!-- Internal libraries -->
+    <Compile Include="src/ErrorHandling/Result.fs" />
+    <Compile Include="src/ErrorHandling/Option.fs" />
+
+    <Compile Include="src/Cache.fs" />
   </ItemGroup>
 
   <ItemGroup>
     <Compile Include="src/Domain/Types.fs" />
+    <Compile Include="src/Domain/TypeResolver.fs" />
     <Compile Include="src/Domain/Parser.fs" />
+    <Compile Include="src/Domain/Dumper.fs" />
+    <Compile Include="src/Domain/Resolver.fs" />
+    <Compile Include="src/Domain/Checker.fs" />
   </ItemGroup>
 
   <ItemGroup>
