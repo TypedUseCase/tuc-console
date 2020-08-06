@@ -26,51 +26,7 @@ let main argv =
             ]
             Initialize = None
             Interact = None
-            Execute = fun (input, output) ->
-                let domain = (input, output) |> Input.getDomain
-
-                let execute domain =
-                    match input with
-                    | Input.HasOption "only-parse" _ ->
-                        domain
-                        |> parseDomain (input, output)
-                        |> List.iter (Dump.parsedDomain output)
-
-                    | _ ->
-                        let domainResult = domain |> checkDomain (input, output)
-
-                        match input, domainResult with
-                        | _, Error error -> error |> showParseDomainError output
-
-                        | Input.HasOption "count" _, Ok domainTypes ->
-                            domainTypes
-                            |> List.length
-                            |> sprintf "Count of resolved types: <c:magenta>%d</c>"
-                            |> output.Message
-
-                            output.NewLine()
-
-                        | _, Ok domainTypes ->
-                            domainTypes
-                            |> tee (fun _ ->
-                                output.NewLine()
-                                output.Section <| sprintf "Domain types [%d]" (domainTypes |> List.length)
-                            )
-                            |> List.iter (fun (DomainType domainType) -> domainType |> Dump.parsedType output)
-
-                match input with
-                | Input.HasOption "watch" _ ->
-                    let path, watchSubdirs =
-                        match domain with
-                        | SingleFile file -> file, WatchSubdirs.No
-                        | Dir (dir, _) -> dir, WatchSubdirs.Yes
-
-                    (path, "*.fsx")
-                    |> watch output watchSubdirs execute
-                | _ ->
-                    execute (Some domain)
-
-                ExitCode.Success
+            Execute = Command.Domain.check
         }
 
         command "tuc:generate" {
@@ -86,18 +42,7 @@ let main argv =
             ]
             Initialize = None
             Interact = None
-            Execute = fun (input, output) ->
-                let domain = (input, output) |> Input.getDomain
-                let domainResult = Some domain |> checkDomain (input, output)
-
-                match input, domainResult with
-                | _, Error error -> error |> showParseDomainError output
-                | _, Ok domainTypes ->
-                    // todo ...
-
-                    failwith "Not implemented yet ..."
-
-                ExitCode.Success
+            Execute = Command.Tuc.generate
         }
 
         command "about" {
@@ -107,31 +52,7 @@ let main argv =
             Options = []
             Initialize = None
             Interact = None
-            Execute = fun (_input, output) ->
-                let ``---`` = [ "------------------"; "----------------------------------------------------------------------------------------------" ]
-
-                output.Table [ AssemblyVersionInformation.AssemblyProduct ] [
-                    [ "Description"; AssemblyVersionInformation.AssemblyDescription ]
-                    [ "Version"; AssemblyVersionInformation.AssemblyVersion ]
-
-                    ``---``
-                    [ "Environment" ]
-                    ``---``
-                    [ ".NET Core"; Environment.Version |> sprintf "%A" ]
-                    [ "Command Line"; Environment.CommandLine ]
-                    [ "Current Directory"; Environment.CurrentDirectory ]
-                    [ "Machine Name"; Environment.MachineName ]
-                    [ "OS Version"; Environment.OSVersion |> sprintf "%A" ]
-                    [ "Processor Count"; Environment.ProcessorCount |> sprintf "%A" ]
-
-                    ``---``
-                    [ "Git" ]
-                    ``---``
-                    [ "Branch"; AssemblyVersionInformation.AssemblyMetadata_gitbranch ]
-                    [ "Commit"; AssemblyVersionInformation.AssemblyMetadata_gitcommit ]
-                ]
-
-                ExitCode.Success
+            Execute = Command.Common.about
         }
     }
     |> run argv

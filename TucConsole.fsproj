@@ -32,15 +32,20 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Compile Include="src/Tuc/Types.fs" />
     <Compile Include="src/Tuc/Parser.fs" />
   </ItemGroup>
 
   <ItemGroup>
+    <Compile Include="src/Console.fs" />
+
     <!-- commands -->
+    <Compile Include="src/Command/Common.fs" />
+    <Compile Include="src/Command/Domain.fs" />
+    <Compile Include="src/Command/Tuc.fs" />
   </ItemGroup>
 
   <ItemGroup>
-    <Compile Include="src/Console.fs" />
     <Compile Include="src/Program.fs" />
   </ItemGroup>
 
