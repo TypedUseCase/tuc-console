@@ -11,6 +11,7 @@ module Console =
     [<RequireQualifiedAccess>]
     module Argument =
         let domain = Argument.required "domain" "Path to a file or dir containing a domain specification (in F# type notation)."
+        let tuc = Argument.required "tuc" "Path to a .tuc file containing a use-case."
 
     type DomainArgument =
         | SingleFile of string
@@ -32,14 +33,21 @@ module Console =
                         [ dir ] |> FileSystem.getAllFiles |> List.filter (fun f -> f.EndsWith ".fsx")
                     )
 
-                | invalidPath -> failwithf "Domain path %A is invalid." invalidPath
+                | invalidPath -> failwithf "Path to domain file(s) %A is invalid." invalidPath
 
             match domain with
             | SingleFile file -> [[ file ]]
             | Dir (_, files) -> files |> List.map List.singleton
-            |> output.Options "Domain files:"
+            |> output.Options "Domain file(s):"
 
             domain
+
+        let getTuc ((input, output): IO) =
+            match input |> Input.getArgumentValueAsString "tuc" with
+            | Some tuc when tuc |> File.Exists && tuc.EndsWith ".tuc" ->
+                tuc
+                |> tee (List.singleton >> List.singleton >> output.Options "Tuc file:")
+            | invalidPath -> failwithf "Path to tuc file %A is invalid." invalidPath
 
     open System.IO
 
@@ -48,35 +56,58 @@ module Console =
         | Yes
         | No
 
-    let watch output watchSubdirs execute (path, filter) =
+    let private runForever = async {
+        while true do
+            do! Async.Sleep 1000
+    }
+
+    let watch output watchSubdirs execute (path, filter) = async {
         let includeSubDirs =
             match watchSubdirs with
             | WatchSubdirs.Yes -> true
             | WatchSubdirs.No -> false
 
+        let pathDir, fileName =
+            if path |> Directory.Exists then path, None
+            elif path |> File.Exists then Path.GetDirectoryName(path), Some path
+            else failwithf "Path %A is invalid." path
+
         use watcher =
             new FileSystemWatcher(
-                Path = path,
-                Filter = filter,
+                Path = pathDir,
                 EnableRaisingEvents = true,
                 IncludeSubdirectories = includeSubDirs
             )
+
+        watcher.Filters.Add(filter)
+
+        match fileName with
+        | Some fileName ->
+            watcher.Filters.Add(fileName)
+        | _ -> ()
+
+        if output.IsDebug() then
+            sprintf "<c:gray>[Watch]</c> Path: <c:cyan>%s</c> | Filters: <c:yellow>%s</c> | With subdirs: <c:magenta>%A</c>"
+                path
+                (watcher.Filters |> String.concat "; ")
+                includeSubDirs
+            |> output.Message
 
         watcher.NotifyFilter <- watcher.NotifyFilter ||| NotifyFilters.LastWrite
         watcher.SynchronizingObject <- null
 
         let notifyWatch () =
             path
-            |> sprintf " <c:dark-yellow>! Watching path %A</c> (Press <c:yellow>ctrl + c</c> to stop) ...\n"
+            |> sprintf "<c:gray>[Watch]</c> Watching path <c:dark-yellow>%A</c> (Press <c:yellow>ctrl + c</c> to stop) ...\n"
             |> output.Message
 
         let executeOnWatch event =
-            if output.IsDebug() then output.Message <| sprintf "[Watch] Source %s." event
+            if output.IsDebug() then output.Message <| sprintf "<c:gray>[Watch]</c> Source %s." event
 
-            output.Message "Executing ...\n"
+            output.Message "<c:gray>[Watch]</c> Executing ...\n"
 
-            try execute None
-            with e -> output.Error e.Message
+            try execute()
+            with e -> output.Error <| sprintf "%A" e
 
             notifyWatch ()
 
@@ -85,9 +116,20 @@ module Console =
         watcher.Deleted.Add(fun _ -> executeOnWatch "deleted")
         watcher.Renamed.Add(fun _ -> executeOnWatch "renamed")
 
-        executeOnWatch "init"
+        if output.IsVerbose() then
+            output.Message <| sprintf "<c:gray>[Watch]</c> Enabled for %A" path
 
-        while true do ()
+        notifyWatch()
+
+        do! runForever
+    }
+
+    let executeAndWaitForWatch output execute = async {
+        try execute()
+        with e -> output.Error <| sprintf "%A" e
+
+        do! runForever
+    }
 
     open MF.Domain
     open ErrorHandling
@@ -135,4 +177,3 @@ module Console =
             |> output.Options (sprintf "Undefined types [%d]:" (undefinedTypes |> List.length))
 
             output.Error "You have to define all types first.\n"
-

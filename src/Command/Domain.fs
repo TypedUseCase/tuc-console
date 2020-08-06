@@ -3,10 +3,11 @@ namespace MF.TucConsole.Command
 open MF.ConsoleApplication
 open MF.TucConsole
 open MF.TucConsole.Console
-open MF.Domain
 
 [<RequireQualifiedAccess>]
 module Domain =
+    open MF.Domain
+
     let check: ExecuteCommand = fun (input, output) ->
         let domain = (input, output) |> Input.getDomain
 
@@ -47,7 +48,11 @@ module Domain =
                 | Dir (dir, _) -> dir, WatchSubdirs.Yes
 
             (path, "*.fsx")
-            |> watch output watchSubdirs execute
+            |> watch output watchSubdirs (fun _ -> execute None)
+            |> Async.Start
+
+            executeAndWaitForWatch output (fun _ -> execute (Some domain))
+            |> Async.RunSynchronously
         | _ ->
             execute (Some domain)
 

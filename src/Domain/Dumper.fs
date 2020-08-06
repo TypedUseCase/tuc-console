@@ -1,6 +1,7 @@
 namespace MF.Domain
 
 open FSharp.Compiler.SourceCodeServices
+open MF.TucConsole
 
 [<RequireQualifiedAccess>]
 module Dump =
@@ -160,15 +161,15 @@ module Dump =
     // Dump parsed types
     //
 
-    type private ParsedTypeDump =
+    type private ResolvedTypeDump =
         | NameOnly
         | FullType
 
-    type private FormatParsedType<'Type> = ParsedTypeDump * 'Type -> string
+    type private FormatParsedType<'Type> = ResolvedTypeDump * 'Type -> string
 
     let private formatTypeName: Format<TypeName> = fun (TypeName t) -> t
 
-    let rec private formatParsedType dump: Format<ResolvedType> = function
+    let rec private formatResolvedType dump: Format<ResolvedType> = function
         | ScalarType scalar -> scalar |> ScalarType.name |> TypeName.value |> sprintf "%s<scalar>"
         | SingleCaseUnion singleCaseUnion -> (dump, singleCaseUnion) |> formatSingleCaseUnion
         | DiscriminatedUnion discriminatedUnion -> (dump, discriminatedUnion) |> formatDiscriminatedUnion
@@ -191,7 +192,7 @@ module Dump =
         | FullType, discriminatedUnion ->
             sprintf "<c:cyan>%s</c> of%s"
                 (discriminatedUnion.Name |> formatTypeName)
-                (discriminatedUnion.Cases |> List.map (fun c -> formatUnionCase (FullType, c)) |> String.concat "\n    | " |> (+) "\n    | ")
+                (discriminatedUnion.Cases |> List.formatLines "    | " (fun c -> formatUnionCase (FullType, c)))
 
     and private formatUnionCase: FormatParsedType<UnionCase> =
         function
@@ -219,11 +220,7 @@ module Dump =
                 (
                     match record.Methods |> Map.toList with
                     | [] -> ""
-                    | methods ->
-                        methods
-                        |> List.map formatMethod
-                        |> String.concat "\n    - "
-                        |> (+) "\n    - "
+                    | methods -> methods |> List.formatLines "    - " formatMethod
                 )
 
     and private formatMethod: Format<FieldName * FunctionDefinition> =
@@ -241,6 +238,6 @@ module Dump =
                 (stream.EventType |> TypeName.value)
 
     let parsedType (output: MF.ConsoleApplication.Output) =
-        formatParsedType FullType
+        formatResolvedType FullType
         >> output.Message
         >> output.NewLine

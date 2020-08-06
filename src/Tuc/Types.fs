@@ -1,23 +1,22 @@
-namespace MF.TUC.Parser
+namespace MF.Tuc
 
-open MF.TucConsole.Utils
 open MF.Domain
 
 type Tuc = {
-    Participants: ParticipantItem list
+    Participants: Participant list
     Parts: TucPart list
 }
 
-and ParticipantItem =
+and Participant =
     | Component of ParticipantComponent
-    | Participant of Participant
+    | Participant of ActiveParticipant
 
 and ParticipantComponent = {
     Name: string
-    Participants: Participant list
+    Participants: ActiveParticipant list
 }
 
-and Participant =
+and ActiveParticipant =
     | Service of ServiceParticipant
     | Stream of StreamParticipant
 
@@ -25,14 +24,14 @@ and ServiceParticipant = {
     Domain: string
     Context: string
     Alias: string
-    Type: ResolvedType
+    ServiceType: DomainType
 }
 
 and StreamParticipant = {
     Domain: string
     Context: string
     Alias: string
-    Type: ResolvedType
+    StreamType: DomainType
 }
 
 and TucPart =
@@ -70,27 +69,26 @@ and If = {
 }
 
 and Lifeline = {
-    Initiator: Participant
+    Initiator: ActiveParticipant
     Execution: TucPart list
 }
 
 and ServiceMethodCall = {
-    Caller: Participant
-    Service: Participant
+    Caller: ActiveParticipant
+    Service: ActiveParticipant
     Method: MethodDefinition
-    Returns: ResolvedType
     Execution: TucPart list
 }
 
 and PostEvent = {
-    Caller: Participant
-    Event: ResolvedType
-    Stream: Participant
+    Caller: ActiveParticipant
+    Event: DomainType
+    Stream: ActiveParticipant
 }
 
 and HandleEventInStream = {
-    Stream: Participant
-    Service: Participant
+    Stream: ActiveParticipant
+    Service: ActiveParticipant
     Method: MethodDefinition
     Execution: TucPart list
 }
@@ -102,6 +100,12 @@ and Do = {
 and Note = {
     Lines: string list
 }
+
+[<RequireQualifiedAccess>]
+module ActiveParticipant =
+    let name = function
+        | Service { ServiceType = t }
+        | Stream { StreamType = t } -> t |> DomainType.nameValue
 
 module internal Example =
     open MF.Domain.Example
@@ -115,13 +119,13 @@ participants
   PersonIdentificationEngine consents "PID"
   PersonAggregate consents as "Person Aggregate"
  *)
-    let genericServiceParticipant = Service { Domain = "consents"; Context = "GenericService"; Alias = "Generic Service"; Type = genericService }
-    let interactionCollectorParticipant = Service { Domain = "consents"; Context = "InteractionCollector"; Alias = "Interaction Collector"; Type = interactionCollector }
-    let interactionCollectorStreamParticipant = Stream { Domain = "consents"; Context = "InteractionCollectorStream"; Alias = "InteractionCollectorStream"; Type = interactionCollectorStream }
-    let personIdentificationEngineParticipant = Service { Domain = "consents"; Context = "PersonIdentificationEngine"; Alias = "PID"; Type = personIdentificationEngine }
-    let personAggregateParticipant = Service { Domain = "consents"; Context = "PersonAggregate"; Alias = "Person Aggregate"; Type = personAggregate }
+    let genericServiceParticipant = Service { Domain = "consents"; Context = "GenericService"; Alias = "Generic Service"; ServiceType = DomainType genericService }
+    let interactionCollectorParticipant = Service { Domain = "consents"; Context = "InteractionCollector"; Alias = "Interaction Collector"; ServiceType = DomainType interactionCollector }
+    let interactionCollectorStreamParticipant = Stream { Domain = "consents"; Context = "InteractionCollectorStream"; Alias = "InteractionCollectorStream"; StreamType = DomainType interactionCollectorStream }
+    let personIdentificationEngineParticipant = Service { Domain = "consents"; Context = "PersonIdentificationEngine"; Alias = "PID"; ServiceType = DomainType personIdentificationEngine }
+    let personAggregateParticipant = Service { Domain = "consents"; Context = "PersonAggregate"; Alias = "Person Aggregate"; ServiceType = DomainType personAggregate }
 
-    let participants: ParticipantItem list = [
+    let participants: Participant list = [
         Component ({ Name = "consentManager"; Participants = [
             genericServiceParticipant
             interactionCollectorParticipant
@@ -144,7 +148,10 @@ group Skupina Bozich Funkci
     let parts = [
         Group { Name = "Skupina Bozich Funkci"; Body = [
             Lifeline { Initiator = genericServiceParticipant; Execution = [
-                ServiceMethodCall { Caller = genericServiceParticipant; Service = interactionCollectorParticipant; Method = postInteractionMethod; Returns = commandResult; Execution = [] }
+                ServiceMethodCall { Caller = genericServiceParticipant; Service = interactionCollectorParticipant; Method = postInteractionMethod; Execution = [
+                    // empty body
+                ] }
+
                 Loop { Condition = "until result is processed"; Body = [
                     Do { Actions = [ "process result" ] }
                 ] }
@@ -160,9 +167,9 @@ GenericService
 *)
     let ``send event to stream`` =
         Lifeline { Initiator = genericServiceParticipant; Execution = [
-            ServiceMethodCall { Caller = genericServiceParticipant; Service = interactionCollectorParticipant; Method = postInteractionMethod; Returns = commandResult; Execution = [
+            ServiceMethodCall { Caller = genericServiceParticipant; Service = interactionCollectorParticipant; Method = postInteractionMethod; Execution = [
                 Do { Actions = [ "vyroba udalosti z dat osoby" ] }
-                PostEvent { Caller = interactionCollectorParticipant; Event = interactionEvent; Stream = interactionCollectorStreamParticipant }
+                PostEvent { Caller = interactionCollectorParticipant; Event = DomainType interactionEvent; Stream = interactionCollectorStreamParticipant }
                 RightNote { Lines = [ "poznamka" ] }
             ] }
         ] }
@@ -187,28 +194,30 @@ GenericService
  *)
     let ``handle event in stream`` =
         Lifeline { Initiator = genericServiceParticipant; Execution = [
-            HandleEventInStream { Stream = interactionCollectorStreamParticipant; Service = personIdentificationEngineParticipant; Method = onInteractionEventMethod; Execution = [
-                Note { Lines = [
-                    "poznamka"
-                    "na vic radku"
-                ] }
-
-                ServiceMethodCall { Caller = personIdentificationEngineParticipant; Service = personAggregateParticipant; Method = identifyPersonMethod; Returns = person; Execution = [
-                    Do { Actions = [
-                        "prvni step"
-                        "druhy step"
+            ServiceMethodCall { Caller = genericServiceParticipant; Service = interactionCollectorParticipant; Method = postInteractionMethod; Execution = [
+                HandleEventInStream { Stream = interactionCollectorStreamParticipant; Service = personIdentificationEngineParticipant; Method = onInteractionEventMethod; Execution = [
+                    Note { Lines = [
+                        "poznamka"
+                        "na vic radku"
                     ] }
 
-                    If {
-                        Condition = "PersonFound"
-                        Body = [
-                            Do { Actions = [ "return Person" ] }
-                        ]
-                        Else = Some [
-                            Do { Actions = [ "return Error" ] }
-                        ]
-                    }
+                    ServiceMethodCall { Caller = personIdentificationEngineParticipant; Service = personAggregateParticipant; Method = identifyPersonMethod; Execution = [
+                        Do { Actions = [
+                            "prvni step"
+                            "druhy step"
+                        ] }
+
+                        If {
+                            Condition = "PersonFound"
+                            Body = [
+                                Do { Actions = [ "return Person" ] }
+                            ]
+                            Else = Some [
+                                Do { Actions = [ "return Error" ] }
+                            ]
+                        }
+                    ] }
+                    RightNote { Lines = [ "poznamka" ] }
                 ] }
-                RightNote { Lines = [ "poznamka" ] }
             ] }
         ] }

@@ -22,11 +22,26 @@ let main argv =
             Options = [
                 Option.noValue "only-parse" (Some "p") "Whether to just parse domain and dump a results."
                 Option.noValue "count" (Some "c") "Whether to just show a count of results."
-                Option.noValue "watch" (Some "w") "Whether to watch domains for changes (Press <c:yellow>ctrl + c</c> to stop)."
+                Option.noValue "watch" (Some "w") "Whether to watch domain file(s) for changes."
             ]
             Initialize = None
             Interact = None
             Execute = Command.Domain.check
+        }
+
+        command "tuc:check" {
+            Description = "Checks given tuc."
+            Help = None
+            Arguments = [
+                Argument.domain
+                Argument.tuc
+            ]
+            Options = [
+                Option.noValue "watch" (Some "w") "Whether to watch domain file(s) and tuc file for changes."
+            ]
+            Initialize = None
+            Interact = None
+            Execute = Command.Tuc.check
         }
 
         command "tuc:generate" {

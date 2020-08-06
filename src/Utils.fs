@@ -70,6 +70,12 @@ module String =
     let trimEnd (char: char) (string: string) =
         string.TrimEnd char
 
+    let trimStart (char: char) (string: string) =
+        string.TrimStart char
+
+    let trim (char: char) (string: string) =
+        string.Trim char
+
     let contains (subString: string) (string: string) =
         string.Contains(subString)
 
@@ -120,6 +126,38 @@ module List =
     let filterInBy f including list =
         let toInclude = set including
         list |> List.filter (f >> toInclude.Contains)
+
+    let formatLines linePrefix f = function
+        | [] -> ""
+        | lines ->
+            let newLineWithPrefix = "\n" + linePrefix
+
+            lines
+            |> List.map f
+            |> String.concat newLineWithPrefix
+            |> (+) newLineWithPrefix
+
+    /// It splits a list by a true/false result of the given function, when the first false occures, it will left all other items in false branch
+    /// Example: [ 2; 4; 6; 7; 8; 9; 10 ] |> List.splitBy isEven results in ( [ 2; 4; 6 ], [ 7; 8; 9; 10 ] )
+    let splitBy f list =
+        let rec splitter trueBranch falseBranch f = function
+            | [] -> trueBranch |> List.rev, falseBranch
+            | i :: rest ->
+                let trueBranch, falseBranch, rest =
+                    if i |> f
+                        then i :: trueBranch, falseBranch, rest
+                        else trueBranch, falseBranch @ i :: rest, []
+
+                rest |> splitter trueBranch falseBranch f
+
+        list |> splitter [] [] f
+
+[<RequireQualifiedAccess>]
+module Map =
+    let keys map =
+        map
+        |> Map.toList
+        |> List.map fst
 
 [<AutoOpen>]
 module Utils =

@@ -139,9 +139,24 @@ module ResolvedType =
         | Stream _ -> "Stream"
         | Unresolved _ -> "Unresolved"
 
+type DomainType = DomainType of ResolvedType
+
+[<RequireQualifiedAccess>]
+module DomainType =
+    let name (DomainType resolvedType) = resolvedType |> ResolvedType.name
+    let nameValue = name >> TypeName.value
+
+//
+// Errors
+//
+
 type ParseDomainError =
     | UnresolvedTypes of TypeName list
     | UndefinedTypes of TypeName list
+
+//
+// Example
+//
 
 module internal Example =
 (* type Email = Email of string *)
@@ -234,10 +249,10 @@ type CommandResult =
 (*
 type GenericService = Initiator
  *)
-    let genericService = Record {
+    let genericService = SingleCaseUnion {
         Name = TypeName "GenericService"
-        Fields = Map.empty
-        Methods = Map.empty
+        ConstructorName = "Initiator"
+        ConstructorArgument = Type (TypeName "unit")
     }
 
 (*

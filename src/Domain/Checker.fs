@@ -2,8 +2,6 @@ namespace MF.Domain
 
 open MF.TucConsole
 
-type DomainType = DomainType of ResolvedType
-
 [<RequireQualifiedAccess>]
 module Checker =
     let rec private allTypeNamesOfDefinition = function
