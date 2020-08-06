@@ -172,7 +172,6 @@ module Dump =
         | ScalarType scalar -> scalar |> ScalarType.name |> TypeName.value |> sprintf "%s<scalar>"
         | SingleCaseUnion singleCaseUnion -> (dump, singleCaseUnion) |> formatSingleCaseUnion
         | DiscriminatedUnion discriminatedUnion -> (dump, discriminatedUnion) |> formatDiscriminatedUnion
-        | UnionCase unionCase -> (dump, unionCase) |> formatUnionCase
         | Record record -> (dump, record) |> formatRecord
         | Stream stream -> (dump, stream) |> formatStream
         | Unresolved unresolved -> unresolved |> TypeName.value |> sprintf "%s<unresolved>"
@@ -227,14 +226,6 @@ module Dump =
                         |> (+) "\n    - "
                 )
 
-    (* and private formatService: FormatParsedType<Service> =
-        function
-        | NameOnly, { Name = name } -> name |> formatTypeName
-        | FullType, service ->
-            sprintf "<c:cyan>%s</c> with%s"
-                (service.Name |> formatTypeName)
-                (service.Methods |> List.map formatFunction |> String.concat "\n    - " |> (+) "\n    - ") *)
-
     and private formatMethod: Format<FieldName * FunctionDefinition> =
         fun (FieldName name, func) ->
             sprintf "fun <c:cyan>%s</c> = <c:dark-yellow>%s</c>"
@@ -245,7 +236,7 @@ module Dump =
         function
         | NameOnly, { Name = name } -> name |> formatTypeName
         | FullType, stream ->
-            sprintf "[<c:cyan>%s</c>] of <c:yellow>%s</c>"
+            sprintf "<c:dark-cyan>[%s]</c> of <c:yellow>%s</c>"
                 (stream.Name |> formatTypeName)
                 (stream.EventType |> TypeName.value)
 

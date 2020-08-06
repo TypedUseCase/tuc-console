@@ -57,7 +57,6 @@ type ResolvedType =
     | ScalarType of ScalarType
     | SingleCaseUnion of SingleCaseUnion
     | DiscriminatedUnion of DiscriminatedUnion
-    | UnionCase of UnionCase
     | Record of Record
     | Stream of Stream
     | Unresolved of TypeName
@@ -127,22 +126,22 @@ module ResolvedType =
     let name = function
         | ScalarType scalar -> scalar |> ScalarType.name
         | SingleCaseUnion { Name = name }
-        | UnionCase { Name = name }
         | Record { Name = name }
         | DiscriminatedUnion { Name = name }
-        //| Service { Name = name }
         | Stream { Name = name }
         | Unresolved name -> name
 
     let getType = function
         | ScalarType _ -> "ScalarType"
         | SingleCaseUnion _ -> "SingleCaseUnion"
-        | UnionCase _ -> "UnionCase"
         | Record _ -> "Record"
         | DiscriminatedUnion _ -> "DiscriminatedUnion"
-        //| Service _ -> "Service"
         | Stream _ -> "Stream"
         | Unresolved _ -> "Unresolved"
+
+type ParseDomainError =
+    | UnresolvedTypes of TypeName list
+    | UndefinedTypes of TypeName list
 
 module internal Example =
 (* type Email = Email of string *)

@@ -6,28 +6,6 @@ open MF.TucConsole.Console
 open MF.Domain
 open ErrorHandling
 
-(*
-    [
-        Example.email
-        Example.phone
-        Example.interactionEvent
-        Example.indentityMatchingSet
-
-        Example.personId
-        Example.person
-
-        Example.commandResult
-
-        Example.genericService
-        Example.interactionCollector
-        Example.personIdentificationEngine
-        Example.personAggregate
-
-        Example.interactionCollectorStream
-    ]
-    |> List.iter (Dump.parsedType output)
- *)
-
 [<EntryPoint>]
 let main argv =
     consoleApplication {
@@ -51,104 +29,46 @@ let main argv =
             Execute = fun (input, output) ->
                 let domain = (input, output) |> Input.getDomain
 
-                let checkDomain domain =
-                    let domain =
-                        match domain with
-                        | Some domain -> domain
-                        | _ -> (input, output) |> Input.getDomain
-
-                    let parsedDomains =
-                        match domain with
-                        | SingleFile file -> [ file ]
-                        | Dir (_, files) -> files
-                        |> List.map (Parser.parse output)
-
-                    let showUnresolvedTypeError unresolvedTypes =
-                        unresolvedTypes
-                        |> List.map (TypeName.value >> List.singleton)
-                        |> output.Options (sprintf "Unresolved types [%d]:" (unresolvedTypes |> List.length))
-
-                        output.Error "You have to solve unresolved types first.\n"
-
+                let execute domain =
                     match input with
-                    | Input.HasOption "count" _ ->
-                        let resolvedTypesResult =
-                            parsedDomains
-                            |> Resolver.resolve output
+                    | Input.HasOption "only-parse" _ ->
+                        domain
+                        |> parseDomain (input, output)
+                        |> List.iter (Dump.parsedDomain output)
 
-                        match resolvedTypesResult with
-                        | Ok resolvedTypes ->
-                            resolvedTypes
+                    | _ ->
+                        let domainResult = domain |> checkDomain (input, output)
+
+                        match input, domainResult with
+                        | _, Error error -> error |> showParseDomainError output
+
+                        | Input.HasOption "count" _, Ok domainTypes ->
+                            domainTypes
                             |> List.length
                             |> sprintf "Count of resolved types: <c:magenta>%d</c>"
                             |> output.Message
 
                             output.NewLine()
-                        | Error unresolvedTypes -> showUnresolvedTypeError unresolvedTypes
 
-                    | Input.HasOption "only-parse" _ ->
-                        parsedDomains
-                        |> List.iter (Dump.parsedDomain output)
-
-                    | _ ->
-                        let resolvedTypesResult =
-                            parsedDomains
-                            |> tee (fun _ -> output.Section "Checker -> parse types")
-                            |> Resolver.resolve output
-
-                        match resolvedTypesResult with
-                        | Ok resolvedTypes ->
-                            resolvedTypes
+                        | _, Ok domainTypes ->
+                            domainTypes
                             |> tee (fun _ ->
                                 output.NewLine()
-                                output.Section <| sprintf "Dump resolved types [%d]" (resolvedTypes |> List.length)
+                                output.Section <| sprintf "Domain types [%d]" (domainTypes |> List.length)
                             )
-                            |> List.iter (Dump.parsedType output)
-
-                        | Error unresolvedTypes -> showUnresolvedTypeError unresolvedTypes
+                            |> List.iter (fun (DomainType domainType) -> domainType |> Dump.parsedType output)
 
                 match input with
                 | Input.HasOption "watch" _ ->
-                    let path, includeSubDirs =
+                    let path, watchSubdirs =
                         match domain with
-                        | SingleFile file -> file, false
-                        | Dir (dir, _) -> dir, true
+                        | SingleFile file -> file, WatchSubdirs.No
+                        | Dir (dir, _) -> dir, WatchSubdirs.Yes
 
-                    use watcher =
-                        new FileSystemWatcher(
-                            Path = path,
-                            Filter = "*.fsx",
-                            EnableRaisingEvents = true,
-                            IncludeSubdirectories = includeSubDirs
-                        )
-                    watcher.NotifyFilter <- watcher.NotifyFilter ||| NotifyFilters.LastWrite
-                    watcher.SynchronizingObject <- null
-
-                    let notifyWatch () =
-                        path
-                        |> sprintf " <c:dark-yellow>! Watching domain at %A</c> (Press <c:yellow>ctrl + c</c> to stop) ...\n"
-                        |> output.Message
-
-                    let checkOnWatch event =
-                        if output.IsDebug() then output.Message <| sprintf "[Watch] Source %s." event
-
-                        output.Message "Checking ...\n"
-
-                        try checkDomain None
-                        with e -> output.Error e.Message
-
-                        notifyWatch ()
-
-                    watcher.Changed.Add(fun _ -> checkOnWatch "changed")
-                    watcher.Created.Add(fun _ -> checkOnWatch "created")
-                    watcher.Deleted.Add(fun _ -> checkOnWatch "deleted")
-                    watcher.Renamed.Add(fun _ -> checkOnWatch "renamed")
-
-                    checkOnWatch "init"
-
-                    while true do ()
+                    (path, "*.fsx")
+                    |> watch output watchSubdirs execute
                 | _ ->
-                    checkDomain (Some domain)
+                    execute (Some domain)
 
                 ExitCode.Success
         }
@@ -168,14 +88,14 @@ let main argv =
             Interact = None
             Execute = fun (input, output) ->
                 let domain = (input, output) |> Input.getDomain
+                let domainResult = Some domain |> checkDomain (input, output)
 
-                let parsedDomains =
-                    match domain with
-                    | SingleFile file -> [ file ]
-                    | Dir (_, files) -> files
-                    |> List.map (Parser.parse output)
+                match input, domainResult with
+                | _, Error error -> error |> showParseDomainError output
+                | _, Ok domainTypes ->
+                    // todo ...
 
-                failwith "Not implemented yet ..."
+                    failwith "Not implemented yet ..."
 
                 ExitCode.Success
         }
