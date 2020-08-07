@@ -16,7 +16,7 @@ type ToolDir =
     | Local of string
 
 // ========================================================================================================
-// === F# / Console Application fake build ======================================================== 1.1.0 =
+// === F# / Console Application fake build ======================================================== 1.2.0 =
 // --------------------------------------------------------------------------------------------------------
 // Options:
 //  - no-clean   - disables clean of dirs in the first step (required on CI)
@@ -218,14 +218,35 @@ Target.create "Tests" (fun _ ->
     else DotnetCore.runOrFail "run" "tests"
 )
 
+let zipRelease releaseDir =
+    if releaseDir </> "zipCompiled" |> File.exists
+    then
+        Trace.tracefn "\nZipping released files in %s ..." releaseDir
+        releaseDir
+        |> DotnetCore.execute "zipCompiled" []
+        |> Trace.tracefn "Zip result:\n%A\n"
+    else
+        Trace.tracefn "\nZip compiled files"
+        runtimeIds
+        |> List.iter (fun runtimeId ->
+            Trace.tracefn " -> zipping %s ..." runtimeId
+            let zipFile = sprintf "%s.zip" runtimeId
+            IO.File.Delete zipFile
+            Zip.zip releaseDir (releaseDir </> zipFile) !!(releaseDir </> runtimeId </> "*")
+        )
+
 Target.create "Release" (fun _ ->
+    let releaseDir = Path.getFullName "./dist"
+
     !! "**/*.*proj"
     -- "example/**/*.*proj"
     |> Seq.collect (fun project -> runtimeIds |> List.collect (fun runtimeId -> [project, runtimeId]))
     |> Seq.iter (fun (project, runtimeId) ->
-        sprintf "publish -c Release /p:PublishSingleFile=true -o ./dist/%s --self-contained -r %s %s" runtimeId runtimeId project
+        sprintf "publish -c Release /p:PublishSingleFile=true -o %s/%s --self-contained -r %s %s" releaseDir runtimeId runtimeId project
         |> DotnetCore.runInRootOrFail
     )
+
+    zipRelease releaseDir
 )
 
 Target.create "Watch" (fun _ ->

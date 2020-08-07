@@ -1,0 +1,14 @@
+#!/bin/bash
+
+DIR="dist"
+
+echo "Remove previous ..."
+rm -rf "$DIR/*.7z"
+
+echo "Zipping all compiled files ..."
+
+7z a -t7z -- "$DIR/osx-x64.7z" "$DIR/osx-x64"
+7z a -t7z -- "$DIR/linux-x64.7z" "$DIR/linux-x64"
+7z a -t7z -- "$DIR/win-x64.7z" "$DIR/win-x64"
+
+echo "Done"
