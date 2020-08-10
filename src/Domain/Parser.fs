@@ -37,7 +37,7 @@ module Parser =
             else
                 let lib = Path.Combine(runtimeDir, libName)
                 if not (File.Exists(lib)) then failwithf "can't find %A in runtime dir: %A" libName runtimeDir
-                if output.IsVeryVerbose() then output.Message <| sprintf "Adding %A to options" lib
+                if output.IsDebug() then output.Message <| sprintf "Adding %A to options" lib
                 Array.concat [ opts; [| "-r:" + lib |] ]
 
         let oo =

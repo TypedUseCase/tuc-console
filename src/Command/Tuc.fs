@@ -14,21 +14,25 @@ module Tuc =
         let tucFile = (input, output) |> Input.getTuc
 
         let execute domain =
-            if output.IsVerbose() then output.Section "Domain"
+            if output.IsVerbose() then output.Section "Parsing Domain ..."
             let domainTypes =
                 domain
                 |> checkDomain (input, output)
                 |> Result.orFail
 
-            if output.IsVerbose() then output.Section "Tuc"
+            if output.IsVerbose() then output.Section "Parsing Tuc ..."
 
             match tucFile |> Parser.parse output domainTypes with
-            | Ok tuc ->
-                tuc
-                |> Dump.parsedTuc output
+            | Ok tucs ->
+                output.Message <| sprintf "\n<c:gray>%s</c>\n" ("-" |> String.replicate 100)
+
+                tucs
+                |> List.iter (Dump.parsedTuc output)
 
                 ExitCode.Success
             | Error error ->
+                output.Message <| sprintf "\n<c:gray>%s</c>\n" ("-" |> String.replicate 100)
+
                 error
                 |> ParseError.format
                 |> output.Message

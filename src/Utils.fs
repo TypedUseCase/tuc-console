@@ -45,6 +45,8 @@ module Option =
 
 [<RequireQualifiedAccess>]
 module String =
+    open System
+
     let toLower (value: string) =
         value.ToLower()
 
@@ -81,6 +83,10 @@ module String =
 
     let startsWith (prefix: string) (string: string) =
         string.StartsWith(prefix)
+
+    let (|IsEmpty|_|): string -> _ = function
+        | empty when empty |> String.IsNullOrEmpty -> Some ()
+        | _ -> None
 
 [<RequireQualifiedAccess>]
 module Directory =

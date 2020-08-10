@@ -35,7 +35,7 @@ module Dump =
         | Participant participant -> participant |> formatActiveParticipant
 
     let rec private formatPart indentation: Format<TucPart> = function
-        | Section { Value = section } -> sprintf "Section <c:purple>%s</c>" section
+        | Section { Value = section } -> sprintf "\nSection <c:purple>%s</c>\n" section
 
         | Group { Name = group; Body = body } ->
             sprintf "Group <c:purple>%s</c>%s"
@@ -48,7 +48,10 @@ module Dump =
                 (body |> List.formatLines (indent indentation) (formatPart (indentation + indentSize)))
                 (
                     match elseBody with
-                    | Some body -> body |> List.formatLines (indent indentation) (formatPart (indentation + indentSize)) |> sprintf "else%s"
+                    | Some body ->
+                        body
+                        |> List.formatLines (indent indentation) (formatPart (indentation + indentSize))
+                        |> sprintf "\n%selse%s" (indent (indentation - indentSize))
                     | _ -> ""
                 )
 
@@ -71,9 +74,14 @@ module Dump =
                 (indent (indentation - 4))
                 (method.Function.Returns |> TypeDefinition.value)
 
-        | PostEvent { Caller = caller; Event = event; Stream = stream } ->
+        | PostEvent { Caller = caller; Stream = stream } ->
+            let event =
+                match stream with
+                | ActiveParticipant.Stream { StreamType = (DomainType (Stream { EventType = TypeName event })) } -> event
+                | participant -> failwithf "There is no stream in the post event, but there is a %A" participant
+
             sprintf "<c:yellow>%s</c> -> %s  <c:gray>// Called by</c> %s"
-                (event |> DomainType.nameValue)
+                event
                 (stream |> formatActiveParticipant)
                 (caller |> formatActiveParticipant)
 
@@ -93,6 +101,11 @@ module Dump =
         | RightNote { Lines = lines } -> sprintf "Right note:<c:gray>%s</c>" (lines |> List.formatLines (indent indentation) id)
 
     let parsedTuc (output: MF.ConsoleApplication.Output) (tuc: Tuc) =
+        tuc.Name
+        |> TucName.value
+        |> sprintf "Tuc: %s"
+        |> output.Section
+
         tuc.Participants
         |> List.iter (formatParticipant indentSize >> output.Message)
         |> output.NewLine

@@ -2,7 +2,14 @@ namespace MF.Tuc
 
 open MF.Domain
 
+type TucName = TucName of string
+
+[<RequireQualifiedAccess>]
+module TucName =
+    let value (TucName name) = name
+
 type Tuc = {
+    Name: TucName
     Participants: Participant list
     Parts: TucPart list
 }
@@ -82,7 +89,6 @@ and ServiceMethodCall = {
 
 and PostEvent = {
     Caller: ActiveParticipant
-    Event: DomainType
     Stream: ActiveParticipant
 }
 
@@ -169,7 +175,7 @@ GenericService
         Lifeline { Initiator = genericServiceParticipant; Execution = [
             ServiceMethodCall { Caller = genericServiceParticipant; Service = interactionCollectorParticipant; Method = postInteractionMethod; Execution = [
                 Do { Actions = [ "vyroba udalosti z dat osoby" ] }
-                PostEvent { Caller = interactionCollectorParticipant; Event = DomainType interactionEvent; Stream = interactionCollectorStreamParticipant }
+                PostEvent { Caller = interactionCollectorParticipant; Stream = interactionCollectorStreamParticipant }
                 RightNote { Lines = [ "poznamka" ] }
             ] }
         ] }
