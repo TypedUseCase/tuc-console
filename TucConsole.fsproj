@@ -38,6 +38,11 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Compile Include="src/Puml/Types.fs" />
+    <Compile Include="src/Puml/Generator.fs" />
+  </ItemGroup>
+
+  <ItemGroup>
     <Compile Include="src/Console.fs" />
 
     <!-- commands -->

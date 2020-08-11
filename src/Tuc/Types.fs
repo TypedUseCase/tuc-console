@@ -52,7 +52,7 @@ and TucPart =
     | HandleEventInStream of HandleEventInStream
     | Do of Do
     | LeftNote of Note
-    | Note of Note
+    | Note of CallerNote
     | RightNote of Note
 
 and Section = {
@@ -100,12 +100,28 @@ and HandleEventInStream = {
 }
 
 and Do = {
+    Caller: ActiveParticipant
     Actions: string list
+}
+
+and CallerNote = {
+    Caller: ActiveParticipant
+    Lines: string list
 }
 
 and Note = {
     Lines: string list
 }
+
+[<RequireQualifiedAccess>]
+module Tuc =
+    let name ({ Name = name }: Tuc) = name
+
+[<RequireQualifiedAccess>]
+module Participant =
+    let active = function // todo - check DRY
+        | Component { Participants = participants } -> participants
+        | Participant participant -> [ participant ]
 
 [<RequireQualifiedAccess>]
 module ActiveParticipant =
@@ -159,7 +175,7 @@ group Skupina Bozich Funkci
                 ] }
 
                 Loop { Condition = "until result is processed"; Body = [
-                    Do { Actions = [ "process result" ] }
+                    Do { Caller = genericServiceParticipant; Actions = [ "process result" ] }
                 ] }
             ] }
         ] }
@@ -174,7 +190,7 @@ GenericService
     let ``send event to stream`` =
         Lifeline { Initiator = genericServiceParticipant; Execution = [
             ServiceMethodCall { Caller = genericServiceParticipant; Service = interactionCollectorParticipant; Method = postInteractionMethod; Execution = [
-                Do { Actions = [ "vyroba udalosti z dat osoby" ] }
+                Do { Caller = interactionCollectorParticipant; Actions = [ "vyroba udalosti z dat osoby" ] }
                 PostEvent { Caller = interactionCollectorParticipant; Stream = interactionCollectorStreamParticipant }
                 RightNote { Lines = [ "poznamka" ] }
             ] }
@@ -202,24 +218,30 @@ GenericService
         Lifeline { Initiator = genericServiceParticipant; Execution = [
             ServiceMethodCall { Caller = genericServiceParticipant; Service = interactionCollectorParticipant; Method = postInteractionMethod; Execution = [
                 HandleEventInStream { Stream = interactionCollectorStreamParticipant; Service = personIdentificationEngineParticipant; Method = onInteractionEventMethod; Execution = [
-                    Note { Lines = [
-                        "poznamka"
-                        "na vic radku"
-                    ] }
+                    Note {
+                        Caller = personIdentificationEngineParticipant
+                        Lines = [
+                            "poznamka"
+                            "na vic radku"
+                        ]
+                    }
 
                     ServiceMethodCall { Caller = personIdentificationEngineParticipant; Service = personAggregateParticipant; Method = identifyPersonMethod; Execution = [
-                        Do { Actions = [
-                            "prvni step"
-                            "druhy step"
-                        ] }
+                        Do {
+                            Caller = personAggregateParticipant
+                            Actions = [
+                                "prvni step"
+                                "druhy step"
+                            ]
+                        }
 
                         If {
                             Condition = "PersonFound"
                             Body = [
-                                Do { Actions = [ "return Person" ] }
+                                Do { Caller = personAggregateParticipant; Actions = [ "return Person" ] }
                             ]
                             Else = Some [
-                                Do { Actions = [ "return Error" ] }
+                                Do { Caller = personAggregateParticipant; Actions = [ "return Error" ] }
                             ]
                         }
                     ] }

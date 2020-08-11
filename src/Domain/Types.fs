@@ -146,6 +146,10 @@ module DomainType =
     let name (DomainType resolvedType) = resolvedType |> ResolvedType.name
     let nameValue = name >> TypeName.value
 
+    let (|Initiator|_|) = function
+        | DomainType (SingleCaseUnion { ConstructorName = "Initiator" }) -> Some ()
+        | _ -> None
+
 //
 // Errors
 //

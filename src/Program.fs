@@ -45,14 +45,16 @@ let main argv =
         }
 
         command "tuc:generate" {
-            Description = ""
+            Description = "Compile a tuc with domain types and generates a use-case in the PlantUML format out of it."
             Help = None
             Arguments = [
-                Argument.required "tuc" "Path to tuc file containing a Typed Use-Case definition."
                 Argument.domain
+                Argument.tuc
             ]
             Options = [
-                Option.optional "output" (Some "o") "Path to an output PlantUML file. (If not set, it will be a input file name with .puml" None
+                Option.optional "output" (Some "o") "Path to an output file for generated PlantUML. (It must be a .puml)" None
+                Option.optional "image" (Some "i") "Path to an output image file for generated PlantUML. (It must be a .png)" None
+                Option.optional "tuc" (Some "t") "Tuc name, which should only be generated (from multi-tuc file)." None
                 Option.noValue "watch" (Some "w") "Whether to watch a tuc file, to change an output file on the fly."
             ]
             Initialize = None

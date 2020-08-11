@@ -31,6 +31,7 @@ type ParseError =
     | WrongEventPostedToStream of lineNumber: int * position: int * line: string * stream: string * definedEvent: string
     | MissingEventHandlerMethodCall of lineNumber: int * position: int * line: string
     | InvalidMultilineNote of lineNumber: int * position: int * line: string
+    | DoWithoutACaller of lineNumber: int * position: int * line: string
     | DoMustHaveActions of lineNumber: int * position: int * line: string
     | IfWithoutCondition of lineNumber: int * position: int * line: string
     | IfMustHaveBody of lineNumber: int * position: int * line: string
@@ -40,6 +41,7 @@ type ParseError =
     | GroupMustHaveBody of lineNumber: int * position: int * line: string
     | LoopWithoutCondition of lineNumber: int * position: int * line: string
     | LoopMustHaveBody of lineNumber: int * position: int * line: string
+    | NoteWithoutACaller of lineNumber: int * position: int * line: string
     | UnknownPart of lineNumber: int * position: int * line: string
 
 [<RequireQualifiedAccess>]
@@ -190,6 +192,11 @@ module ParseError =
             |> red
             |> formatLineWithError lineNumber position line
 
+        | DoWithoutACaller (lineNumber, position, line) ->
+            "Do can be only in the lifeline of a caller."
+            |> red
+            |> formatLineWithError lineNumber position line
+
         | IfWithoutCondition (lineNumber, position, line) ->
             "If must have a condition."
             |> red
@@ -227,6 +234,11 @@ module ParseError =
 
         | LoopMustHaveBody (lineNumber, position, line) ->
             "Loop must have a body. (It must be indented)"
+            |> red
+            |> formatLineWithError lineNumber position line
+
+        | NoteWithoutACaller (lineNumber, position, line) ->
+            "Note can be only in the lifeline of a caller."
             |> red
             |> formatLineWithError lineNumber position line
 
@@ -366,7 +378,9 @@ module Parser =
         | _ -> None
 
     let private (|HasDomainType|_|) name (DomainTypes domainTypes) =
-        domainTypes |> Map.tryFind (TypeName name)
+        domainTypes
+        |> Map.tryFind (TypeName name)
+        |> Option.map DomainType
 
     let private (|LineContent|_|) content: Line -> _ = function
         | { Content = lineContent } when lineContent = content -> Some ()
@@ -418,19 +432,19 @@ module Parser =
             let service = Service >> Ok
 
             match domainTypes with
-            | HasDomainType serviceName (Record _ as componentType) ->
+            | HasDomainType serviceName (DomainType (Record _ as componentType)) ->
                 service {
                     Domain = serviceDomain
                     Context = serviceName
                     Alias = alias
                     ServiceType = DomainType componentType
                 }
-            | HasDomainType serviceName (SingleCaseUnion { ConstructorName = "Initiator" } as serviceType) ->
+            | HasDomainType serviceName (DomainType.Initiator as serviceType) ->
                 service {
                     Domain = serviceDomain
                     Context = serviceName
                     Alias = alias
-                    ServiceType = DomainType serviceType
+                    ServiceType = serviceType
                 }
             | _ -> Error <| UndefinedParticipant (line |> Line.error indentation)
 
@@ -438,7 +452,7 @@ module Parser =
             let stream = ActiveParticipant.Stream >> Ok
 
             match domainTypes with
-            | HasDomainType streamName (Stream _ as componentType) ->
+            | HasDomainType streamName (DomainType (Stream _ as componentType)) ->
                 stream {
                     Domain = streamDomain
                     Context = streamName
@@ -473,7 +487,7 @@ module Parser =
             match line |> Line.content with
             | Regex @"^(\w+){1}$" [ componentName ] ->
                 match domainTypes with
-                | HasDomainType componentName (Record { Fields = componentFields }) ->
+                | HasDomainType componentName (DomainType (Record { Fields = componentFields })) ->
                     result {
                         let componentParticipantIndentation = participantIndentation |> Indentation.goDeeper indentationLevel
 
@@ -510,7 +524,7 @@ module Parser =
 
                         return Component { Name = componentName; Participants = componentParticipants }, lines
                     }
-                | _ -> Error <| UndefinedParticipant (line |> Line.error (Indentation 0))
+                | _ -> Error <| UndefinedParticipant (line |> Line.error (indentationLevel |> IndentationLevel.indentation))
 
             | _ ->
                 result {
@@ -639,9 +653,6 @@ module Parser =
             }
 
             match line with
-            //| KeyWord.Tuc name -> Error <| AnotherTucFileFoundByTucName name
-            //| KeyWord.Participants -> Error <| AnotherTucFileFoundByParticipants
-
             | IndentedLine indentation { Tokens = [ singleToken ] } as line ->
                 match singleToken with
                 | IsParticipant participants (Service { ServiceType = serviceType } as participant) ->
@@ -719,37 +730,47 @@ module Parser =
                         Error <| UndefinedParticipant (line |> Line.error indentation)
 
                 | IsMultilineNote ->
-                    result {
-                        let noteLines, lines =
-                            lines
-                            |> List.splitBy (function
-                                | IndentedLine indentation { Content = @"""""""" } -> false
-                                | _ -> true
-                            )
+                    match caller with
+                    | None ->
+                        Error <| NoteWithoutACaller (line |> Line.error indentation)
 
-                        let! lines =
-                            match lines with
-                            | IndentedLine indentation { Content = @"""""""" } :: lines -> Ok lines
-                            | _ -> Error <| InvalidMultilineNote (line |> Line.error indentation)
+                    | Some caller ->
+                        result {
+                            let noteLines, lines =
+                                lines
+                                |> List.splitBy (function
+                                    | IndentedLine indentation { Content = @"""""""" } -> false
+                                    | _ -> true
+                                )
 
-                        return Note { Lines = noteLines |> List.map Line.content }, lines
-                    }
+                            let! lines =
+                                match lines with
+                                | IndentedLine indentation { Content = @"""""""" } :: lines -> Ok lines
+                                | _ -> Error <| InvalidMultilineNote (line |> Line.error indentation)
+
+                            return Note { Caller = caller; Lines = noteLines |> List.map Line.content }, lines
+                        }
 
                 | IsMultilineDo ->
-                    result {
-                        let actionIndentation =
-                            indentation
-                            |> Indentation.goDeeper indentationLevel
+                    match caller with
+                    | None ->
+                        Error <| DoWithoutACaller (line |> Line.error indentation)
 
-                        let actionLines, lines =
-                            lines
-                            |> List.splitBy (Line.isIndented actionIndentation)
+                    | Some caller ->
+                        result {
+                            let actionIndentation =
+                                indentation
+                                |> Indentation.goDeeper indentationLevel
 
-                        if actionLines |> List.isEmpty then
-                            return! Error <| DoMustHaveActions (line |> Line.error indentation)
+                            let actionLines, lines =
+                                lines
+                                |> List.splitBy (Line.isIndented actionIndentation)
 
-                        return Do { Actions = actionLines |> List.map Line.content }, lines
-                    }
+                            if actionLines |> List.isEmpty then
+                                return! Error <| DoMustHaveActions (line |> Line.error indentation)
+
+                            return Do { Caller = caller; Actions = actionLines |> List.map Line.content }, lines
+                        }
 
                 | "if" -> Error <| IfWithoutCondition (line |> Line.error indentation)
                 | "else" -> Error <| ElseOutsideOfIf (line |> Line.error indentation)
@@ -760,10 +781,14 @@ module Parser =
                     Error <| UnknownPart (line |> Line.error indentation)
 
             | KeyWord.SingleLineDo indentation action ->
-                Ok (Do { Actions = [ action ] }, lines)
+                match caller with
+                | None -> Error <| DoWithoutACaller (line |> Line.error indentation)
+                | Some caller -> Ok (Do { Caller = caller; Actions = [ action ] }, lines)
 
             | KeyWord.SingleLineNote indentation note ->
-                Ok (Note { Lines = [ note ] }, lines)
+                match caller with
+                | None -> Error <| NoteWithoutACaller (line |> Line.error indentation)
+                | Some caller -> Ok (Note { Caller = caller; Lines = [ note ] }, lines)
 
             | KeyWord.If indentation condition ->
                 match condition with

@@ -5,6 +5,7 @@ source https://api.nuget.org/v3/index.json
 nuget FSharp.Core
 nuget FSharp.Data
 nuget FSharp.Compiler.Service
+nuget PlantUml.Net
 nuget MF.ConsoleApplication ~> 2.0
 
 // [ FAKE GROUP ]
