@@ -195,18 +195,17 @@ fake build target release
 
 Then run
 ```sh
-dist/<architecture>/tuc-console help
+dist/<architecture>/TucConsole help
 ```
 
 List commands
 ```sh
-dist/<architecture>/tuc-console list
+dist/<architecture>/TucConsole list
 ```
      ______  __  __  _____       _____                        __
     /_  __/ / / / / / ___/      / ___/ ___   ___   ___ ___   / / ___
      / /   / /_/ / / /__       / /__  / _ \ / _ \ (_-</ _ \ / / / -_)
     /_/    \____/  \___/       \___/  \___//_//_//___/\___//_/  \__/
-
 
     ==================================================================
 
@@ -221,9 +220,14 @@ dist/<architecture>/tuc-console list
         -v|vv|vvv, --verbose  Increase the verbosity of messages
 
     Available commands:
-        about  Displays information about the current project.
-        help   Displays help for a command
-        list   Lists commands
+        about         Displays information about the current project.
+        help          Displays help for a command
+        list          Lists commands
+    domain
+        domain:check  Checks given domains.
+    tuc
+        tuc:check     Checks given tuc.
+        tuc:generate  Compile a tuc with domain types and generates a use-case in the PlantUML format out of it.
 
 ---
 ### Development
