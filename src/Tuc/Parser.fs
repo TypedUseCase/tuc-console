@@ -51,17 +51,21 @@ module ParseError =
 
     let private errorAtPostion position error =
         sprintf "%s<c:red>^---</c> %s"
-            (" " |> String.replicate (position + "999| ".Length))   // todo - if outout is verbose, it should be more indented
+            (" " |> String.replicate (position + "999| ".Length))
             error
 
-    let private formatLineWithError lineNumber position line error =
+    let private formatLineWithError baseIndentation lineNumber position line error =
         sprintf "%s\n%s"
             (line |> formatLine lineNumber)
-            (error |> errorAtPostion position)
+            (error |> errorAtPostion (baseIndentation + position))
 
     let private red = sprintf "<c:red>%s</c>"
 
-    let format = function
+    let format baseIndentation =
+        let formatLineWithError =
+            formatLineWithError baseIndentation
+
+        function
         // Tuc file
         | MissingTucName ->
             red "There is no tuc name defined."
@@ -937,10 +941,7 @@ module Parser =
                 result {
                     let participants =
                         participants
-                        |> List.collect (function
-                            | Component { Participants = participants } -> participants
-                            | Participant participant -> [ participant ]
-                        )
+                        |> List.collect Participant.active
                         |> List.map (fun participant -> participant |> ActiveParticipant.name, participant)
                         |> Map.ofList
                         |> Participants

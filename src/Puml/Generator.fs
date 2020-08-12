@@ -9,6 +9,11 @@ type PumlError =
     | NoTucProvided
 
 [<RequireQualifiedAccess>]
+module PumlError =
+    let format = function
+        | NoTucProvided -> "There is no tuc to generate a puml from."
+
+[<RequireQualifiedAccess>]
 module Generate =
     type private PumlPart = PumlPart of string
     type private Generate<'TucPart> = MF.ConsoleApplication.Output -> 'TucPart -> PumlPart list

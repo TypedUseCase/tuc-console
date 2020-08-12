@@ -119,7 +119,7 @@ module Tuc =
 
 [<RequireQualifiedAccess>]
 module Participant =
-    let active = function // todo - check DRY
+    let active = function
         | Component { Participants = participants } -> participants
         | Participant participant -> [ participant ]
 

@@ -13,7 +13,7 @@ module Resolver =
     let private resolvedTypes: Cache<TypeName, ResolvedType> = Cache.empty()
 
     type private Collect<'In, 'Out> = MF.ConsoleApplication.Output -> 'In list -> 'Out
-    type private CollectMany<'In, 'Out> = MF.ConsoleApplication.Output -> 'In list -> 'Out list // todo -> return ParsedType list
+    type private CollectMany<'In, 'Out> = MF.ConsoleApplication.Output -> 'In list -> 'Out list
 
     let private cacheResolvedTypes =
         List.iter (fun parsedType ->

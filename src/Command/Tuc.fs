@@ -13,6 +13,9 @@ module Tuc =
         let domain = (input, output) |> Input.getDomain
         let tucFile = (input, output) |> Input.getTuc
 
+        let baseIndentation =
+            if output.IsVerbose() then "[yyyy-mm-dd HH:MM:SS]    ".Length else 0
+
         let execute domain =
             if output.IsVerbose() then output.Section "Parsing Domain ..."
             let domainTypes =
@@ -34,7 +37,7 @@ module Tuc =
                 output.Message <| sprintf "\n<c:gray>%s</c>\n" ("-" |> String.replicate 100)
 
                 error
-                |> ParseError.format
+                |> ParseError.format baseIndentation
                 |> output.Message
                 |> output.NewLine
 
@@ -73,6 +76,9 @@ module Tuc =
     let generate: ExecuteCommand = fun (input, output) ->
         let domain = (input, output) |> Input.getDomain
         let tucFile = (input, output) |> Input.getTuc
+
+        let baseIndentation =
+            if output.IsVerbose() then "[yyyy-mm-dd HH:MM:SS]    ".Length else 0
 
         let specificTuc =
             match input with
@@ -121,7 +127,7 @@ module Tuc =
                 let! tucs =
                     tucFile
                     |> Parser.parse output domainTypes
-                    |> Result.mapError ParseError.format
+                    |> Result.mapError (ParseError.format baseIndentation)
 
                 let! tucs =
                     match specificTuc with
@@ -138,7 +144,7 @@ module Tuc =
                 let! puml =
                     tucs
                     |> Generate.puml output pumlName
-                    |> Result.mapError (sprintf "%A") // todo format error
+                    |> Result.mapError PumlError.format
 
                 match outputFile with
                 | Some outputFile ->
