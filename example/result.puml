@@ -1,0 +1,42 @@
+@startuml definition
+
+== Identify person on interaction ==
+
+box "ConsentManager"
+    actor "Generic Service" as GenericService <<consents>>
+    participant "Interaction Collector" as InteractionCollector <<consents>>
+end box
+collections "InteractionCollectorStream" as InteractionCollectorStream <<consents>>
+participant "PID" as PersonIdentificationEngine <<consents>>
+participant "Person Aggregate" as PersonAggregate <<consents>>
+
+activate GenericService
+GenericService -> InteractionCollector ++: PostInteraction(InteractionEvent)
+    note over InteractionCollector
+    do: create an interaction event based on interaction
+    end note
+    InteractionCollector ->> InteractionCollectorStream: InteractionEvent
+    InteractionCollectorStream ->> PersonIdentificationEngine: OnInteractionEvent(InteractionEvent)
+        activate PersonIdentificationEngine
+        PersonIdentificationEngine -> PersonAggregate ++: IdentifyPerson(IdentityMatchingSet)
+            note over PersonAggregate
+            do:
+                normalize contact
+                identify a person based on the normalized contact
+            end note
+            alt PersonFound
+                note over PersonAggregate
+                do: return Person
+                end note
+            else
+                note over PersonAggregate
+                do: return Error
+                end note
+            end
+        PersonAggregate --> PersonIdentificationEngine --: Person
+        deactivate PersonIdentificationEngine
+InteractionCollector --> GenericService --: InteractionResult
+
+deactivate GenericService
+
+@enduml

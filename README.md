@@ -27,9 +27,16 @@ Interaction collector service identify a person and accepts an interaction.
 
 *It is just a simplified real-life process.*
 
-### domain.fs
+*Note: All files are in the [example](https://github.com/MortalFlesh/tuc-console/tree/master/example) dir.*
+
+### domain.fsx
 ```fs
-module Domain
+// Common types
+
+type Id = UUID
+
+type Stream<'Event> = Stream of 'Event list
+type StreamHandler<'Event> = StreamHandler of ('Event -> unit)
 
 // Types
 
@@ -57,11 +64,11 @@ type Person =
     | Known of PersonId
     | Unknown
 
-and PersonId = PersonId of System.Guid
+and PersonId = PersonId of Id
 
 // Streams
 
-type InteractionCollectorStream = InteractionEvent list
+type InteractionCollectorStream = Stream<InteractionEvent>
 
 // Services
 
@@ -82,8 +89,9 @@ type PersonAggregate = {
 
 ### definition.tuc
 ```tuc
+tuc Identify person on interaction
 participants
-  consentManager
+  ConsentManager
     GenericService consents as "Generic Service"
     InteractionCollector consents as "Interaction Collector"
   [InteractionCollectorStream] consents
@@ -108,7 +116,7 @@ GenericService
             do return Error
 ```
 
-Console app will generate following `result.puml` based on the Domain types (from `domain.fs`) and the `definition.tuc` file, where the use-case is.
+Console app will generate following `result.puml` based on the Domain types (from `domain.fsx`) and the `definition.tuc` file, where the use-case is.
 
 For example there is a
 ```tuc
@@ -134,57 +142,51 @@ out of it.
 
 ### result.puml
 ```puml
-@startuml
-box "consentManager"
-  participant "Generic Service"  as GenericService <<consents>>
-  participant "Interaction Collector" as InteractionCollector <<consents>>
+@startuml definition
+
+== Identify person on interaction ==
+
+box "ConsentManager"
+    actor "Generic Service" as GenericService <<consents>>
+    participant "Interaction Collector" as InteractionCollector <<consents>>
 end box
-
-participant "InteractionCollectorStream" as InteractionCollectorStream <<consents>>
+collections "InteractionCollectorStream" as InteractionCollectorStream <<consents>>
 participant "PID" as PersonIdentificationEngine <<consents>>
-participant "Person Aggregate" as PersonAggregate
+participant "Person Aggregate" as PersonAggregate <<consents>>
 
-GenericService -> InteractionCollector : PostInteraction(InteractionEvent)
-activate InteractionCollector
+activate GenericService
+GenericService -> InteractionCollector ++: PostInteraction(InteractionEvent)
+    note over InteractionCollector
+    do: create an interaction event based on interaction
+    end note
+    InteractionCollector ->> InteractionCollectorStream: InteractionEvent
+    InteractionCollectorStream ->> PersonIdentificationEngine: OnInteractionEvent(InteractionEvent)
+        activate PersonIdentificationEngine
+        PersonIdentificationEngine -> PersonAggregate ++: IdentifyPerson(IdentityMatchingSet)
+            note over PersonAggregate
+            do:
+                normalize contact
+                identify a person based on the normalized contact
+            end note
+            alt PersonFound
+                note over PersonAggregate
+                do: return Person
+                end note
+            else
+                note over PersonAggregate
+                do: return Error
+                end note
+            end
+        PersonAggregate --> PersonIdentificationEngine --: Person
+        deactivate PersonIdentificationEngine
+InteractionCollector --> GenericService --: InteractionResult
 
-note over InteractionCollector
-do: create an interaction event based on interaction
-end note
+deactivate GenericService
 
-InteractionCollector ->> InteractionCollectorStream : InteractionEvent
-
-InteractionCollectorStream ->> PersonIdentificationEngine: OnInteractionEvent(InteractionEvent)
-activate PersonIdentificationEngine
-
-PersonIdentificationEngine -> PersonAggregate : IdentifyPerson(IdentityMatchingSet)
-activate PersonAggregate
-note over PersonAggregate
-do:
-- normalize contact
-- identify a person based on the normalized contact
-end note
-
-alt PersonFound
-  note over PersonAggregate
-    do: return Person
-  end note
-else
-  note over PersonAggregate
-    do: return Error
-  end note
-end
-
-PersonAggregate --> PersonIdentificationEngine : Person
-deactivate PersonAggregate
-
-deactivate PersonIdentificationEngine
-InteractionCollector --> GenericService: InteractionResult
-
-deactivate InteractionCollector
 @enduml
 ```
 
-![Example PlantUML result](https://raw.githubusercontent.com/MortalFlesh/tuc-console/feature/initial-implementation/example.png)
+![Example PlantUML result](https://github.com/MortalFlesh/tuc-console/tree/master/example/graph.png)
 
 ## Run statically
 
@@ -232,7 +234,13 @@ dist/<architecture>/TucConsole list
 ---
 ### Development
 
-First run `dotnet build` or `dotnet watch run`
+First run:
+```
+paket install
+fake build
+```
+
+or `fake build target watch`
 
 List commands
 ```sh
