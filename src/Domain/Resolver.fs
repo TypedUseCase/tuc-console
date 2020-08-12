@@ -38,11 +38,11 @@ module Resolver =
         | abbreviationType when abbreviationType.IsAbbreviation && abbreviationType.HasTypeDefinition ->
             abbreviationType
             |> Dump.formatType
-            |> failwithf "ResolveError.abbreviation: %s"
+            |> failwithf "[ResolveError] IsAbbreviation: %s"
 
         | IsFunctionType functionType ->
             match functionType.GenericArguments |> Seq.toList |> List.map resolveTypeDefinition |> List.rev with
-            | [] -> failwithf "Invalid function definition, without any arguments and return value."
+            | [] -> failwithf "[ResolveError] Invalid function definition, without any arguments and return value."
             | returns :: arguments ->
                 Function { Arguments = arguments |> List.rev; Returns = returns }
 
@@ -55,7 +55,7 @@ module Resolver =
         | withtoutTypeDefinition when withtoutTypeDefinition.HasTypeDefinition |> not ->
             withtoutTypeDefinition
             |> Dump.formatType
-            |> failwithf "ResolveError.noDef: %s"
+            |> failwithf "[ResolveError] WithoutTypeDefinition: %s"
 
         | IsTypeWithoutArgs t ->
             Type (TypeName t.TypeDefinition.DisplayName)
@@ -72,7 +72,7 @@ module Resolver =
         | t ->
             t
             |> Dump.formatType
-            |> failwithf "ResolveError: %s"
+            |> failwithf "[ResolveError] Type: %s"
 
     let private collectUnionCaseFields (TypeName parent): Collect<FSharpField, TypeDefinition> = fun output fields ->
         if output.IsVerbose() then
@@ -93,7 +93,7 @@ module Resolver =
 
         fields
         |> List.map (function
-            | nameless when nameless.IsNameGenerated -> failwithf "Record %A has a nameless field with type: %A." parent (nameless.FieldType |> Dump.formatType)
+            | nameless when nameless.IsNameGenerated -> failwithf "[ResolveError][Record] %A has a nameless field with type: %A." parent (nameless.FieldType |> Dump.formatType)
             | named -> (FieldName named.DisplayName) => (named.FieldType |> resolveTypeDefinition)
         )
 
@@ -107,11 +107,11 @@ module Resolver =
 
         methods
         |> List.map (function
-            | nameless when nameless.IsNameGenerated -> failwithf "Record %A has a nameless field with type: %A." parent (nameless.FieldType |> Dump.formatType)
+            | nameless when nameless.IsNameGenerated -> failwithf "[ResolveError][Record] %A has a nameless field with type: %A." parent (nameless.FieldType |> Dump.formatType)
             | named ->
                 match named.FieldType |> resolveTypeDefinition with
                 | Function func -> FieldName named.DisplayName => func
-                | unexpected -> failwithf "Unexpected function type %A" unexpected
+                | unexpected -> failwithf "[ResolveError][Record] Unexpected function type %A" unexpected
         )
 
     let private collectUnionCases parent: CollectMany<FSharpUnionCase, ResolvedType> = fun output cases ->
@@ -132,7 +132,7 @@ module Resolver =
                 [ Stream { Name = TypeName stream.DisplayName; EventType = eventType }]
 
             | notAStream ->
-                failwithf "Type %A seems to be a stream but has not a specific generic type Stream<'Event> in it.\nIt has: %A\n"
+                failwithf "[ResolveError][UnionCase] Type %A seems to be a stream but has not a specific generic type Stream<'Event> in it.\nIt has: %A\n"
                     stream.DisplayName
                     (notAStream |> TypeDefinition.value)
 
@@ -182,7 +182,7 @@ module Resolver =
                 let typeName = TypeName record.DisplayName
 
                 if record.NestedEntities |> Seq.isEmpty |> not then
-                    failwithf "Record nested entities: %A" record.NestedEntities
+                    failwithf "[ResolveError][Entity] Record nested entities: %A" record.NestedEntities
 
                 [
                     Record {
@@ -204,7 +204,7 @@ module Resolver =
                 let typeName = TypeName unionCase.DisplayName
 
                 if unionCase.NestedEntities |> Seq.isEmpty |> not then
-                    failwithf "UnionCase nested entities: %A" unionCase.NestedEntities
+                    failwithf "[ResolveError][Entity] UnionCase nested entities: %A" unionCase.NestedEntities
 
                 unionCase.UnionCases
                 |>> collectUnionCases typeName output
@@ -215,13 +215,13 @@ module Resolver =
                 |> output.Message
 
                 if e.MembersFunctionsAndValues |> Seq.isEmpty |> not then
-                    failwithf "[Resolver] Unexpected Entity members, functions and values: %A" e.MembersFunctionsAndValues
+                    failwithf "[ResolveError][Entity] Unexpected Entity members, functions and values: %A" e.MembersFunctionsAndValues
 
                 if e.FSharpFields |> Seq.isEmpty |> not then
-                    failwithf "[Resolver] Unexpected Entity FSharpFields: %A" e.FSharpFields
+                    failwithf "[ResolveError][Entity] Unexpected Entity FSharpFields: %A" e.FSharpFields
 
                 if e.UnionCases |> Seq.isEmpty |> not then
-                    failwithf "[Resolver] Unexpected Entity UnionCases: %A" e.UnionCases
+                    failwithf "[ResolveError][Entity] Unexpected Entity UnionCases: %A" e.UnionCases
 
                 [
                     yield! e.NestedEntities |>> collectEntities (Some e) output
