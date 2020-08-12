@@ -31,6 +31,8 @@ type ParseError =
     | WrongEventPostedToStream of lineNumber: int * position: int * line: string * stream: string * definedEvent: string
     | MissingEventHandlerMethodCall of lineNumber: int * position: int * line: string
     | InvalidMultilineNote of lineNumber: int * position: int * line: string
+    | InvalidMultilineLeftNote of lineNumber: int * position: int * line: string
+    | InvalidMultilineRightNote of lineNumber: int * position: int * line: string
     | DoWithoutACaller of lineNumber: int * position: int * line: string
     | DoMustHaveActions of lineNumber: int * position: int * line: string
     | IfWithoutCondition of lineNumber: int * position: int * line: string
@@ -188,6 +190,16 @@ module ParseError =
 
         | InvalidMultilineNote (lineNumber, position, line) ->
             "Invalid multiline note. (It must start and end on the same level with \"\"\")"
+            |> red
+            |> formatLineWithError lineNumber position line
+
+        | InvalidMultilineLeftNote (lineNumber, position, line) ->
+            "Invalid multiline left note. (It must start and end on the same level with \"<\")"
+            |> red
+            |> formatLineWithError lineNumber position line
+
+        | InvalidMultilineRightNote (lineNumber, position, line) ->
+            "Invalid multiline right note. (It must start and end on the same level with \">\")"
             |> red
             |> formatLineWithError lineNumber position line
 
@@ -412,6 +424,14 @@ module Parser =
             | IndentedLine indentation { Content = note } when note.StartsWith '"' && note.EndsWith '"' -> Some (note.Trim '"')
             | _ -> None
 
+        let (|SingleLineLeftNote|_|) indentation: Line -> _ = function
+            | IndentedLine indentation { Content = note } when note.StartsWith @"""<" && note.EndsWith '"' -> Some (note.Trim('"').TrimStart('<').Trim())
+            | _ -> None
+
+        let (|SingleLineRightNote|_|) indentation: Line -> _ = function
+            | IndentedLine indentation { Content = note } when note.StartsWith @""">" && note.EndsWith '"' -> Some (note.Trim('"').TrimStart('>').Trim())
+            | _ -> None
+
         let (|If|_|) indentation: Line -> _ = function
             | IndentedLine indentation { Tokens = "if" :: condition } -> Some (condition |> String.concat " ")
             | _ -> None
@@ -606,6 +626,14 @@ module Parser =
             | @"""""""" -> Some ()
             | _ -> None
 
+        let private (|IsMultilineLeftNote|_|) = function
+            | @"""<""" -> Some ()
+            | _ -> None
+
+        let private (|IsMultilineRightNote|_|) = function
+            | @""">""" -> Some ()
+            | _ -> None
+
         let private assertIsInitiator line indentation = function
             | DomainType (SingleCaseUnion { ConstructorName = "Initiator" }) -> Ok ()
             | _ -> Error <| IsNotInitiator (line |> Line.error indentation)
@@ -755,6 +783,40 @@ module Parser =
                             return Note { Caller = caller; Lines = noteLines |> List.map Line.content }, lines
                         }
 
+                | IsMultilineLeftNote ->
+                    result {
+                        let noteLines, lines =
+                            lines
+                            |> List.splitBy (function
+                                | IndentedLine indentation { Content = @"""<""" } -> false
+                                | _ -> true
+                            )
+
+                        let! lines =
+                            match lines with
+                            | IndentedLine indentation { Content = @"""<""" } :: lines -> Ok lines
+                            | _ -> Error <| InvalidMultilineLeftNote (line |> Line.error indentation)
+
+                        return LeftNote { Lines = noteLines |> List.map Line.content }, lines
+                    }
+
+                | IsMultilineRightNote ->
+                    result {
+                        let noteLines, lines =
+                            lines
+                            |> List.splitBy (function
+                                | IndentedLine indentation { Content = @""">""" } -> false
+                                | _ -> true
+                            )
+
+                        let! lines =
+                            match lines with
+                            | IndentedLine indentation { Content = @""">""" } :: lines -> Ok lines
+                            | _ -> Error <| InvalidMultilineRightNote (line |> Line.error indentation)
+
+                        return RightNote { Lines = noteLines |> List.map Line.content }, lines
+                    }
+
                 | IsMultilineDo ->
                     match caller with
                     | None ->
@@ -788,6 +850,12 @@ module Parser =
                 match caller with
                 | None -> Error <| DoWithoutACaller (line |> Line.error indentation)
                 | Some caller -> Ok (Do { Caller = caller; Actions = [ action ] }, lines)
+
+            | KeyWord.SingleLineLeftNote indentation note ->
+                Ok (LeftNote { Lines = [ note ] }, lines)
+
+            | KeyWord.SingleLineRightNote indentation note ->
+                Ok (RightNote { Lines = [ note ] }, lines)
 
             | KeyWord.SingleLineNote indentation note ->
                 match caller with
