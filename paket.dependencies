@@ -4,6 +4,8 @@ storage: none
 source https://api.nuget.org/v3/index.json
 nuget FSharp.Core
 nuget FSharp.Data
+nuget FSharp.Compiler.Service
+nuget PlantUml.Net
 nuget MF.ConsoleApplication ~> 2.0
 
 // [ FAKE GROUP ]
@@ -12,6 +14,7 @@ group Build
     source https://api.nuget.org/v3/index.json
     nuget Fake.DotNet.Cli
     nuget Fake.IO.FileSystem
+    nuget Fake.IO.Zip
     nuget Fake.Core.Target
     nuget Fake.DotNet.AssemblyInfoFile
     nuget Fake.Core.ReleaseNotes

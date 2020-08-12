@@ -1,4 +1,6 @@
 #load ".fake/build.fsx/intellisense.fsx"
+open System
+
 open Fake.Core
 open Fake.DotNet
 open Fake.IO
@@ -14,7 +16,7 @@ type ToolDir =
     | Local of string
 
 // ========================================================================================================
-// === F# / Console Application fake build =================================================== 2020-03-11 =
+// === F# / Console Application fake build ======================================================== 1.2.0 =
 // --------------------------------------------------------------------------------------------------------
 // Options:
 //  - no-clean   - disables clean of dirs in the first step (required on CI)
@@ -45,6 +47,7 @@ let runtimeIds =
     [
         "osx-x64"
         "win-x64"
+        "linux-x64"
     ]
 
 // --------------------------------------------------------------------------------------------------------
@@ -116,6 +119,10 @@ module private DotnetCore =
         if proc.ExitCode <> 0 then failwithf "Command '%s' failed in %s." command dir
         (proc.StandardOutput.ReadToEnd(), proc.StandardError.ReadToEnd())
 
+let stringToOption = function
+    | null | "" -> None
+    | string -> Some string
+
 // --------------------------------------------------------------------------------------------------------
 // 3. Targets for FAKE
 // --------------------------------------------------------------------------------------------------------
@@ -130,6 +137,13 @@ Target.create "Clean" <| skipOn "no-clean" (fun _ ->
 
 Target.create "AssemblyInfo" (fun _ ->
     let getAssemblyInfoAttributes projectName =
+        let now = DateTime.Now
+
+        let gitValue initialValue =
+            initialValue
+            |> stringToOption
+            |> Option.defaultValue "unknown"
+
         [
             AssemblyInfo.Title projectName
             AssemblyInfo.Product project
@@ -137,31 +151,30 @@ Target.create "AssemblyInfo" (fun _ ->
             AssemblyInfo.Version release.AssemblyVersion
             AssemblyInfo.FileVersion release.AssemblyVersion
             AssemblyInfo.InternalsVisibleTo "tests"
-            AssemblyInfo.Metadata("gitbranch", gitBranch)
-            AssemblyInfo.Metadata("gitcommit", gitCommit)
+            AssemblyInfo.Metadata("gitbranch", gitBranch |> gitValue)
+            AssemblyInfo.Metadata("gitcommit", gitCommit |> gitValue)
+            AssemblyInfo.Metadata("createdAt", now.ToString("yyyy-MM-dd HH:mm:ss"))
         ]
 
     let getProjectDetails projectPath =
-        let projectName = System.IO.Path.GetFileNameWithoutExtension(projectPath)
+        let projectName = IO.Path.GetFileNameWithoutExtension(projectPath)
         (
             projectPath,
             projectName,
-            System.IO.Path.GetDirectoryName(projectPath),
+            IO.Path.GetDirectoryName(projectPath),
             (getAssemblyInfoAttributes projectName)
         )
 
-    !! "**/*.*proj"
+    !! "**/*.fsproj"
     -- "example/**/*.*proj"
     |> Seq.map getProjectDetails
-    |> Seq.iter (fun (projFileName, _, folderName, attributes) ->
-        match projFileName with
-        | proj when proj.EndsWith("fsproj") -> AssemblyInfoFile.createFSharp (folderName </> "AssemblyInfo.fs") attributes
-        | _ -> ()
+    |> Seq.iter (fun (_, _, folderName, attributes) ->
+        AssemblyInfoFile.createFSharp (folderName </> "AssemblyInfo.fs") attributes
     )
 )
 
 Target.create "Build" (fun _ ->
-    !! "**/*.*proj"
+    !! "**/*.fsproj"
     -- "example/**/*.*proj"
     |> Seq.iter (DotNet.build id)
 )
@@ -182,7 +195,8 @@ Target.create "Lint" <| skipOn "no-lint" (fun _ ->
         |> List.rev
         |> check
 
-    !! "src/**/*.fsproj"
+    !! "**/*.*proj"
+    -- "example/**/*.*proj"
     |> Seq.map (fun fsproj ->
         match toolsDir with
         | Global ->
@@ -204,12 +218,35 @@ Target.create "Tests" (fun _ ->
     else DotnetCore.runOrFail "run" "tests"
 )
 
+let zipRelease releaseDir =
+    if releaseDir </> "zipCompiled" |> File.exists
+    then
+        Trace.tracefn "\nZipping released files in %s ..." releaseDir
+        releaseDir
+        |> DotnetCore.execute "zipCompiled" []
+        |> Trace.tracefn "Zip result:\n%A\n"
+    else
+        Trace.tracefn "\nZip compiled files"
+        runtimeIds
+        |> List.iter (fun runtimeId ->
+            Trace.tracefn " -> zipping %s ..." runtimeId
+            let zipFile = sprintf "%s.zip" runtimeId
+            IO.File.Delete zipFile
+            Zip.zip releaseDir (releaseDir </> zipFile) !!(releaseDir </> runtimeId </> "*")
+        )
+
 Target.create "Release" (fun _ ->
-    runtimeIds
-    |> List.iter (fun runtimeId ->
-        sprintf "publish -c Release /p:PublishSingleFile=true -o ./dist/%s --self-contained -r %s tuc-console.fsproj" runtimeId runtimeId
+    let releaseDir = Path.getFullName "./dist"
+
+    !! "**/*.*proj"
+    -- "example/**/*.*proj"
+    |> Seq.collect (fun project -> runtimeIds |> List.collect (fun runtimeId -> [project, runtimeId]))
+    |> Seq.iter (fun (project, runtimeId) ->
+        sprintf "publish -c Release /p:PublishSingleFile=true -o %s/%s --self-contained -r %s %s" releaseDir runtimeId runtimeId project
         |> DotnetCore.runInRootOrFail
     )
+
+    zipRelease releaseDir
 )
 
 Target.create "Watch" (fun _ ->

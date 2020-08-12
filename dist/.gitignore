@@ -1,0 +1,4 @@
+# ignore all compiled files
+linux-x64/*
+osx-x64/*
+win-x64/*

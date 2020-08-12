@@ -3,6 +3,8 @@ open System.IO
 open MF.ConsoleApplication
 open MF.TucConsole
 open MF.TucConsole.Console
+open MF.Domain
+open ErrorHandling
 
 [<EntryPoint>]
 let main argv =
@@ -11,6 +13,55 @@ let main argv =
         info ApplicationInfo.MainTitle
         version AssemblyVersionInformation.AssemblyVersion
 
+        command "domain:check" {
+            Description = "Checks given domains."
+            Help = None
+            Arguments = [
+                Argument.domain
+            ]
+            Options = [
+                Option.noValue "only-parse" (Some "p") "Whether to just parse domain and dump a results."
+                Option.noValue "count" (Some "c") "Whether to just show a count of results."
+                Option.noValue "watch" (Some "w") "Whether to watch domain file(s) for changes."
+            ]
+            Initialize = None
+            Interact = None
+            Execute = Command.Domain.check
+        }
+
+        command "tuc:check" {
+            Description = "Checks given tuc."
+            Help = None
+            Arguments = [
+                Argument.domain
+                Argument.tuc
+            ]
+            Options = [
+                Option.noValue "watch" (Some "w") "Whether to watch domain file(s) and tuc file for changes."
+            ]
+            Initialize = None
+            Interact = None
+            Execute = Command.Tuc.check
+        }
+
+        command "tuc:generate" {
+            Description = "Compile a tuc with domain types and generates a use-case in the PlantUML format out of it."
+            Help = None
+            Arguments = [
+                Argument.domain
+                Argument.tuc
+            ]
+            Options = [
+                Option.optional "output" (Some "o") "Path to an output file for generated PlantUML. (It must be a .puml)" None
+                Option.optional "image" (Some "i") "Path to an output image file for generated PlantUML. (It must be a .png)" None
+                Option.optional "tuc" (Some "t") "Tuc name, which should only be generated (from multi-tuc file)." None
+                Option.noValue "watch" (Some "w") "Whether to watch a tuc file, to change an output file on the fly."
+            ]
+            Initialize = None
+            Interact = None
+            Execute = Command.Tuc.generate
+        }
+
         command "about" {
             Description = "Displays information about the current project."
             Help = None
@@ -18,31 +69,7 @@ let main argv =
             Options = []
             Initialize = None
             Interact = None
-            Execute = fun (_input, output) ->
-                let ``---`` = [ "------------------"; "----------------------------------------------------------------------------------------------" ]
-
-                output.Table [ AssemblyVersionInformation.AssemblyProduct ] [
-                    [ "Description"; AssemblyVersionInformation.AssemblyDescription ]
-                    [ "Version"; AssemblyVersionInformation.AssemblyVersion ]
-
-                    ``---``
-                    [ "Environment" ]
-                    ``---``
-                    [ ".NET Core"; Environment.Version |> sprintf "%A" ]
-                    [ "Command Line"; Environment.CommandLine ]
-                    [ "Current Directory"; Environment.CurrentDirectory ]
-                    [ "Machine Name"; Environment.MachineName ]
-                    [ "OS Version"; Environment.OSVersion |> sprintf "%A" ]
-                    [ "Processor Count"; Environment.ProcessorCount |> sprintf "%A" ]
-
-                    ``---``
-                    [ "Git" ]
-                    ``---``
-                    [ "Branch"; AssemblyVersionInformation.AssemblyMetadata_gitbranch ]
-                    [ "Commit"; AssemblyVersionInformation.AssemblyMetadata_gitcommit ]
-                ]
-
-                ExitCode.Success
+            Execute = Command.Common.about
         }
     }
     |> run argv
