@@ -28,7 +28,9 @@ type ParseError =
     | CalledUndefinedMethod of lineNumber: int * position: int * line: string * service: string * definedMethods: string list
     | MethodCalledWithoutACaller of lineNumber: int * position: int * line: string
     | EventPostedWithoutACaller of lineNumber: int * position: int * line: string
+    | EventReadWithoutACaller of lineNumber: int * position: int * line: string
     | WrongEventPostedToStream of lineNumber: int * position: int * line: string * stream: string * definedEvent: string
+    | WrongEventReadFromStream of lineNumber: int * position: int * line: string * stream: string * definedEvent: string
     | MissingEventHandlerMethodCall of lineNumber: int * position: int * line: string
     | InvalidMultilineNote of lineNumber: int * position: int * line: string
     | InvalidMultilineLeftNote of lineNumber: int * position: int * line: string
@@ -161,6 +163,11 @@ module ParseError =
             |> red
             |> formatLineWithError lineNumber position line
 
+        | EventReadWithoutACaller (lineNumber, position, line) ->
+            "Event can be read only in the lifeline of a caller."
+            |> red
+            |> formatLineWithError lineNumber position line
+
         | CalledUndefinedMethod (lineNumber, position, line, serviceName, definedMethods) ->
             let error =
                 sprintf "There is an undefined method called on the service %s." serviceName
@@ -175,6 +182,17 @@ module ParseError =
         | WrongEventPostedToStream (lineNumber, position, line, streamName, definedEventType) ->
             let error =
                 sprintf "There is a wrong event posted to the %s." streamName
+                |> red
+                |> formatLineWithError lineNumber (position + streamName.Length) line
+
+            sprintf "%s\n\n<c:red>%s is a Stream of %s</c>"
+                error
+                streamName
+                definedEventType
+
+        | WrongEventReadFromStream (lineNumber, position, line, streamName, definedEventType) ->
+            let error =
+                sprintf "There is a wrong event read from the %s." streamName
                 |> red
                 |> formatLineWithError lineNumber (position + streamName.Length) line
 
@@ -377,6 +395,10 @@ module Parser =
         let wrongEventPostedToStream indentation stream eventType line =
             let n, p, c = line |> Line.error indentation
             WrongEventPostedToStream (n, p, c, stream, eventType)
+
+        let wrongEventReadFromStream indentation stream eventType line =
+            let n, p, c = line |> Line.error indentation
+            WrongEventReadFromStream (n, p, c, stream, eventType)
 
     type private ParseResult<'TucItem> = {
         Item: 'TucItem
@@ -616,6 +638,11 @@ module Parser =
         let private (|IsPostEvent|_|) indentation: Line -> _ = function
             | IndentedLine indentation { Tokens = [ event; "->"; stream ] } when stream.StartsWith "[" && stream.EndsWith "]" ->
                 Some (event, stream.Trim('[').Trim(']'))
+            | _ -> None
+
+        let private (|IsReadEvent|_|) indentation: Line -> _ = function
+            | IndentedLine indentation { Tokens = [ stream; "->"; event ] } when stream.StartsWith "[" && stream.EndsWith "]" ->
+                Some (stream.Trim('[').Trim(']'), event)
             | _ -> None
 
         let private (|IsMultilineDo|_|) = function
@@ -935,12 +962,35 @@ module Parser =
                 | None, _ ->
                     Error <| EventPostedWithoutACaller (line |> Line.error indentation)
 
-                | Some caller, IsParticipant participants (ActiveParticipant.Stream { StreamType = (DomainType (Stream { EventType = TypeName eventType } )) } as stream) ->
+                | Some caller, IsParticipant participants (ActiveParticipant.Stream { StreamType = DomainType.Stream eventType } as stream) ->
                     result {
                         if eventName <> eventType then
                             return! line |> Errors.wrongEventPostedToStream indentation streamName eventType |> Error
 
                         let part = PostEvent {
+                            Caller = caller
+                            Stream = stream
+                        }
+
+                        return part, lines
+                    }
+                | _ ->
+                    let participantIndentation =
+                        Indentation ((indentation |> Indentation.size) + " -> ".Length + eventName.Length)
+
+                    Error <| UndefinedParticipant (line |> Line.error participantIndentation)
+
+            | IsReadEvent indentation (streamName, eventName) ->
+                match caller, streamName with
+                | None, _ ->
+                    Error <| EventReadWithoutACaller (line |> Line.error indentation)
+
+                | Some caller, IsParticipant participants (ActiveParticipant.Stream { StreamType = DomainType.Stream eventType } as stream) ->
+                    result {
+                        if eventName <> eventType then
+                            return! line |> Errors.wrongEventReadFromStream indentation streamName eventType |> Error
+
+                        let part = ReadEvent {
                             Caller = caller
                             Stream = stream
                         }

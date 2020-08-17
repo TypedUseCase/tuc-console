@@ -80,7 +80,18 @@ module Dump =
                 | ActiveParticipant.Stream { StreamType = (DomainType (Stream { EventType = TypeName event })) } -> event
                 | participant -> failwithf "There is no stream in the post event, but there is a %A" participant
 
-            sprintf "<c:yellow>%s</c> -> %s  <c:gray>// Called by</c> %s"
+            sprintf "<c:gray>post:</c> <c:yellow>%s</c> -> %s  <c:gray>// Called by</c> %s"
+                event
+                (stream |> formatActiveParticipant)
+                (caller |> formatActiveParticipant)
+
+        | ReadEvent { Caller = caller; Stream = stream } ->
+            let event =
+                match stream with
+                | ActiveParticipant.Stream { StreamType = (DomainType (Stream { EventType = TypeName event })) } -> event
+                | participant -> failwithf "There is no stream in the post event, but there is a %A" participant
+
+            sprintf "<c:gray>read:</c> <c:yellow>%s</c> <- %s  <c:gray>// Called by</c> %s"
                 event
                 (stream |> formatActiveParticipant)
                 (caller |> formatActiveParticipant)

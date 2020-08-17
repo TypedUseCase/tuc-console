@@ -49,6 +49,7 @@ and TucPart =
     | Lifeline of Lifeline
     | ServiceMethodCall of ServiceMethodCall
     | PostEvent of PostEvent
+    | ReadEvent of ReadEvent
     | HandleEventInStream of HandleEventInStream
     | Do of Do
     | LeftNote of Note
@@ -88,6 +89,11 @@ and ServiceMethodCall = {
 }
 
 and PostEvent = {
+    Caller: ActiveParticipant
+    Stream: ActiveParticipant
+}
+
+and ReadEvent = {
     Caller: ActiveParticipant
     Stream: ActiveParticipant
 }

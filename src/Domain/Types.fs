@@ -150,6 +150,10 @@ module DomainType =
         | DomainType (SingleCaseUnion { ConstructorName = "Initiator" }) -> Some ()
         | _ -> None
 
+    let (|Stream|_|) = function
+        | DomainType (Stream { EventType = TypeName eventType } ) -> Some eventType
+        | _ -> None
+
 //
 // Errors
 //
