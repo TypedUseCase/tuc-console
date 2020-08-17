@@ -190,7 +190,7 @@ module ParseError =
             let error =
                 sprintf "There is a wrong event posted to the %s." streamName
                 |> red
-                |> formatLineWithError lineNumber (position + streamName.Length) line
+                |> formatLineWithError lineNumber position line
 
             sprintf "%s\n\n<c:red>%s is a Stream of %s</c>"
                 error
@@ -201,7 +201,7 @@ module ParseError =
             let error =
                 sprintf "There is a wrong event read from the %s." streamName
                 |> red
-                |> formatLineWithError lineNumber (position + streamName.Length) line
+                |> formatLineWithError lineNumber (position + streamName.Length + "[]".Length + " -> ".Length) line
 
             sprintf "%s\n\n<c:red>%s is a Stream of %s</c>"
                 error
