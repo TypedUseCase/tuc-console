@@ -15,6 +15,7 @@ module TypeName =
 type TypeDefinition =
     | Type of TypeName
     | Function of FunctionDefinition
+    | Handler of HandlerDefinition
     | Tuple of TypeDefinition list
     | Option of TypeDefinition
     | List of TypeDefinition
@@ -24,6 +25,11 @@ type TypeDefinition =
 and FunctionDefinition = {
     Arguments: TypeDefinition list
     Returns: TypeDefinition
+}
+
+and HandlerDefinition = {
+    Name: TypeName
+    Handles: TypeDefinition
 }
 
 and GenericDefinition = {
@@ -36,6 +42,11 @@ type MethodDefinition = {
     Function: FunctionDefinition
 }
 
+type HandlerMethodDefinition = {
+    Name: FieldName
+    Handler: HandlerDefinition
+}
+
 [<RequireQualifiedAccess>]
 module TypeDefinition =
     let rec value = function
@@ -44,6 +55,7 @@ module TypeDefinition =
             sprintf "%s -> %s"
                 (args |> List.map value |> String.concat " -> ")
                 (returns |> value)
+        | Handler { Name = name; Handles = handles } -> sprintf "%s<%s>" (name |> TypeName.value) (handles |> value)
         | Tuple values -> values |> List.map value |> String.concat " * "
         | Option ofType -> ofType |> value |> sprintf "%s option"
         | List ofType -> ofType |> value |> sprintf "%s list"
@@ -52,6 +64,12 @@ module TypeDefinition =
             sprintf "%s<%s>"
                 (gType |> TypeName.value)
                 (argument |> value)
+
+type Fields<'FieldType> = Map<FieldName, 'FieldType>
+
+[<RequireQualifiedAccess>]
+module Fields =
+    let empty: Fields<_> = Map.empty
 
 type ResolvedType =
     | ScalarType of ScalarType
@@ -86,8 +104,9 @@ and UnionCase = {
 
 and Record = {
     Name: TypeName
-    Fields: Map<FieldName, TypeDefinition>
-    Methods: Map<FieldName, FunctionDefinition>
+    Fields: Fields<TypeDefinition>
+    Methods: Fields<FunctionDefinition>
+    Handlers: Fields<HandlerDefinition>
 }
 
 and Stream = {
@@ -208,14 +227,16 @@ and Contact = {
             FieldName "Email", Type (email |> ResolvedType.name)
             FieldName "Phone", Type (phone |> ResolvedType.name)
         ]
-        Methods = Map.empty
+        Methods = Fields.empty
+        Handlers = Fields.empty
     }
     let indentityMatchingSet = Record {
         Name = TypeName "IdentityMatchingSet"
         Fields = Map.ofList [
             FieldName "Contact", Type (contact |> ResolvedType.name)
         ]
-        Methods = Map.empty
+        Methods = Fields.empty
+        Handlers = Fields.empty
     }
 
 (* type PersonId = PersonId of Id *)
@@ -275,10 +296,11 @@ type InteractionCollector = {
 
     let interactionCollector = Record {
         Name = TypeName "InteractionCollector"
-        Fields = Map.empty
+        Fields = Fields.empty
         Methods = Map.ofList [
             FieldName "PostInteraction", postInteraction
         ]
+        Handlers = Fields.empty
     }
 
     let postInteractionMethod = {
@@ -292,21 +314,22 @@ type PersonIdentificationEngine = {
 }
  *)
     let onInteractionEvent = {
-        Arguments = [ Type (interactionEvent |> ResolvedType.name) ]
-        Returns = Type (TypeName "unit")
+        Name = interactionEvent |> ResolvedType.name
+        Handles = Type (TypeName "unit")
     }
 
     let personIdentificationEngine = Record {
         Name = TypeName "PersonIdentificationEngine"
-        Fields = Map.empty
-        Methods = Map.ofList [
+        Fields = Fields.empty
+        Methods = Fields.empty
+        Handlers = Map.ofList [
             FieldName "OnInteractionEvent", onInteractionEvent
         ]
     }
 
     let onInteractionEventMethod = {
         Name = FieldName "OnInteractionEvent"
-        Function = onInteractionEvent
+        Handler = onInteractionEvent
     }
 
 (*
@@ -321,10 +344,11 @@ type PersonAggregate = {
 
     let personAggregate = Record {
         Name = TypeName "PersonAggregate"
-        Fields = Map.empty
+        Fields = Fields.empty
         Methods = Map.ofList [
             FieldName "IdentifyPerson", identifyPerson
         ]
+        Handlers = Fields.empty
     }
 
     let identifyPersonMethod = {

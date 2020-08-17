@@ -101,7 +101,7 @@ and ReadEvent = {
 and HandleEventInStream = {
     Stream: ActiveParticipant
     Service: ActiveParticipant
-    Method: MethodDefinition
+    Handler: HandlerMethodDefinition
     Execution: TucPart list
 }
 
@@ -223,7 +223,7 @@ GenericService
     let ``handle event in stream`` =
         Lifeline { Initiator = genericServiceParticipant; Execution = [
             ServiceMethodCall { Caller = genericServiceParticipant; Service = interactionCollectorParticipant; Method = postInteractionMethod; Execution = [
-                HandleEventInStream { Stream = interactionCollectorStreamParticipant; Service = personIdentificationEngineParticipant; Method = onInteractionEventMethod; Execution = [
+                HandleEventInStream { Stream = interactionCollectorStreamParticipant; Service = personIdentificationEngineParticipant; Handler = onInteractionEventMethod; Execution = [
                     Note {
                         Caller = personIdentificationEngineParticipant
                         Lines = [

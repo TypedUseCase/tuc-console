@@ -13,7 +13,7 @@ module Domain =
 
         let execute domain =
             match input with
-            | Input.HasOption "only-parse" _ ->
+            | Input.HasOption "only-resolved" _ ->
                 domain
                 |> parseDomain (input, output)
                 |> List.iter (Dump.parsedDomain output)

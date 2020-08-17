@@ -60,6 +60,12 @@ module Resolver =
         | IsTypeWithoutArgs t ->
             Type (TypeName t.TypeDefinition.DisplayName)
 
+        | IsGenericHandler dataType as handlerType ->
+            Handler {
+                Name = TypeName handlerType.TypeDefinition.DisplayName
+                Handles = dataType |> resolveTypeDefinition
+            }
+
         | IsTypeWithGenericArgs t ->
             GenericType {
                 Type = TypeName t.TypeDefinition.DisplayName;
@@ -92,9 +98,12 @@ module Resolver =
             fields |> Seq.length |> sprintf " - %s.Fields [%d]" parent |> output.Message
 
         fields
-        |> List.map (function
+        |> List.choose (function
             | nameless when nameless.IsNameGenerated -> failwithf "[ResolveError][Record] %A has a nameless field with type: %A." parent (nameless.FieldType |> Dump.formatType)
-            | named -> (FieldName named.DisplayName) => (named.FieldType |> resolveTypeDefinition)
+            | named ->
+                match named.FieldType |> resolveTypeDefinition with
+                | Handler _ -> None
+                | field -> Some (FieldName named.DisplayName => field)
         )
 
     let private collectRecordMethods (TypeName parent): CollectMany<FSharpField, FieldName * FunctionDefinition> = fun output fields ->
@@ -112,6 +121,23 @@ module Resolver =
                 match named.FieldType |> resolveTypeDefinition with
                 | Function func -> FieldName named.DisplayName => func
                 | unexpected -> failwithf "[ResolveError][Record] Unexpected function type %A" unexpected
+        )
+
+    let private collectRecordHandlers (TypeName parent): CollectMany<FSharpField, FieldName * HandlerDefinition> = fun output fields ->
+        let handlers =
+            fields
+            |> List.filter (fun field -> not field.FieldType.IsFunctionType)
+
+        if output.IsVerbose() then
+            handlers |> Seq.length |> sprintf " - %s.Handlers [%d]" parent |> output.Message
+
+        handlers
+        |> List.choose (function
+            | nameless when nameless.IsNameGenerated -> failwithf "[ResolveError][Record] %A has a nameless field with type: %A." parent (nameless.FieldType |> Dump.formatType)
+            | named ->
+                match named.FieldType |> resolveTypeDefinition with
+                | Handler handler -> Some (FieldName named.DisplayName => handler)
+                | _ -> None
         )
 
     let private collectUnionCases parent: CollectMany<FSharpUnionCase, ResolvedType> = fun output cases ->
@@ -184,18 +210,22 @@ module Resolver =
                 if record.NestedEntities |> Seq.isEmpty |> not then
                     failwithf "[ResolveError][Entity] Record nested entities: %A" record.NestedEntities
 
+                let fields = record.FSharpFields |> Seq.toList
+
                 [
                     Record {
                         Name = typeName
                         Fields =
-                            record.FSharpFields
-                            |> Seq.toList
+                            fields
                             |> collectRecordFields typeName output
                             |> Map.ofList
                         Methods =
-                            record.FSharpFields
-                            |> Seq.toList
+                            fields
                             |> collectRecordMethods typeName output
+                            |> Map.ofList
+                        Handlers =
+                            fields
+                            |> collectRecordHandlers typeName output
                             |> Map.ofList
                     }
                 ]

@@ -191,13 +191,13 @@ module Generate =
                     readEvent |> PumlPart.indent indentation
                 ]
 
-            | HandleEventInStream { Stream = stream; Service = service; Method = method; Execution = execution } ->
+            | HandleEventInStream { Stream = stream; Service = service; Handler = handlerMethod; Execution = execution } ->
                 let handlerCalled =
                     sprintf "%s ->> %s: %s(%s)"
                         (stream |> ActiveParticipant.name)
                         (service |> ActiveParticipant.name)
-                        (method.Name |> FieldName.value)
-                        (method.Function.Arguments |> List.map TypeDefinition.value |> String.concat " -> ")
+                        (handlerMethod.Name |> FieldName.value)
+                        (handlerMethod.Handler.Handles |> TypeDefinition.value)
                     |> PumlPart
 
                 [

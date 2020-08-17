@@ -20,7 +20,7 @@ let main argv =
                 Argument.domain
             ]
             Options = [
-                Option.noValue "only-parse" (Some "p") "Whether to just parse domain and dump a results."
+                Option.noValue "only-resolved" (Some "r") "Whether to just show a resolved domain types."
                 Option.noValue "count" (Some "c") "Whether to just show a count of results."
                 Option.noValue "watch" (Some "w") "Whether to watch domain file(s) for changes."
             ]

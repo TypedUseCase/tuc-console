@@ -96,12 +96,12 @@ module Dump =
                 (stream |> formatActiveParticipant)
                 (caller |> formatActiveParticipant)
 
-        | HandleEventInStream { Stream = stream; Service = service; Method = method; Execution = execution } ->
+        | HandleEventInStream { Stream = stream; Service = service; Handler = handlerMethod; Execution = execution } ->
             sprintf "%s\n%s%s.<c:yellow>%s</c>()%s"
                 (stream |> formatActiveParticipant)
                 (indent indentation)
                 (service |> formatActiveParticipant)
-                (method.Name |> FieldName.value)
+                (handlerMethod.Name |> FieldName.value)
                 (execution |> List.formatLines (indent indentation) (formatPart (indentation + indentSize)))
 
         | Do { Actions = [ action ]} -> sprintf "<c:dark-yellow>Do:</c> %s" action

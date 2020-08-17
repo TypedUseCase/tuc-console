@@ -26,6 +26,7 @@ type ParseError =
     | SectionWithoutName of lineNumber: int * position: int * line: string
     | IsNotInitiator of lineNumber: int * position: int * line: string
     | CalledUndefinedMethod of lineNumber: int * position: int * line: string * service: string * definedMethods: string list
+    | CalledUndefinedHandler of lineNumber: int * position: int * line: string * service: string * definedHandlerNames: string list
     | MethodCalledWithoutACaller of lineNumber: int * position: int * line: string
     | EventPostedWithoutACaller of lineNumber: int * position: int * line: string
     | EventReadWithoutACaller of lineNumber: int * position: int * line: string
@@ -181,10 +182,37 @@ module ParseError =
                 |> red
                 |> formatLineWithError lineNumber (position + serviceName.Length) line
 
-            sprintf "%s\n\n<c:red>Service %s has defined methods:%s</c>"
-                error
-                serviceName
-                (definedMethods |> List.formatLines "  - " id)
+            let serviceHas =
+                sprintf "Service %s has" serviceName
+
+            let definedMethods =
+                match definedMethods with
+                | [] -> sprintf "%s not defined any methods." serviceHas
+                | definedMethods ->
+                    sprintf "%s defined methods:%s</c>"
+                        serviceHas
+                        (definedMethods |> List.formatLines "  - " id)
+
+            sprintf "%s\n\n<c:red>%s</c>" error definedMethods
+
+        | CalledUndefinedHandler (lineNumber, position, line, serviceName, definedHandlers) ->
+            let error =
+                sprintf "There is an undefined handler called on the service %s." serviceName
+                |> red
+                |> formatLineWithError lineNumber (position + serviceName.Length) line
+
+            let serviceHas =
+                sprintf "Service %s has" serviceName
+
+            let definedHandlers =
+                match definedHandlers with
+                | [] -> sprintf "%s not defined any handlers." serviceHas
+                | definedHandlers ->
+                    sprintf "%s defined handlers:%s</c>"
+                        serviceHas
+                        (definedHandlers |> List.formatLines "  - " id)
+
+            sprintf "%s\n\n<c:red>%s</c>" error definedHandlers
 
         | WrongEventPostedToStream (lineNumber, position, line, streamName, definedEventType) ->
             let error =
@@ -209,7 +237,7 @@ module ParseError =
                 definedEventType
 
         | MissingEventHandlerMethodCall (lineNumber, position, line) ->
-            "There must be exactly one method call which handles the stream."
+            "There must be exactly one handler call which handles the stream. (It must be on the subsequent line, indented by one level)"
             |> red
             |> formatLineWithError lineNumber position line
 
@@ -398,6 +426,10 @@ module Parser =
         let calledUndefinedMethod indentation service definedMethods line =
             let n, p, c = line |> Line.error indentation
             CalledUndefinedMethod (n, p, c, service, definedMethods)
+
+        let calledUndefinedHandler indentation service definedHandlers line =
+            let n, p, c = line |> Line.error indentation
+            CalledUndefinedHandler (n, p, c, service, definedHandlers)
 
         let wrongEventPostedToStream indentation stream eventType line =
             let n, p, c = line |> Line.error indentation
@@ -739,26 +771,14 @@ module Parser =
                     result {
                         let! execution, lines = lines |> parseExecution stream
 
-                        let! methodCall =
+                        let! handlerCall =
                             match execution with
-                            | [ ServiceMethodCall methodCall ] when methodCall.Caller = stream ->
-                                Ok methodCall
+                            | [ HandleEventInStream handlerCall ] when handlerCall.Stream = stream ->
+                                Ok handlerCall
                             | _ ->
                                 Error <| MissingEventHandlerMethodCall (line |> Line.error indentation)
 
-                        // todo - parsovat Handlery zvlast a tady je kontrolovat
-                        // todo - upravit error pro chybejici handler, aby vic definoval, co se stalo
-                        //      -> chybi handler
-                        //      -> je tam vic nez jen handler
-
-                        let part = HandleEventInStream {
-                            Stream = stream
-                            Service = methodCall.Service
-                            Method = methodCall.Method
-                            Execution = methodCall.Execution
-                        }
-
-                        return part, lines
+                        return HandleEventInStream handlerCall, lines
                     }
 
                 | IsMethodCall (serviceName, methodName) ->
@@ -766,14 +786,14 @@ module Parser =
                     | None, _ ->
                         Error <| MethodCalledWithoutACaller (line |> Line.error indentation)
 
-                    | Some caller, IsParticipant participants (Service { ServiceType = (DomainType (Record { Methods = methods } )) } as service) ->
+                    | Some (Service _ as caller), IsParticipant participants (Service { ServiceType = (DomainType (Record { Methods = methods } )) } as service) ->
                         result {
+                            let methodName = (FieldName methodName)
+
                             let definedMethodNames =
                                 methods
                                 |> Map.keys
                                 |> List.map FieldName.value
-
-                            let methodName = (FieldName methodName)
 
                             let! method =
                                 methods
@@ -786,6 +806,32 @@ module Parser =
                                 Caller = caller
                                 Service = service
                                 Method = { Name = methodName; Function = method }
+                                Execution = execution
+                            }
+
+                            return part, lines
+                        }
+
+                    | Some (ActiveParticipant.Stream _ as caller), IsParticipant participants (Service { ServiceType = (DomainType (Record { Handlers = handlers } )) } as service) ->
+                        result {
+                            let handlerName = (FieldName methodName)
+
+                            let definedMethodNames =
+                                handlers
+                                |> Map.keys
+                                |> List.map FieldName.value
+
+                            let! handler =
+                                handlers
+                                |> Map.tryFind handlerName
+                                |> Result.ofOption (line |> Errors.calledUndefinedHandler indentation serviceName definedMethodNames)
+
+                            let! execution, lines = lines |> parseExecution service
+
+                            let part = HandleEventInStream {
+                                Stream = caller
+                                Service = service
+                                Handler = { Name = handlerName; Handler = handler }
                                 Execution = execution
                             }
 

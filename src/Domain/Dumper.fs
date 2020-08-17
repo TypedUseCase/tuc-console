@@ -206,7 +206,7 @@ module Dump =
         function
         | NameOnly, { Name = name } -> name |> formatTypeName
         | FullType, record ->
-            sprintf "<c:cyan>%s</c> of <c:yellow>{ %s }</c>%s"
+            sprintf "<c:cyan>%s</c> of <c:yellow>{ %s }</c>%s%s"
                 (record.Name |> formatTypeName)
                 (record.Fields
                     |> Map.toList
@@ -222,12 +222,23 @@ module Dump =
                     | [] -> ""
                     | methods -> methods |> List.formatLines "    - " formatMethod
                 )
+                (
+                    match record.Handlers |> Map.toList with
+                    | [] -> ""
+                    | handlers -> handlers |> List.formatLines "    - " formatHandler
+                )
 
     and private formatMethod: Format<FieldName * FunctionDefinition> =
         fun (FieldName name, func) ->
             sprintf "fun <c:cyan>%s</c> = <c:dark-yellow>%s</c>"
                 name
                 (Function func |> TypeDefinition.value)
+
+    and private formatHandler: Format<FieldName * HandlerDefinition> =
+        fun (FieldName name, handler) ->
+            sprintf "<c:cyan>%s</c> = <c:dark-yellow>%s</c>"
+                name
+                (Handler handler |> TypeDefinition.value)
 
     and private formatStream: FormatParsedType<Stream> =
         function
