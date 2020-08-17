@@ -16,7 +16,7 @@ type ParseError =
     // Participants
     | WrongParticipantIndentation of lineNumber: int * position: int * line: string
     | ComponentWithoutParticipants of lineNumber: int * position: int * line: string
-    | UndefinedComponentParticipant of lineNumber: int * position: int * line: string * componentName: string * definedFields: string list
+    | UndefinedComponentParticipant of lineNumber: int * position: int * line: string * componentName: string * definedFields: string list * wantedService: string
     | InvalidParticipantIndentation of lineNumber: int * position: int * line: string
     | InvalidParticipant of lineNumber: int * position: int * line: string
     | UndefinedParticipant of lineNumber: int * position: int * line: string
@@ -112,16 +112,23 @@ module ParseError =
             |> red
             |> formatLineWithError lineNumber position line
 
-        | UndefinedComponentParticipant (lineNumber, position, line, componentName, definedFields) ->
+        | UndefinedComponentParticipant (lineNumber, position, line, componentName, definedFields, wantedService) ->
             let error =
                 sprintf "This participant is not defined as one of the field of the component %s." componentName
                 |> red
                 |> formatLineWithError lineNumber position line
 
-            sprintf "%s\n\n<c:red>Component %s has defined fields:%s</c>"
+            let formattedFields =
+                definedFields
+                |> List.formatAvailableItems
+                    "There are no defined fields"
+                    (List.formatLines "  - " id)
+                    wantedService
+
+            sprintf "%s\n\n<c:red>Component %s has defined fields: %s</c>"
                 error
                 componentName
-                (definedFields |> List.formatLines "  - " id)
+                formattedFields
 
         | InvalidParticipantIndentation (lineNumber, position, line) ->
             "There is an invalid participant indentation."
@@ -564,7 +571,7 @@ module Parser =
                                             |> Map.keys
                                             |> List.map FieldName.value
 
-                                        Error <| UndefinedComponentParticipant (number, position, content, componentName, definedFields)
+                                        Error <| UndefinedComponentParticipant (number, position, content, componentName, definedFields, (participant |> ActiveParticipant.name))
                             )
                             |> Result.sequence
 
