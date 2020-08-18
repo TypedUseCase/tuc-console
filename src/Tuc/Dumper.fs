@@ -74,23 +74,13 @@ module Dump =
                 (indent (indentation - 4))
                 (method.Function.Returns |> TypeDefinition.value)
 
-        | PostEvent { Caller = caller; Stream = stream } ->
-            let event =
-                match stream with
-                | ActiveParticipant.Stream { StreamType = (DomainType (Stream { EventType = TypeName event })) } -> event
-                | participant -> failwithf "There is no stream in the post event, but there is a %A" participant
-
+        | PostEvent { Caller = caller; Stream = stream; Event = { Original = event } } ->
             sprintf "<c:gray>post:</c> <c:yellow>%s</c> -> %s  <c:gray>// Called by</c> %s"
                 event
                 (stream |> formatActiveParticipant)
                 (caller |> formatActiveParticipant)
 
-        | ReadEvent { Caller = caller; Stream = stream } ->
-            let event =
-                match stream with
-                | ActiveParticipant.Stream { StreamType = (DomainType (Stream { EventType = TypeName event })) } -> event
-                | participant -> failwithf "There is no stream in the post event, but there is a %A" participant
-
+        | ReadEvent { Caller = caller; Stream = stream; Event = { Original = event } } ->
             sprintf "<c:gray>read:</c> <c:yellow>%s</c> <- %s  <c:gray>// Called by</c> %s"
                 event
                 (stream |> formatActiveParticipant)

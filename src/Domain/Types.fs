@@ -47,24 +47,6 @@ type HandlerMethodDefinition = {
     Handler: HandlerDefinition
 }
 
-[<RequireQualifiedAccess>]
-module TypeDefinition =
-    let rec value = function
-        | Type name -> name |> TypeName.value
-        | Function { Arguments = args; Returns = returns } ->
-            sprintf "%s -> %s"
-                (args |> List.map value |> String.concat " -> ")
-                (returns |> value)
-        | Handler { Name = name; Handles = handles } -> sprintf "%s<%s>" (name |> TypeName.value) (handles |> value)
-        | Tuple values -> values |> List.map value |> String.concat " * "
-        | Option ofType -> ofType |> value |> sprintf "%s option"
-        | List ofType -> ofType |> value |> sprintf "%s list"
-        | GenericParameter parameter -> parameter |> TypeName.value |> sprintf "'%s"
-        | GenericType { Type = gType; Argument = argument } ->
-            sprintf "%s<%s>"
-                (gType |> TypeName.value)
-                (argument |> value)
-
 type Fields<'FieldType> = Map<FieldName, 'FieldType>
 
 [<RequireQualifiedAccess>]
@@ -115,6 +97,14 @@ and Stream = {
 }
 
 [<RequireQualifiedAccess>]
+module UnionCase =
+    let name ({ Name = name }: UnionCase) = name
+
+[<RequireQualifiedAccess>]
+module SingleCaseUnion =
+    let name ({ Name = name }: SingleCaseUnion) = name
+
+[<RequireQualifiedAccess>]
 module ScalarType =
     let name = function
         | String -> TypeName "string"
@@ -122,6 +112,14 @@ module ScalarType =
         | Float -> TypeName "float"
         | Bool -> TypeName "bool"
         | Unit -> TypeName "unit"
+
+    let parse = function
+        | "string" -> Some String
+        | "int" -> Some Int
+        | "float" -> Some Float
+        | "bool" -> Some Bool
+        | "unit" -> Some Unit
+        | _ -> None
 
     let isScalar = function
         | "string"
@@ -157,6 +155,28 @@ module ResolvedType =
         | DiscriminatedUnion _ -> "DiscriminatedUnion"
         | Stream _ -> "Stream"
         | Unresolved _ -> "Unresolved"
+
+[<RequireQualifiedAccess>]
+module TypeDefinition =
+    let rec value = function
+        | Type name -> name |> TypeName.value
+        | Function { Arguments = args; Returns = returns } ->
+            sprintf "%s -> %s"
+                (args |> List.map value |> String.concat " -> ")
+                (returns |> value)
+        | Handler { Name = name; Handles = handles } -> sprintf "%s<%s>" (name |> TypeName.value) (handles |> value)
+        | Tuple values -> values |> List.map value |> String.concat " * "
+        | Option ofType -> ofType |> value |> sprintf "%s option"
+        | List ofType -> ofType |> value |> sprintf "%s list"
+        | GenericParameter parameter -> parameter |> TypeName.value |> sprintf "'%s"
+        | GenericType { Type = gType; Argument = argument } ->
+            sprintf "%s<%s>"
+                (gType |> TypeName.value)
+                (argument |> value)
+
+    let (|IsScalar|_|) = function
+        | Type (TypeName name) -> name |> ScalarType.parse
+        | _ -> None
 
 type DomainType = DomainType of ResolvedType
 

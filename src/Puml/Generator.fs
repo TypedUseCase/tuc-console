@@ -157,12 +157,7 @@ module Generate =
                     yield methodReturns |> PumlPart.indent indentation
                 ]
 
-            | PostEvent { Caller = caller; Stream = stream } ->
-                let event =
-                    match stream with
-                    | Stream { StreamType = DomainType.Stream event } -> event
-                    | participant -> failwithf "[Logic] There is no stream in the post event, but there is a %A" participant
-
+            | PostEvent { Caller = caller; Stream = stream; Event = { Original = event } } ->
                 let postEvent =
                     sprintf "%s ->> %s: %s"
                         (caller |> ActiveParticipant.name)
@@ -174,12 +169,7 @@ module Generate =
                     postEvent |> PumlPart.indent indentation
                 ]
 
-            | ReadEvent { Caller = caller; Stream = stream } ->
-                let event =
-                    match stream with
-                    | Stream { StreamType = DomainType.Stream event } -> event
-                    | participant -> failwithf "[Logic] There is no stream in the read event, but there is a %A" participant
-
+            | ReadEvent { Caller = caller; Stream = stream; Event = { Original = event } } ->
                 let readEvent =
                     sprintf "%s ->> %s: %s"
                         (stream |> ActiveParticipant.name)

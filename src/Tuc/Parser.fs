@@ -30,8 +30,6 @@ type ParseError =
     | MethodCalledWithoutACaller of lineNumber: int * position: int * line: string
     | EventPostedWithoutACaller of lineNumber: int * position: int * line: string
     | EventReadWithoutACaller of lineNumber: int * position: int * line: string
-    | WrongEventPostedToStream of lineNumber: int * position: int * line: string * stream: string * definedEvent: string
-    | WrongEventReadFromStream of lineNumber: int * position: int * line: string * stream: string * definedEvent: string
     | MissingEventHandlerMethodCall of lineNumber: int * position: int * line: string
     | InvalidMultilineNote of lineNumber: int * position: int * line: string
     | InvalidMultilineLeftNote of lineNumber: int * position: int * line: string
@@ -48,6 +46,11 @@ type ParseError =
     | LoopMustHaveBody of lineNumber: int * position: int * line: string
     | NoteWithoutACaller of lineNumber: int * position: int * line: string
     | UnknownPart of lineNumber: int * position: int * line: string
+
+    // Others
+    | WrongEventName of lineNumber: int * position: int * line: string * message: string
+    | UndefinedEventType of lineNumber: int * position: int * line: string
+    | WrongEvent of lineNumber: int * position: int * line: string * definedCases: string list
 
 [<RequireQualifiedAccess>]
 module ParseError =
@@ -214,28 +217,6 @@ module ParseError =
 
             sprintf "%s\n\n<c:red>%s</c>" error definedHandlers
 
-        | WrongEventPostedToStream (lineNumber, position, line, streamName, definedEventType) ->
-            let error =
-                sprintf "There is a wrong event posted to the %s." streamName
-                |> red
-                |> formatLineWithError lineNumber position line
-
-            sprintf "%s\n\n<c:red>%s is a Stream of %s</c>"
-                error
-                streamName
-                definedEventType
-
-        | WrongEventReadFromStream (lineNumber, position, line, streamName, definedEventType) ->
-            let error =
-                sprintf "There is a wrong event read from the %s." streamName
-                |> red
-                |> formatLineWithError lineNumber (position + streamName.Length + "[]".Length + " -> ".Length) line
-
-            sprintf "%s\n\n<c:red>%s is a Stream of %s</c>"
-                error
-                streamName
-                definedEventType
-
         | MissingEventHandlerMethodCall (lineNumber, position, line) ->
             "There must be exactly one handler call which handles the stream. (It must be on the subsequent line, indented by one level)"
             |> red
@@ -315,6 +296,33 @@ module ParseError =
             "There is an unknown part or an undefined participant. (Or wrongly indented)"
             |> red
             |> formatLineWithError lineNumber position line
+
+        // others
+
+        | WrongEventName (lineNumber, position, line, message) ->
+            sprintf "There is a wrong event - %s." message
+            |> red
+            |> formatLineWithError lineNumber position line
+
+        | UndefinedEventType (lineNumber, position, line) ->
+            "There is an undefined event."
+            |> red
+            |> formatLineWithError lineNumber position line
+
+        | WrongEvent (lineNumber, position, line, cases) ->
+            let error =
+                "There is no such a case for an event."
+                |> red
+                |> formatLineWithError lineNumber position line
+
+            let defineCases =
+                match cases with
+                | [] -> "Event does not have defined any more cases."
+                | cases ->
+                    sprintf "Event has defined cases:%s"
+                        (cases |> List.formatLines "  - " id)
+
+            sprintf "%s\n\n<c:red>%s</c>" error defineCases
 
 [<RequireQualifiedAccess>]
 module Parser =
@@ -431,13 +439,16 @@ module Parser =
             let n, p, c = line |> Line.error indentation
             CalledUndefinedHandler (n, p, c, service, definedHandlers)
 
-        let wrongEventPostedToStream indentation stream eventType line =
+        let wrongEventName indentation line =
             let n, p, c = line |> Line.error indentation
-            WrongEventPostedToStream (n, p, c, stream, eventType)
 
-        let wrongEventReadFromStream indentation stream eventType line =
+            function
+            | EventError.Empty -> WrongEventName (n, p, c, "it has empty name")
+            | EventError.WrongFormat -> WrongEventName (n, p, c, "it has a wrong format (it must not start/end with . and not contains any spaces)")
+
+        let wrongEvent indentation line cases =
             let n, p, c = line |> Line.error indentation
-            WrongEventReadFromStream (n, p, c, stream, eventType)
+            WrongEvent (n, p, c, cases)
 
     type private ParseResult<'TucItem> = {
         Item: 'TucItem
@@ -661,7 +672,7 @@ module Parser =
     [<RequireQualifiedAccess>]
     module private Parts =
         type private Participants = Participants of Map<string, ActiveParticipant>
-        type private ParseParts = MF.ConsoleApplication.Output -> TucName -> Participants -> IndentationLevel -> Line list -> Result<TucPart list, ParseError>
+        type private ParseParts = MF.ConsoleApplication.Output -> TucName -> Participants -> DomainTypes -> IndentationLevel -> Line list -> Result<TucPart list, ParseError>
 
         let private (|IsParticipant|_|) (Participants participants) token =
             participants |> Map.tryFind token
@@ -704,9 +715,95 @@ module Parser =
             | DomainType (SingleCaseUnion { ConstructorName = "Initiator" }) -> Ok ()
             | _ -> Error <| IsNotInitiator (line |> Line.error indentation)
 
+        let rec private assertIsOfEventType (output: MF.ConsoleApplication.Output) indentation line (DomainTypes domainTypes) eventType (event: Event) =
+            let isDebug = output.IsDebug()
+            if isDebug then
+                output.Message (String.replicate 60 "." |> sprintf "<c:yellow>%s</c>")
+                output.Message <| sprintf "Event: %A" event
+
+            let currentPosition currentPath =
+                (indentation |> Indentation.size)
+                + (currentPath |> String.concat ".").Length
+                |> Indentation
+
+            let casesNames cases =
+                cases
+                |> List.map (fst >> TypeName.value)
+
+            let caseTypeByName indentation cases eventName =
+                cases
+                |> List.tryFind (fst >> TypeName.value >> (=) eventName)
+                |> Option.map snd
+                |> Result.ofOption (Errors.wrongEvent indentation line (cases |> casesNames))
+
+            let debugChecking eventName =
+                if isDebug then output.Message <| sprintf "\n<c:purple>Checking</c> <c:yellow>%s</c>" eventName
+
+            let rec assertType cases currentPath = function
+                | [] -> Error <| Errors.wrongEventName indentation line EventError.Empty
+
+                | [ eventName ] ->
+                    if isDebug then output.Message "<c:gray>// the end of path</c>"
+
+                    eventName
+                    |> tee debugChecking
+                    |> caseTypeByName (currentPosition currentPath) cases
+                    |> Result.map ignore
+
+                | eventName :: path ->
+                    result {
+                        eventName |> debugChecking
+                        let currentPath = eventName :: currentPath
+
+                        let! case =
+                            eventName
+                            |> caseTypeByName (currentPosition currentPath) cases
+
+                        let cases =
+                            match case with
+                            | DomainType (DiscriminatedUnion { Cases = cases }) ->
+                                cases
+                                |> List.choose (function
+                                    | { Name = name; Argument = TypeDefinition.IsScalar scalar } ->
+                                        Some (name, DomainType (ScalarType scalar))
+
+                                    | { Name = name; Argument = (Type arg) } ->
+                                        domainTypes
+                                        |> Map.tryFind arg
+                                        |> Option.map (fun argType -> name, DomainType argType)
+
+                                    | _ -> None
+                                )
+                            | _ -> []
+
+                        if isDebug then
+                            output.Message <| sprintf " -> [Ok] <c:gray>go deeper to [%s] ...</c>" (cases |> casesNames |> String.concat "; ")
+
+                        return! path |> assertType cases currentPath
+                    }
+
+            event.Path |> assertType [ eventType |> DomainType.name, eventType ] []
+
+        let private assertEvent output indentation line domainTypes eventTypeName eventName = result {
+            let! event =
+                eventName
+                |> Event.ofString
+                |> Result.mapError (Errors.wrongEventName indentation line)
+
+            let! eventType =
+                match domainTypes with
+                | HasDomainType eventTypeName eventType -> Ok eventType
+                | _ -> Error <| UndefinedEventType (line |> Line.error indentation)
+
+            do! event |> assertIsOfEventType output indentation line domainTypes eventType
+
+            return event
+        }
+
         let rec private parsePart
             (output: MF.ConsoleApplication.Output)
             participants
+            domainTypes
             indentationLevel
             indentation
             caller
@@ -714,7 +811,7 @@ module Parser =
             line: Result<TucPart * Line list, _> =
 
             let parsePart =
-                parsePart output participants indentationLevel
+                parsePart output participants domainTypes indentationLevel
 
             /// Parses an execution of a caller, it goes as deep as possible, starting at 1 level deeper than current indenation.
             let parseExecution caller lines = result {
@@ -1015,14 +1112,16 @@ module Parser =
                 | None, _ ->
                     Error <| EventPostedWithoutACaller (line |> Line.error indentation)
 
-                | Some caller, IsParticipant participants (ActiveParticipant.Stream { StreamType = DomainType.Stream eventType } as stream) ->
+                | Some caller, IsParticipant participants (ActiveParticipant.Stream { StreamType = DomainType.Stream eventTypeName } as stream) ->
                     result {
-                        if eventName <> eventType then
-                            return! line |> Errors.wrongEventPostedToStream indentation streamName eventType |> Error
+                        let! event =
+                            eventName
+                            |> assertEvent output indentation line domainTypes eventTypeName
 
                         let part = PostEvent {
                             Caller = caller
                             Stream = stream
+                            Event = event
                         }
 
                         return part, lines
@@ -1038,17 +1137,20 @@ module Parser =
                 | None, _ ->
                     Error <| EventReadWithoutACaller (line |> Line.error indentation)
 
-                | Some caller, IsParticipant participants (ActiveParticipant.Stream { StreamType = DomainType.Stream eventType } as stream) ->
+                | Some caller, IsParticipant participants (ActiveParticipant.Stream { StreamType = DomainType.Stream eventTypeName } as stream) ->
                     result {
-                        if eventName <> eventType then
-                            return! line |> Errors.wrongEventReadFromStream indentation streamName eventType |> Error
+                        let! event =
+                            eventName
+                            |> assertEvent output indentation line domainTypes eventTypeName
 
                         let part = ReadEvent {
                             Caller = caller
                             Stream = stream
+                            Event = event
                         }
 
                         return part, lines
+
                     }
                 | _ ->
                     let participantIndentation =
@@ -1072,12 +1174,12 @@ module Parser =
                         |> parseBodyParts (part :: body) parsePart
                 }
 
-        let rec private parseParts parts depth: ParseParts = fun output tucName participants indentationLevel lines ->
+        let rec private parseParts parts depth: ParseParts = fun output tucName participants domainTypes indentationLevel lines ->
             let currentIndentation =
                 Indentation ((depth |> Depth.value) * (indentationLevel |> IndentationLevel.size))
 
             let parseParts parts depth lines =
-                parseParts parts depth output tucName participants indentationLevel lines
+                parseParts parts depth output tucName participants domainTypes indentationLevel lines
 
             match lines with
             | [] ->
@@ -1096,7 +1198,7 @@ module Parser =
                 result {
                     let! part, lines =
                         line
-                        |> parsePart output participants indentationLevel currentIndentation None lines
+                        |> parsePart output participants domainTypes indentationLevel currentIndentation None lines
 
                     return! lines |> parseParts (part :: parts) depth
                 }
@@ -1104,7 +1206,7 @@ module Parser =
             | line :: _ ->
                 Error <| TooMuchIndented (line |> Line.error (indentationLevel |> IndentationLevel.indentation))
 
-        let parse tucName participants: ParseLines<TucPart list> = fun output indentationLevel lines ->
+        let parse tucName participants domainTypes: ParseLines<TucPart list> = fun output indentationLevel lines ->
             match lines with
             | [] -> Error <| MissingUseCase tucName
 
@@ -1119,7 +1221,7 @@ module Parser =
 
                     let! parts =
                         lines
-                        |> parseParts [] (Depth 0) output tucName participants indentationLevel
+                        |> parseParts [] (Depth 0) output tucName participants domainTypes indentationLevel
 
                     return { Item = parts; Lines = [] }
                 }
@@ -1142,7 +1244,7 @@ module Parser =
 
             let! { Item = parts } =
                 lines
-                |> Parts.parse name participants output indentationLevel
+                |> Parts.parse name participants domainTypes output indentationLevel
 
             return {
                 Name = name
