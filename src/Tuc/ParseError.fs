@@ -143,7 +143,7 @@ module ParseError =
             |> formatLineWithError lineNumber position line
 
         | UndefinedParticipant (lineNumber, position, line) ->
-            "There is an undefined participant. (It is not defined in the given Domain types)"
+            "There is an undefined participant. (It is not defined in the given Domain types, or it is not defined as a Record.)"
             |> red
             |> formatLineWithError lineNumber position line
 

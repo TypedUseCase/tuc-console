@@ -1,0 +1,10 @@
+tuc too deep Interaction
+participants
+    GenericService consents
+    InteractionCollector consents
+    [InteractionStream] consents
+
+section InteractionEvent.Interaction.Interaction
+GenericService
+    InteractionCollector.Post
+        InteractionEvent.Interaction.Interaction -> [InteractionStream]

@@ -1,0 +1,10 @@
+tuc Undefined rejection reason
+participants
+    GenericService consents
+    InteractionCollector consents
+    [InteractionStream] consents
+
+section Rejected by undefined boo
+GenericService
+    InteractionCollector.Post
+        InteractionEvent.Rejected.UserRejected.Boo -> [InteractionStream]

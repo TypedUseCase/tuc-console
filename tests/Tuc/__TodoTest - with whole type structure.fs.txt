@@ -1,0 +1,164 @@
+module MF.TucConsole.Test.Tuc.Parser
+
+open Expecto
+open System.IO
+
+open MF.Tuc
+
+let (</>) a b = Path.Combine(a, b)
+
+let expectResult expected actual description =
+    match expected, actual with
+    | Ok expected, Ok actual -> Expect.equal actual expected description
+    | Error expected, Error actual -> Expect.equal actual expected description
+    | Error _, Ok success -> failtestf "Error was expected, but it results in ok.\n%A" success
+    | Ok _, Error error -> failtestf "Success was expected, but it results in error.\n%A" error
+
+module Domain =
+    open MF.Domain
+    open ErrorHandling
+
+    let private orFail formatError = function
+        | Ok ok -> ok
+        | Error error -> error |> formatError |> failtestf "%s"
+
+    let parseDomainTypes output domain =
+        result {
+            let! resolvedTypes =
+                domain
+                |> Parser.parse output
+                |> List.singleton
+                |> Resolver.resolve output
+
+            return!
+                resolvedTypes
+                |> Checker.check output
+        }
+        |> orFail (List.map TypeName.value >> String.concat "\n  - " >> sprintf "Unresolved types:\n%s")
+
+[<RequireQualifiedAccess>]
+module Event =
+    open MF.Domain
+
+    type Case = {
+        Description: string
+        Domain: string
+        Tuc: string
+        Expected: Result<Tuc list, ParseError>
+    }
+
+    let case description tuc expected =
+        let path = "./Tuc/Fixtures/event"
+        {
+            Description = description
+            Domain = path </> "domain.fsx"
+            Tuc = path </> tuc
+            Expected = expected
+        }
+
+    let provider: Case list =
+        let genericService = Service {
+            Domain = "consents"
+            Context = "GenericService"
+            Alias = "Generic Service"
+            ServiceType =
+            DomainType (
+                SingleCaseUnion {
+                    Name = TypeName "GenericService"
+                    ConstructorName = "Initiator"
+                    ConstructorArgument = Type (TypeName "unit")
+                }
+            )
+        }
+        let interactionCollector = Service {
+            Domain = "consents"
+            Context = "InteractionCollector"
+            Alias = "InteractionCollector"
+            ServiceType =
+            DomainType (
+                Record {
+                    Name = TypeName "InteractionCollector"
+                    Fields = Fields.empty
+                    Methods = Map.ofList [
+                        FieldName "Post", {
+                            Arguments = [ Type (TypeName "InteractionEvent") ]
+                            Returns = Type (TypeName "unit")
+                        }
+                    ]
+                    Handlers = Fields.empty
+                }
+            )
+        }
+        let interactionStream = ActiveParticipant.Stream {
+            Domain = "consents"
+            Context = "InteractionStream"
+            Alias = "InteractionStream"
+            StreamType =
+            DomainType (
+                Stream {
+                    Name = TypeName "InteractionStream"
+                    EventType = TypeName "InteractionEvent"
+                }
+            )
+        }
+
+        let participants = [
+            Participant genericService
+            Participant interactionCollector
+            Participant interactionStream
+        ]
+
+        [
+
+            case "Valid cases" "valid.tuc" (Ok [
+                {
+                    Name = TucName "Valid use case"
+                    Participants = participants
+                    Parts = [
+                        Section { Value = "InteractionEvent" }
+                        Lifeline {
+                            Initiator = genericService
+                            Execution = [
+                                ServiceMethodCall {
+                                    Caller = genericService
+                                    Service = interactionCollector
+                                    Method = { Name = FieldName "Post"; Function = "... todo ..." }
+                                    Execution = []
+                                }
+                            ]
+                        }
+
+                        Section { Value = "InteractionEvent.Confirmed" }
+
+                        Section { Value = "InteractionEvent.Other" }
+
+                        Section { Value = "InteractionEvent.Interaction" }
+
+                        Section { Value = "InteractionEvent.Rejected Foo" }
+
+                    ]
+                }
+            ])
+        ]
+
+    open MF.Tuc.Parser
+
+    let test output { Domain = domain; Tuc = tuc; Expected = expected; Description = description } =
+        let domainTypes =
+            domain
+            |> Domain.parseDomainTypes output
+
+        let result =
+            tuc
+            |> Parser.parse output domainTypes
+
+        expectResult result expected description
+
+[<Tests>]
+let fooTests =
+    let output = MF.ConsoleApplication.Output.console
+
+    testList "Tuc.Parser" [
+        testCase "should parse events" <| fun _ ->
+            Event.provider |> List.iter (Event.test output)
+    ]
