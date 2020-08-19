@@ -33,7 +33,14 @@
 
   <ItemGroup>
     <Compile Include="src/Tuc/Types.fs" />
+    <Compile Include="src/Tuc/ParseError.fs" />
+
+    <!-- Parser -->
+    <Compile Include="src/Tuc/ParserTypes.fs" />
+    <Compile Include="src/Tuc/Assert.fs" />
     <Compile Include="src/Tuc/Parser.fs" />
+    <!-- /Parser -->
+
     <Compile Include="src/Tuc/Dumper.fs" />
   </ItemGroup>
 

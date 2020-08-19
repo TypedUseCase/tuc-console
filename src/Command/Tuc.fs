@@ -7,6 +7,7 @@ open MF.TucConsole.Console
 [<RequireQualifiedAccess>]
 module Tuc =
     open MF.Tuc
+    open MF.Tuc.Parser
     open ErrorHandling
 
     let check: ExecuteCommand = fun (input, output) ->
