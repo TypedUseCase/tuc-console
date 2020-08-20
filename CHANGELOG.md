@@ -9,6 +9,7 @@
 - Rename a `only-parse` (`-p`) option to `only-resolved` (`-r`) in `domain:check` command
 - Add domain type for `Handler`
 - Allow to use FQ name for events and use deeper event name
+- Allow to check multiple .tuc files in a dir at once
 
 ## 0.1.0 - 2020-08-12
 - Initial implementation

@@ -44,7 +44,7 @@ module Domain =
         | Input.HasOption "watch" _ ->
             let path, watchSubdirs =
                 match domain with
-                | SingleFile file -> file, WatchSubdirs.No
+                | File file -> file, WatchSubdirs.No
                 | Dir (dir, _) -> dir, WatchSubdirs.Yes
 
             (path, "*.fsx")

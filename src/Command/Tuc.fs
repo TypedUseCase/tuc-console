@@ -12,7 +12,7 @@ module Tuc =
 
     let check: ExecuteCommand = fun (input, output) ->
         let domain = (input, output) |> Input.getDomain
-        let tucFile = (input, output) |> Input.getTuc
+        let tucFileOrDir = (input, output) |> Input.getTucFileOrDir
 
         let baseIndentation =
             if output.IsVerbose() then "[yyyy-mm-dd HH:MM:SS]    ".Length else 0
@@ -26,34 +26,49 @@ module Tuc =
 
             if output.IsVerbose() then output.Section "Parsing Tuc ..."
 
-            match tucFile |> Parser.parse output domainTypes with
-            | Ok tucs ->
-                output.Message <| sprintf "\n<c:gray>%s</c>\n" ("-" |> String.replicate 100)
+            match tucFileOrDir with
+            | File tucFile ->
+                match tucFile |> Parser.parse output domainTypes with
+                | Ok tucs ->
+                    output.Message <| sprintf "\n<c:gray>%s</c>\n" ("-" |> String.replicate 100)
 
-                tucs
-                |> List.iter (Dump.parsedTuc output)
+                    tucs
+                    |> List.iter (Dump.parsedTuc output)
 
-                ExitCode.Success
-            | Error error ->
-                output.Message <| sprintf "\n<c:gray>%s</c>\n" ("-" |> String.replicate 100)
+                    ExitCode.Success
+                | Error error ->
+                    output.Message <| sprintf "\n<c:gray>%s</c>\n" ("-" |> String.replicate 100)
 
-                error
-                |> ParseError.format baseIndentation
-                |> output.Message
-                |> output.NewLine
+                    error
+                    |> ParseError.format baseIndentation
+                    |> output.Message
+                    |> output.NewLine
 
-                ExitCode.Error
+                    ExitCode.Error
+
+            | Dir (_, tucFiles) ->
+                let mutable exitCode = ExitCode.Success
+
+                tucFiles
+                |> List.map (fun tucFile ->
+                    match tucFile |> Parser.parse output domainTypes with
+                    | Ok tucs -> [ tucFile; (tucs |> List.length |> string); "OK"; "" ]
+                    | Error error ->
+                        exitCode <- ExitCode.Error
+                        [ tucFile; "0"; "Error"; error |> ParseError.errorName ]
+                )
+                |> output.Table [ "Tuc file"; "Tucs in file"; "Status"; "Detail" ]
+
+                exitCode
 
         match input with
         | Input.HasOption "watch" _ ->
-            let domainPath, watchDomainSubdirs =
-                match domain with
-                | SingleFile file -> file, WatchSubdirs.No
-                | Dir (dir, _) -> dir, WatchSubdirs.Yes
+            let domainPath, watchDomainSubdirs = domain |> FileOrDir.watch
+            let tucPath, watchTucSubdirs = tucFileOrDir |> FileOrDir.watch
 
             [
-                (tucFile, "*.tuc")
-                |> watch output WatchSubdirs.No (fun _ -> execute None |> ignore)
+                (tucPath, "*.tuc")
+                |> watch output watchTucSubdirs (fun _ -> execute None |> ignore)
 
                 (domainPath, "*.fsx")
                 |> watch output watchDomainSubdirs (fun _ -> execute None |> ignore)
@@ -72,7 +87,7 @@ module Tuc =
     [<RequireQualifiedAccess>]
     type private GeneratePuml =
         | InWatch
-        | Immediately of DomainArgument
+        | Immediately of FileOrDir
 
     let generate: ExecuteCommand = fun (input, output) ->
         let domain = (input, output) |> Input.getDomain
@@ -193,10 +208,7 @@ module Tuc =
 
         match input with
         | Input.HasOption "watch" _ ->
-            let domainPath, watchDomainSubdirs =
-                match domain with
-                | SingleFile file -> file, WatchSubdirs.No
-                | Dir (dir, _) -> dir, WatchSubdirs.Yes
+            let domainPath, watchDomainSubdirs = domain |> FileOrDir.watch
 
             [
                 (tucFile, "*.tuc")

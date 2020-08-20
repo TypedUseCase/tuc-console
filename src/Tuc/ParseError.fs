@@ -322,3 +322,51 @@ module ParseError =
                         (cases |> List.formatLines "  - " id)
 
             sprintf "%s\n\n<c:red>%s</c>" error defineCases
+
+    let errorName = function
+        | MissingTucName -> "Missing Tuc Name"
+        | TucMustHaveName _ -> "Tuc Must Have Name"
+        | MissingParticipants _ -> "Missing Participants"
+        | MissingIndentation _ -> "Missing Indentation"
+        | WrongIndentation _ -> "Wrong Indentation"
+        | WrongIndentationLevel _ -> "Wrong Indentation Level"
+        | TooMuchIndented _ -> "Too Much Indented"
+
+        // Participants
+        | WrongParticipantIndentation _ -> "Wrong Participant Indentation"
+        | ComponentWithoutParticipants _ -> "Component Without Participants"
+        | UndefinedComponentParticipant _ -> "Undefined Component Participant"
+        | InvalidParticipantIndentation _ -> "Invalid Participant Indentation"
+        | InvalidParticipant _ -> "Invalid Participant"
+        | UndefinedParticipant _ -> "Undefined Participant"
+
+        // Parts
+        | MissingUseCase _ -> "Missing Use Case"
+        | SectionWithoutName _ -> "Section Without Name"
+        | IsNotInitiator _ -> "Is Not Initiator"
+        | CalledUndefinedMethod _ -> "Called Undefined Method"
+        | CalledUndefinedHandler _ -> "Called Undefined Handler"
+        | MethodCalledWithoutACaller _ -> "Method Called Without A Caller"
+        | EventPostedWithoutACaller _ -> "Event Posted Without A Caller"
+        | EventReadWithoutACaller _ -> "Event Read Without A Caller"
+        | MissingEventHandlerMethodCall _ -> "Missing Event Handler Method Call"
+        | InvalidMultilineNote _ -> "Invalid Multiline Note"
+        | InvalidMultilineLeftNote _ -> "Invalid Multiline Left Note"
+        | InvalidMultilineRightNote _ -> "Invalid Multiline Right Note"
+        | DoWithoutACaller _ -> "Do Without A Caller"
+        | DoMustHaveActions _ -> "Do Must Have Actions"
+        | IfWithoutCondition _ -> "If Without Condition"
+        | IfMustHaveBody _ -> "If Must Have Body"
+        | ElseOutsideOfIf _ -> "Else Outside Of If"
+        | ElseMustHaveBody _ -> "Else Must Have Body"
+        | GroupWithoutName _ -> "Group Without Name"
+        | GroupMustHaveBody _ -> "Group Must Have Body"
+        | LoopWithoutCondition _ -> "Loop Without Condition"
+        | LoopMustHaveBody _ -> "Loop Must Have Body"
+        | NoteWithoutACaller _ -> "Note Without A Caller"
+        | UnknownPart _ -> "Unknown Part"
+
+        // Others
+        | WrongEventName _ -> "Wrong Event Name"
+        | UndefinedEventType _ -> "Undefined Event Type"
+        | WrongEvent _ -> "Wrong Event"

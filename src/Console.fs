@@ -1,6 +1,7 @@
 namespace MF.TucConsole
 
 module Console =
+    open System.IO
     open MF.ConsoleApplication
 
     let commandHelp lines = lines |> String.concat "\n\n" |> Some
@@ -11,50 +12,72 @@ module Console =
     [<RequireQualifiedAccess>]
     module Argument =
         let domain = Argument.required "domain" "Path to a file or dir containing a domain specification (in F# type notation)."
-        let tuc = Argument.required "tuc" "Path to a .tuc file containing a use-case."
-
-    type DomainArgument =
-        | SingleFile of string
-        | Dir of string * string list
-
-    [<RequireQualifiedAccess>]
-    module Input =
-        open System.IO
-
-        let getDomain ((input, output): IO) =
-            let domain =
-                match input |> Input.getArgumentValueAsString "domain" with
-                | Some fsx when fsx |> File.Exists && fsx.EndsWith ".fsx" ->
-                    SingleFile fsx
-
-                | Some dir when dir |> Directory.Exists ->
-                    Dir (
-                        dir,
-                        [ dir ] |> FileSystem.getAllFiles |> List.filter (fun f -> f.EndsWith ".fsx")
-                    )
-
-                | invalidPath -> failwithf "Path to domain file(s) %A is invalid." invalidPath
-
-            match domain with
-            | SingleFile file -> [[ file ]]
-            | Dir (_, files) -> files |> List.map List.singleton
-            |> output.Options "Domain file(s):"
-
-            domain
-
-        let getTuc ((input, output): IO) =
-            match input |> Input.getArgumentValueAsString "tuc" with
-            | Some tuc when tuc |> File.Exists && tuc.EndsWith ".tuc" ->
-                tuc
-                |> tee (List.singleton >> List.singleton >> output.Options "Tuc file:")
-            | invalidPath -> failwithf "Path to tuc file %A is invalid." invalidPath
-
-    open System.IO
+        let tucFile = Argument.required "tuc" "Path to a .tuc file containing a use-case."
+        let tucFileOrDir = Argument.required "tuc" "Path to a .tuc file or a dir containing .tuc files."
 
     [<RequireQualifiedAccess>]
     type WatchSubdirs =
         | Yes
         | No
+
+    type FileOrDir =
+        | File of string
+        | Dir of string * string list
+
+    [<RequireQualifiedAccess>]
+    module FileOrDir =
+        let parse (extension: string) = function
+            | Some file when file |> File.Exists && file.EndsWith extension ->
+                FileOrDir.File file
+
+            | Some dir when dir |> Directory.Exists ->
+                Dir (
+                    dir,
+                    [ dir ] |> FileSystem.getAllFiles |> List.filter (fun f -> f.EndsWith extension)
+                )
+
+            | invalidPath -> failwithf "Path to file(s) %A is invalid." invalidPath
+
+        let debug output title = output.Options (sprintf "%s file(s):" title) << function
+            | File file -> [[ file ]]
+            | Dir (_, files) -> files |> List.map List.singleton
+
+        let file = function
+            | File file -> Some file
+            | _ -> None
+
+        let files = function
+            | File file -> [ file ]
+            | Dir (_, files) -> files
+
+        let watch = function
+            | File file -> file, WatchSubdirs.No
+            | Dir (dir, _) -> dir, WatchSubdirs.Yes
+
+    [<RequireQualifiedAccess>]
+    module Input =
+        let getDomain ((input, output): IO) =
+            input
+            |> Input.getArgumentValueAsString "domain"
+            |> FileOrDir.parse ".fsx"
+            |> tee (FileOrDir.debug output "Domain")
+
+        let getTuc ((input, output): IO) =
+            let path = input |> Input.getArgumentValueAsString "tuc"
+
+            path
+            |> FileOrDir.parse ".tuc"
+            |> FileOrDir.file
+            |> function
+                | Some file -> file
+                | _ -> failwithf "Path to tuc file %A is invalid." path
+            |> tee (FileOrDir.File >> FileOrDir.debug output "Tuc")
+
+        let getTucFileOrDir ((input, output): IO) =
+            input
+            |> Input.getArgumentValueAsString "tuc"
+            |> FileOrDir.parse ".tuc"
+            |> tee (FileOrDir.debug output "Tuc")
 
     let private runForever = async {
         while true do
@@ -135,14 +158,10 @@ module Console =
     open ErrorHandling
 
     let parseDomain (input, output) domain =
-        let domain =
-            match domain with
-            | Some domain -> domain
-            | _ -> (input, output) |> Input.getDomain
-
         match domain with
-        | SingleFile file -> [ file ]
-        | Dir (_, files) -> files
+        | Some domain -> domain
+        | _ -> (input, output) |> Input.getDomain
+        |> FileOrDir.files
         |> List.map (Parser.parse output)
 
     let checkDomain (input, output) domain =
