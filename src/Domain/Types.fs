@@ -23,7 +23,7 @@ type TypeDefinition =
     | GenericType of GenericDefinition
 
 and FunctionDefinition = {
-    Arguments: TypeDefinition list
+    Argument: TypeDefinition
     Returns: TypeDefinition
 }
 
@@ -52,6 +52,7 @@ type Fields<'FieldType> = Map<FieldName, 'FieldType>
 [<RequireQualifiedAccess>]
 module Fields =
     let empty: Fields<_> = Map.empty
+    let ofList fields: Fields<_> = Map.ofList fields
 
 type ResolvedType =
     | ScalarType of ScalarType
@@ -160,23 +161,29 @@ module ResolvedType =
 module TypeDefinition =
     let rec value = function
         | Type name -> name |> TypeName.value
-        | Function { Arguments = args; Returns = returns } ->
-            sprintf "%s -> %s"
-                (args |> List.map value |> String.concat " -> ")
-                (returns |> value)
+        | Function { Argument = args; Returns = returns } -> sprintf "%s -> %s" (args |> value) (returns |> value)
         | Handler { Name = name; Handles = handles } -> sprintf "%s<%s>" (name |> TypeName.value) (handles |> value)
         | Tuple values -> values |> List.map value |> String.concat " * "
         | Option ofType -> ofType |> value |> sprintf "%s option"
         | List ofType -> ofType |> value |> sprintf "%s list"
         | GenericParameter parameter -> parameter |> TypeName.value |> sprintf "'%s"
-        | GenericType { Type = gType; Argument = argument } ->
-            sprintf "%s<%s>"
-                (gType |> TypeName.value)
-                (argument |> value)
+        | GenericType { Type = gType; Argument = argument } -> sprintf "%s<%s>" (gType |> TypeName.value) (argument |> value)
 
     let (|IsScalar|_|) = function
         | Type (TypeName name) -> name |> ScalarType.parse
         | _ -> None
+
+[<RequireQualifiedAccess>]
+module FunctionDefinition =
+    let fold: FunctionDefinition -> _ = fun { Argument = a; Returns = r } ->
+        let rec folder acc = function
+            | Function { Argument = a; Returns = Function _ as f } -> f |> folder (a :: acc)
+            | Function { Argument = a; Returns = r } -> r :: a :: acc
+            | t -> t :: acc
+
+        match folder [ a ] r with
+        | [] -> failwithf "[Logic] Unexpected case"
+        | returns :: args -> (args |> List.rev), returns
 
 type DomainType = DomainType of ResolvedType
 
@@ -310,7 +317,7 @@ type InteractionCollector = {
 }
  *)
     let postInteraction = {
-        Arguments = [ Type (interactionEvent |> ResolvedType.name) ]
+        Argument = Type (interactionEvent |> ResolvedType.name)
         Returns = Type (commandResult |> ResolvedType.name)
     }
 
@@ -358,7 +365,7 @@ type PersonAggregate = {
 }
  *)
     let identifyPerson = {
-        Arguments = [ Type (indentityMatchingSet |> ResolvedType.name) ]
+        Argument = Type (indentityMatchingSet |> ResolvedType.name)
         Returns = Type (person |> ResolvedType.name)
     }
 

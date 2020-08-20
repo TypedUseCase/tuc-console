@@ -41,10 +41,10 @@ module Resolver =
             |> failwithf "[ResolveError] IsAbbreviation: %s"
 
         | IsFunctionType functionType ->
-            match functionType.GenericArguments |> Seq.toList |> List.map resolveTypeDefinition |> List.rev with
+            match functionType.GenericArguments |> Seq.toList |> List.map resolveTypeDefinition with
             | [] -> failwithf "[ResolveError] Invalid function definition, without any arguments and return value."
-            | returns :: arguments ->
-                Function { Arguments = arguments |> List.rev; Returns = returns }
+            | [ argument; returns ] -> Function { Argument = argument; Returns = returns }
+            | _ -> failwithf "[ResolveError] Invalid function definition, with more then one argument and return value."
 
         | IsTuple tupleType ->
             Tuple (tupleType.GenericArguments |> Seq.toList |> List.map resolveTypeDefinition)

@@ -136,19 +136,23 @@ module Generate =
                 ]
 
             | ServiceMethodCall { Caller = caller; Service = service; Method = method; Execution = execution } ->
+                let arguments, returns =
+                    method.Function
+                    |> FunctionDefinition.fold
+
                 let callMethod =
                     sprintf "%s -> %s ++: %s(%s)"
                         (caller |> ActiveParticipant.name)
                         (service |> ActiveParticipant.name)
                         (method.Name |> FieldName.value)
-                        (method.Function.Arguments |> List.map TypeDefinition.value |> String.concat " -> ")
+                        (arguments |> List.map TypeDefinition.value |> String.concat ", ")
                     |> PumlPart
 
                 let methodReturns =
                     sprintf "%s --> %s --: %s"
                         (service |> ActiveParticipant.name)
                         (caller |> ActiveParticipant.name)
-                        (method.Function.Returns |> TypeDefinition.value)
+                        (returns |> TypeDefinition.value)
                     |> PumlPart
 
                 [
