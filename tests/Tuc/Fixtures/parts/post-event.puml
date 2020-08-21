@@ -1,0 +1,15 @@
+@startuml Post event to stream
+
+== test ==
+
+actor "GenericService" as GenericService <<parts>>
+collections "InputStream" as InputStream <<parts>>
+
+activate GenericService
+GenericService ->> InputStream: InputEvent
+GenericService ->> InputStream: InputEvent.EventA
+GenericService ->> InputStream: InputEvent.EventC.C2
+
+deactivate GenericService
+
+@enduml

@@ -1,0 +1,28 @@
+tuc test
+participants
+    GenericService parts
+
+"> Right note before generic service"
+
+GenericService
+    "Note for generic service"
+
+    """
+    Multi
+    line
+    note
+    """
+
+    ">"
+    Multi
+    line
+    right note
+    ">"
+
+    "<"
+    Multi
+    line
+    left note
+    "<"
+
+"< Left note after generic service"

@@ -1,0 +1,17 @@
+tuc test
+participants
+    GenericService parts
+
+if the weather is nice
+    GenericService
+        if it is over a 30°C
+            do
+                nothing
+                because its to hot
+        else
+            do some work
+
+else
+    if it is raining
+        GenericService
+            do work

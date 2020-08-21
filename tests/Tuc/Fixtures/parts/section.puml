@@ -1,0 +1,20 @@
+@startuml Sections
+
+== Section test ==
+
+actor "GenericService" as GenericService <<parts>>
+
+activate GenericService
+
+== One ==
+
+
+== Two words ==
+
+
+== More words with 42 ==
+
+
+deactivate GenericService
+
+@enduml

@@ -1,0 +1,12 @@
+tuc test
+participants
+    GenericService parts
+
+GenericService
+    // empty lifeline
+
+GenericService
+    do
+        something
+        in the lifeline
+        of the GenericService

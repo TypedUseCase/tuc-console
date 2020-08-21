@@ -1,0 +1,15 @@
+@startuml Read event from stream
+
+== test ==
+
+actor "GenericService" as GenericService <<parts>>
+collections "InputStream" as InputStream <<parts>>
+
+activate GenericService
+InputStream ->> GenericService: InputEvent
+InputStream ->> GenericService: InputEvent.EventA
+InputStream ->> GenericService: InputEvent.EventC.C2
+
+deactivate GenericService
+
+@enduml

@@ -1,0 +1,20 @@
+@startuml Do
+
+== test ==
+
+actor "GenericService" as GenericService <<parts>>
+
+activate GenericService
+note over GenericService
+do: Some stuff
+end note
+note over GenericService
+do:
+    multi
+    line
+    do
+end note
+
+deactivate GenericService
+
+@enduml

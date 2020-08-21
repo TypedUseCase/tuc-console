@@ -1,0 +1,14 @@
+tuc test
+participants
+    GenericService parts
+    StreamListener parts
+    [InputStream] parts
+
+GenericService
+    [InputStream]
+        StreamListener.ReadEvent
+            // no body
+
+    [InputStream]
+        StreamListener.ReadEvent
+            do something with the event
