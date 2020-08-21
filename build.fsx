@@ -16,7 +16,7 @@ type ToolDir =
     | Local of string
 
 // ========================================================================================================
-// === F# / Console Application fake build ======================================================== 1.2.1 =
+// === F# / Console Application fake build ======================================================== 1.3.0 =
 // --------------------------------------------------------------------------------------------------------
 // Options:
 //  - no-clean   - disables clean of dirs in the first step (required on CI)
@@ -267,6 +267,9 @@ Target.create "Run" (fun _ ->
     ==> "Build"
     ==> "Lint"
     ==> "Tests"
-    ==> "Release" <=> "Watch" <=> "Run"
+    ==> "Release"
+
+"Build"
+    ==> "Watch" <=> "Run"
 
 Target.runOrDefaultWithArguments "Build"

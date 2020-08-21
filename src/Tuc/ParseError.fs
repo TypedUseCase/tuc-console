@@ -8,7 +8,6 @@ type ParseError =
     | TucMustHaveName of lineNumber: int * position: int * line: string
     | MissingParticipants
     | MissingIndentation
-    | WrongIndentation of lineNumber: int * position: int * line: string
     | WrongIndentationLevel of indentationLevel: int * lines: string list
     | TooMuchIndented of lineNumber: int * position: int * line: string
 
@@ -16,7 +15,6 @@ type ParseError =
     | WrongParticipantIndentation of lineNumber: int * position: int * line: string
     | ComponentWithoutParticipants of lineNumber: int * position: int * line: string
     | UndefinedComponentParticipant of lineNumber: int * position: int * line: string * componentName: string * definedFields: string list * wantedService: string
-    | InvalidParticipantIndentation of lineNumber: int * position: int * line: string
     | InvalidParticipant of lineNumber: int * position: int * line: string
     | UndefinedParticipant of lineNumber: int * position: int * line: string
 
@@ -88,11 +86,6 @@ module ParseError =
         | MissingIndentation ->
             red "There are no indented line in the tuc file."
 
-        | WrongIndentation (lineNumber, position, line) ->
-            "There is a wrong indentation."
-            |> red
-            |> formatLineWithError lineNumber position line
-
         | WrongIndentationLevel (indentationLevel, lines) ->
             sprintf "<c:red>There is a wrong indentation level on these lines. (It should be multiples of %d leading spaces, which is based on the first indented line in the tuc file):</c>%s"
                 indentationLevel
@@ -132,11 +125,6 @@ module ParseError =
                 error
                 componentName
                 formattedFields
-
-        | InvalidParticipantIndentation (lineNumber, position, line) ->
-            "There is an invalid participant indentation."
-            |> red
-            |> formatLineWithError lineNumber position line
 
         | InvalidParticipant (lineNumber, position, line) ->
             "<c:red>There is an invalid participant. Participant format is:</c> <c:cyan>ServiceName Domain</c> <c:yellow>(as \"alias\")</c> <c:red>(Alias part is optional)</c>"
@@ -324,11 +312,11 @@ module ParseError =
             sprintf "%s\n\n<c:red>%s</c>" error defineCases
 
     let errorName = function
+        // Tuc file
         | MissingTucName -> "Missing Tuc Name"
         | TucMustHaveName _ -> "Tuc Must Have Name"
         | MissingParticipants _ -> "Missing Participants"
         | MissingIndentation _ -> "Missing Indentation"
-        | WrongIndentation _ -> "Wrong Indentation"
         | WrongIndentationLevel _ -> "Wrong Indentation Level"
         | TooMuchIndented _ -> "Too Much Indented"
 
@@ -336,7 +324,6 @@ module ParseError =
         | WrongParticipantIndentation _ -> "Wrong Participant Indentation"
         | ComponentWithoutParticipants _ -> "Component Without Participants"
         | UndefinedComponentParticipant _ -> "Undefined Component Participant"
-        | InvalidParticipantIndentation _ -> "Invalid Participant Indentation"
         | InvalidParticipant _ -> "Invalid Participant"
         | UndefinedParticipant _ -> "Undefined Participant"
 

@@ -12,10 +12,6 @@ type private Indentation = Indentation of int
 type private IndentationLevel = IndentationLevel of Indentation
 
 [<RequireQualifiedAccess>]
-module private Depth =
-    let value (Depth depth) = depth
-
-[<RequireQualifiedAccess>]
 module private Indentation =
     let size (Indentation size) = size
 
@@ -30,6 +26,13 @@ module private Indentation =
 module private IndentationLevel =
     let indentation (IndentationLevel indentation) = indentation
     let size = indentation >> Indentation.size
+
+[<RequireQualifiedAccess>]
+module private Depth =
+    let value (Depth depth) = depth
+    let ofIndentation level indentation =
+        (indentation |> Indentation.size) / (level |> IndentationLevel.size)
+        |> Depth
 
 type private RawLine = {
     Number: int
@@ -93,6 +96,9 @@ module private Line =
     let format ({ Number = number; Original = line }: Line) =
         sprintf "<c:gray>% 3i|</c> %s" number line
 
+    let debug ({ Number = number; Original = line; Depth = depth; Indentation = indentation }: Line) =
+        sprintf "<c:gray>% 3i|</c> %s  <c:gray>// %A | %A</c>" number line depth indentation
+
     let valuei ({ Number = number; Original = line }: Line) =
         sprintf "% 3i| %s" number line
 
@@ -133,6 +139,10 @@ module private ParserPatterns =
 
     let (|LineDepth|_|) (Depth depth): Line -> _ = function
         | { Depth = (Depth lineDepth) } as line when lineDepth = depth -> Some line
+        | _ -> None
+
+    let (|DeeperLine|_|) (Depth depth): Line -> _ = function
+        | { Depth = (Depth lineDepth) } as line when lineDepth > depth -> Some line
         | _ -> None
 
     let (|IndentedLine|_|) (Indentation indentation): Line -> _ = function

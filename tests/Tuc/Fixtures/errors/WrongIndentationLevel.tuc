@@ -1,0 +1,12 @@
+tuc parse error test
+participants
+    GenericService parts
+
+GenericService
+   do nothing
+
+ "Also here"
+
+GenericService
+    group Here is it oke
+     "> And here is it wrong"

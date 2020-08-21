@@ -5,34 +5,71 @@ open System.IO
 
 open MF.Tuc
 
-let (</>) a b = Path.Combine(a, b)
+[<AutoOpen>]
+module Common =
+    open MF.Tuc.Parser
+    open MF.Puml
 
-let expectFile expected actualLines description =
-    Expect.isTrue (expected |> File.Exists) description
+    let (</>) a b = Path.Combine(a, b)
 
-    let expectedLines = expected |> File.ReadAllLines |> List.ofSeq
-    let actualLines = actualLines |> List.ofSeq
+    let expectFile expected actualLines description =
+        Expect.isTrue (expected |> File.Exists) description
 
-    let separator = String.replicate 50 "."
+        let expectedLines = expected |> File.ReadAllLines |> List.ofSeq
+        let actualLines = actualLines |> List.ofSeq
 
-    Expect.equal
-        (actualLines |> List.length)
-        (expectedLines |> List.length)
-        (sprintf "%s\nActual:\n%s\n%s\n%s"
-            description
-            separator
-            (actualLines |> List.mapi (fun i line -> sprintf "% 3i| %s" i line) |> String.concat "\n")
-            separator
+        let separator = String.replicate 50 "."
+
+        Expect.equal
+            (actualLines |> List.length)
+            (expectedLines |> List.length)
+            (sprintf "%s\nActual:\n%s\n%s\n%s"
+                description
+                separator
+                (actualLines |> List.mapi (fun i line -> sprintf "% 3i| %s" i line) |> String.concat "\n")
+                separator
+            )
+
+        expectedLines
+        |> List.iteri (fun i expectedLine ->
+            Expect.equal actualLines.[i] expectedLine (sprintf "%s - error at line: #%d" description i)
         )
 
-    expectedLines
-    |> List.iteri (fun i expectedLine ->
-        Expect.equal actualLines.[i] expectedLine (sprintf "%s - error at line: #%d" description i)
-    )
+    let orFail formatError = function
+        | Ok ok -> ok
+        | Error error -> error |> formatError |> failtestf "%s"
 
-let orFail formatError = function
-    | Ok ok -> ok
-    | Error error -> error |> formatError |> failtestf "%s"
+    type Case = {
+        Description: string
+        Tuc: string
+        Expected: Result<string, ParseError>
+    }
+
+    let case path description tuc expected =
+        {
+            Description = description
+            Tuc = path </> tuc
+            Expected = expected |> Result.map ((</>) path)
+        }
+
+    let test output domainTypes { Tuc = tuc; Expected = expected; Description = description } =
+        let parsedTucs =
+            tuc
+            |> Parser.parse output domainTypes
+
+        match expected, parsedTucs with
+        | Ok expected, Ok actual ->
+            let puml =
+                actual
+                |> Generate.puml output description
+                |> orFail PumlError.format
+                |> Puml.value
+
+            expectFile expected (puml.TrimEnd().Split "\n") description
+
+        | Error expected, Error actual -> Expect.equal actual expected description
+        | Error _, Ok success -> failtestf "%s - Error was expected, but it results in ok.\n%A" description success
+        | Ok _, Error error -> failtestf "%s - Success was expected, but it results in error.\n%A" description error
 
 module Domain =
     open MF.Domain
@@ -54,22 +91,9 @@ module Domain =
 
 [<RequireQualifiedAccess>]
 module Parts =
-    open MF.Domain
-
     let path = "./Tuc/Fixtures/parts"
 
-    type Case = {
-        Description: string
-        Tuc: string
-        Expected: Result<string, ParseError>
-    }
-
-    let case description tuc expected =
-        {
-            Description = description
-            Tuc = path </> tuc
-            Expected = expected |> Result.map ((</>) path)
-        }
+    let case = case path
 
     let provider: Case list =
         [
@@ -95,46 +119,67 @@ module Parts =
             case "If" "if.tuc" (Ok "if.puml")
         ]
 
-    open MF.Tuc.Parser
-    open MF.Puml
+[<RequireQualifiedAccess>]
+module ParseErrors =
+    let path = "./Tuc/Fixtures/errors"
 
-    let test output domainTypes { Tuc = tuc; Expected = expected; Description = description } =
-        let parsedTucs =
-            tuc
-            |> Parser.parse output domainTypes
+    let case = case path
 
-        match expected, parsedTucs with
-        | Ok expected, Ok actual ->
-            let puml =
-                actual
-                |> Generate.puml output description
-                |> orFail PumlError.format
-                |> Puml.value
+    let provider: Case list =
+        [
+            // Tuc file
+            case "MissingTucName" "MissingTucName.tuc" (Error <| MissingTucName)
+            case "TucMustHaveName" "TucMustHaveName.tuc" (Error <| TucMustHaveName (1, 0, "tuc"))
+            case "MissingParticipants"  "MissingParticipants.tuc"  (Error <| MissingParticipants)
+            case "MissingIndentation" "MissingIndentation.tuc" (Error <| MissingIndentation)
+            case "WrongIndentationLevel" "WrongIndentationLevel.tuc" (Error <| WrongIndentationLevel (4, [
+                "  6|    do nothing"
+                "  8|  \"Also here\""
+                " 12|      \"> And here is it wrong\""
+            ]))
+            case "TooMuchIndented" "TooMuchIndented.tuc" (Error <| TooMuchIndented (6, 4, "        \"This is too much indented\""))
 
-            expectFile expected (puml.TrimEnd().Split "\n") description
+            // Participants
+            case "WrongParticipantIndentation" "WrongParticipantIndentation.tuc" (Error <| WrongParticipantIndentation (4, 4, "        StreamListener parts"))
+            case "WrongParticipantIndentation in component" "WrongParticipantIndentation-in-component.tuc" (Error <| WrongParticipantIndentation (4, 8, "            StreamListener parts"))
+            case "ComponentWithoutParticipants" "ComponentWithoutParticipants.tuc" (Error <| ComponentWithoutParticipants (4, 4, "    StreamComponent"))
+            case "UndefinedComponentParticipant" "UndefinedComponentParticipant.tuc" (Error <| UndefinedComponentParticipant (4, 8, "        GenericService parts", "StreamComponent", ["StreamListener"], "GenericService"))
+            case "InvalidParticipant" "InvalidParticipant.tuc" (Error <| InvalidParticipant (3, 4, "    GenericService domain foo bar"))
+            case "UndefinedParticipant in participant definition" "UndefinedParticipant-in-participants.tuc" (Error <| UndefinedParticipant (3, 4, "    UndefinedParticipantDefinition parts"))
+            case "UndefinedParticipant in parts" "UndefinedParticipant-in-parts.tuc" (Error <| UndefinedParticipant (6, 4, "    UndefinedParticipant.Foo"))
 
-        | Error expected, Error actual -> Expect.equal actual expected description
-        | Error _, Ok success -> failtestf "Error was expected, but it results in ok.\n%A" success
-        | Ok _, Error error -> failtestf "Success was expected, but it results in error.\n%A" error
+            // parts
+            case "MissingUseCase" "MissingUseCase.tuc" (Error <| MissingUseCase (TucName "without a use-case"))
+            case "SectionWithoutName" "SectionWithoutName.tuc" (Error <| SectionWithoutName (5, 0, "section"))
+            case "IsNotInitiator" "IsNotInitiator.tuc" (Error <| IsNotInitiator (5, 0, "StreamListener"))
+            case "CalledUndefinedMethod" "CalledUndefinedMethod.tuc" (Error <| CalledUndefinedMethod (7, 4, "    Service.UndefinedMethod", "Service", ["DoSomeWork"]))
+            case "CalledUndefinedHandler" "CalledUndefinedHandler.tuc" (Error <| CalledUndefinedHandler (7, 4, "    StreamListener.UndefinedHandler", "StreamListener", ["ReadEvent"]))
+            case "MethodCalledWithoutACaller" "MethodCalledWithoutACaller.tuc" (Error <| MethodCalledWithoutACaller (5, 0, "Service.Method"))
+            case "EventPostedWithoutACaller" "EventPostedWithoutACaller.tuc" (Error <| EventPostedWithoutACaller (5, 0, "InputEvent -> [InputStream]"))
+            case "EventReadWithoutACaller" "EventReadWithoutACaller.tuc" (Error <| EventReadWithoutACaller (5, 0, "[InputStream] -> InputEvent"))
+            case "MissingEventHandlerMethodCall" "MissingEventHandlerMethodCall.tuc" (Error <| MissingEventHandlerMethodCall (5, 0, "[InputStream]"))
+            case "InvalidMultilineNote" "InvalidMultilineNote.tuc" (Error <| InvalidMultilineNote (6, 4, "    \"\"\""))
+            case "InvalidMultilineLeftNote" "InvalidMultilineLeftNote.tuc" (Error <| InvalidMultilineLeftNote (5, 0, "\"<\""))
+            case "InvalidMultilineRightNote" "InvalidMultilineRightNote.tuc" (Error <| InvalidMultilineRightNote (5, 0, "\">\""))
+            case "DoWithoutACaller" "DoWithoutACaller.tuc" (Error <| DoWithoutACaller (5, 0, "do well.. nothing"))
+            case "DoMustHaveActions" "DoMustHaveActions.tuc" (Error <| DoMustHaveActions (6, 4, "    do"))
+            case "IfWithoutCondition" "IfWithoutCondition.tuc" (Error <| IfWithoutCondition (5, 0, "if"))
+            case "IfMustHaveBody" "IfMustHaveBody.tuc" (Error <| IfMustHaveBody (5, 0, "if true"))
+            case "ElseOutsideOfIf" "ElseOutsideOfIf.tuc" (Error <| ElseOutsideOfIf (5, 0, "else"))
+            case "ElseMustHaveBody" "ElseMustHaveBody.tuc" (Error <| ElseMustHaveBody (8, 4, "    else"))
+            case "GroupWithoutName" "GroupWithoutName.tuc" (Error <| GroupWithoutName (5, 0, "group"))
+            case "GroupMustHaveBody" "GroupMustHaveBody.tuc" (Error <| GroupMustHaveBody (5, 0, "group Without a body"))
+            case "LoopWithoutCondition" "LoopWithoutCondition.tuc" (Error <| LoopWithoutCondition (5, 0, "loop"))
+            case "LoopMustHaveBody" "LoopMustHaveBody.tuc" (Error <| LoopMustHaveBody (5, 0, "loop always"))
+            case "NoteWithoutACaller" "NoteWithoutACaller.tuc" (Error <| NoteWithoutACaller (5, 0, "\"note without a caller\""))
+            case "UnknownPart" "UnknownPart.tuc" (Error <| UnknownPart (5, 0, "basically whaterver here"))
+        ]
 
 [<RequireQualifiedAccess>]
 module Event =
-    open MF.Domain
-
     let path = "./Tuc/Fixtures/event"
 
-    type Case = {
-        Description: string
-        Tuc: string
-        Expected: Result<string, ParseError>
-    }
-
-    let case description tuc expected =
-        {
-            Description = description
-            Tuc = path </> tuc
-            Expected = expected |> Result.map ((</>) path)
-        }
+    let case = case path
 
     let provider: Case list =
         [
@@ -177,31 +222,10 @@ module Event =
             )
         ]
 
-    open MF.Tuc.Parser
-    open MF.Puml
-
-    let test output domainTypes { Tuc = tuc; Expected = expected; Description = description } =
-        let parsedTucs =
-            tuc
-            |> Parser.parse output domainTypes
-
-        match expected, parsedTucs with
-        | Ok expected, Ok actual ->
-            let puml =
-                actual
-                |> Generate.puml output description
-                |> orFail PumlError.format
-                |> Puml.value
-
-            expectFile expected (puml.TrimEnd().Split "\n") description
-
-        | Error expected, Error actual -> Expect.equal actual expected description
-        | Error _, Ok success -> failtestf "Error was expected, but it results in ok.\n%A" success
-        | Ok _, Error error -> failtestf "Success was expected, but it results in error.\n%A" error
-
 [<Tests>]
 let parserTests =
     let output = MF.ConsoleApplication.Output.console
+    let test domainTypes = List.iter (test output domainTypes)
 
     testList "Tuc.Parser" [
         testCase "should parse parts" <| fun _ ->
@@ -209,12 +233,19 @@ let parserTests =
                 Parts.path </> "domain.fsx"
                 |> Domain.parseDomainTypes output
 
-            Parts.provider |> List.iter (Parts.test output domainTypes)
+            Parts.provider |> test domainTypes
 
         testCase "should parse events" <| fun _ ->
             let domainTypes =
                 Event.path </> "domain.fsx"
                 |> Domain.parseDomainTypes output
 
-            Event.provider |> List.iter (Event.test output domainTypes)
+            Event.provider |> test domainTypes
+
+        testCase "should show nice parse errors" <| fun _ ->
+            let domainTypes =
+                ParseErrors.path </> "domain.fsx"
+                |> Domain.parseDomainTypes output
+
+            ParseErrors.provider |> test domainTypes
     ]

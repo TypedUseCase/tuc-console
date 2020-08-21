@@ -1,0 +1,10 @@
+tuc parse error test
+participants
+    GenericService parts
+
+GenericService
+    do nothing
+
+tuc without a use-case
+participants
+    GenericService parts

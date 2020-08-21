@@ -119,7 +119,7 @@ module Parser =
 
                 | _ -> Error <| InvalidParticipant (line |> Line.error indentation)
 
-            | _ -> Error <| InvalidParticipantIndentation (line |> Line.error indentation)
+            | _ -> Error <| WrongParticipantIndentation (line |> Line.error indentation)
 
         let private parseParticipant (domainTypes: DomainTypes) indentationLevel lines line: Result<Participant * Line list, _> =
             let participantIndentation = indentationLevel |> IndentationLevel.indentation
@@ -265,6 +265,8 @@ module Parser =
             lines
             line: Result<TucPart * Line list, _> =
 
+            let currentDepth = indentation |> Depth.ofIndentation indentationLevel
+
             let parsePart =
                 parsePart output participants domainTypes indentationLevel
 
@@ -303,6 +305,9 @@ module Parser =
             }
 
             match line with
+            | DeeperLine currentDepth line ->
+                Error <| TooMuchIndented (line |> Line.error indentation)
+
             | IndentedLine indentation { Tokens = [ singleToken ] } as line ->
                 match singleToken with
                 | IsParticipant participants (Service { ServiceType = serviceType } as participant) ->
@@ -506,12 +511,12 @@ module Parser =
 
                         let! elseBody, lines =
                             match lines with
-                            | KeyWord.Else indentation :: lines ->
+                            | KeyWord.Else indentation as elseLine :: lines ->
                                 result {
                                     let! body, lines = lines |> parseBody (Depth 1)
 
                                     if body |> List.isEmpty then
-                                        return! Error <| ElseMustHaveBody (line |> Line.error indentation)
+                                        return! Error <| ElseMustHaveBody (elseLine |> Line.error indentation)
 
                                     return Some body, lines
                                 }
@@ -649,7 +654,7 @@ module Parser =
                     lines
                     |> parseParts (Section { Value = section } :: parts) depth
 
-            | LineDepth depth line :: lines ->
+            | line :: lines ->
                 result {
                     let! part, lines =
                         line
@@ -657,9 +662,6 @@ module Parser =
 
                     return! lines |> parseParts (part :: parts) depth
                 }
-
-            | line :: _ ->
-                Error <| TooMuchIndented (line |> Line.error (indentationLevel |> IndentationLevel.indentation))
 
         let parse tucName participants domainTypes: ParseLines<TucPart list> = fun output indentationLevel lines ->
             match lines with
@@ -743,7 +745,7 @@ module Parser =
                 if output.IsVeryVerbose() then
                     output.Section "Current tuc lines"
                     currentTucLines
-                    |> List.map Line.format
+                    |> List.map Line.debug
                     |> output.Messages ""
                     |> output.NewLine
 
