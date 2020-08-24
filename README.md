@@ -1,7 +1,7 @@
 TUC console
 ===========
 
-[![Build Status](https://dev.azure.com/MortalFlesh/TucConsole/_apis/build/status/MortalFlesh.TucConsole)](https://dev.azure.com/MortalFlesh/TucConsole/_build/latest?definitionId=1)
+[![Build Status](https://dev.azure.com/MortalFlesh/TucConsole/_apis/build/status/MortalFlesh.tuc-console?branchName=master)](https://dev.azure.com/MortalFlesh/TucConsole/_build/latest?definitionId=11&branchName=master)
 [![Build Status](https://api.travis-ci.com/MortalFlesh/tuc-console.svg?branch=master)](https://travis-ci.com/MortalFlesh/tuc-console)
 
 > Console application for .tuc commands.
