@@ -1,0 +1,14 @@
+tuc Post Event
+participants
+    MainService My as "Main Service"
+    [InteractionStream] My
+
+MainService                                     // MainService is the caller
+    InteractionEvent -> [InteractionStream]     // InteractionEvent is posted to the stream
+
+    // Even concrete events can be posted to the stream
+    InteractionEvent.Confirmed -> [InteractionStream]
+
+    InteractionEvent.Rejected -> [InteractionStream]
+    InteractionEvent.Rejected.Expired -> [InteractionStream]
+    InteractionEvent.Rejected.Rejected -> [InteractionStream]

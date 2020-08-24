@@ -1,0 +1,12 @@
+@startuml lifeline
+
+== Lifeline ==
+
+actor "Main Service" as MainService <<My>>
+
+activate MainService
+note over MainService: this is a lifeline
+
+deactivate MainService
+
+@enduml

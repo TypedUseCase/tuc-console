@@ -1,0 +1,17 @@
+@startuml post-event
+
+== Post Event ==
+
+actor "Main Service" as MainService <<My>>
+collections "InteractionStream" as InteractionStream <<My>>
+
+activate MainService
+MainService ->> InteractionStream: InteractionEvent
+MainService ->> InteractionStream: InteractionEvent.Confirmed
+MainService ->> InteractionStream: InteractionEvent.Rejected
+MainService ->> InteractionStream: InteractionEvent.Rejected.Expired
+MainService ->> InteractionStream: InteractionEvent.Rejected.Rejected
+
+deactivate MainService
+
+@enduml

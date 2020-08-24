@@ -1,0 +1,7 @@
+tuc Loop
+participants
+    MainService My as "Main Service"
+
+loop until it's done
+    MainService
+        do something

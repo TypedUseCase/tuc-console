@@ -1,0 +1,17 @@
+tuc If-else
+participants
+    MainService My as "Main Service"
+
+if the weather is nice
+    MainService
+        if it is over a 30°C
+            do
+                nothing
+                because its to hot
+        else
+            do some work
+
+else
+    if it is raining
+        MainService
+            do work

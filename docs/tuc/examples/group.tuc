@@ -1,0 +1,10 @@
+tuc Group
+participants
+    MainService My as "Main Service"
+
+group Grouped together
+    MainService
+        do something
+
+    MainService
+        do something else

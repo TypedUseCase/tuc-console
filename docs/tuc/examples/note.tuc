@@ -1,0 +1,17 @@
+tuc Note
+participants
+    MainService My as "Main Service"
+
+MainService
+    "this is a note"
+
+    """
+    This is **bold**
+    This is //italics//
+    This is ""monospaced""
+    This is --stroked--
+    This is __underlined__
+    This is ~~waved~~
+    This is <back:cadetblue><size:18>formatted</size></back>
+    <u:red>This</u> is <color #118888>displayed</color> **<color purple>on a </color> <s:red>Main</strike> Service**.
+    """

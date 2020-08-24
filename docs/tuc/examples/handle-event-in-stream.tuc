@@ -1,0 +1,8 @@
+tuc Handle Event in Stream
+participants
+    StreamListener My
+    [InteractionStream] My
+
+[InteractionStream]                     // Stream of the Event type of the handler
+    StreamListener.OnInteractionEvent   // Handler `OnInteractionEvent` is called on the `StreamListener`
+        "this is part of execution"     // This is part of the Handler execution
