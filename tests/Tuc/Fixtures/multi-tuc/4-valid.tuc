@@ -1,0 +1,45 @@
+tuc Correct 1
+participants
+    GenericService parts
+    Service parts
+
+GenericService
+    Service.DoSomeWork
+
+tuc Correct 2
+participants
+    GenericService parts
+    Service parts
+    [InputStream] parts
+    StreamComponent
+        StreamListener parts
+
+[InputStream]
+    StreamListener.ReadEvent
+        do something on event
+
+tuc Correct tuc 3
+participants
+    GenericService parts
+    [InputStream] parts
+
+GenericService
+    if the weather is nice
+        InputEvent.EventA -> [InputStream]
+
+tuc Correct tuc 4
+participants
+    GenericService parts
+    [InputStream] parts
+    StreamListener parts
+
+GenericService
+    [InputStream]
+        StreamListener.ReadEvent
+            [InputStream] -> InputEvent.EventA
+
+            do
+                something with EventA
+                and create EventB out of it
+
+            InputEvent.EventB -> [InputStream]

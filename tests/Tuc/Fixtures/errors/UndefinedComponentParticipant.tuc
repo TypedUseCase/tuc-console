@@ -2,3 +2,4 @@ tuc parse error test
 participants
     StreamComponent
         GenericService parts
+        Service parts

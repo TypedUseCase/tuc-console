@@ -197,6 +197,11 @@ module Validation =
     let ofResult xR :Validation<_, _> =
         xR |> Result.mapError List.singleton
 
+    let ofResults xR :Validation<_, _> =
+        xR
+        |> List.map ofResult
+        |> sequence
+
     let toResult (xV:Validation<_, _>) :Result<_, _> =
         xV
 

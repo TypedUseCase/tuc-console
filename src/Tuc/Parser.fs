@@ -16,7 +16,7 @@ module Parser =
         Lines: Line list
     }
 
-    type private ParseLines<'TucItem> = MF.ConsoleApplication.Output -> IndentationLevel -> Line list -> Result<ParseResult<'TucItem>, ParseError>
+    type private ParseLines<'TucItem> = MF.ConsoleApplication.Output -> IndentationLevel -> Line list -> Result<ParseResult<'TucItem>, ParseError list>
 
     [<RequireQualifiedAccess>]
     module private KeyWord =
@@ -66,7 +66,7 @@ module Parser =
 
     [<RequireQualifiedAccess>]
     module private Participants =
-        type private ParseParticipants = MF.ConsoleApplication.Output -> DomainTypes -> IndentationLevel -> Line list -> Result<Participant list, ParseError>
+        type private ParseParticipants = MF.ConsoleApplication.Output -> DomainTypes -> IndentationLevel -> Line list -> Result<Participant list, ParseError list>
 
         let private parseService serviceName serviceDomain alias indentation line domainTypes =
             let service = Service >> Ok
@@ -121,7 +121,7 @@ module Parser =
 
             | _ -> Error <| WrongParticipantIndentation (line |> Line.error indentation)
 
-        let private parseParticipant (domainTypes: DomainTypes) indentationLevel lines line: Result<Participant * Line list, _> =
+        let private parseParticipant (domainTypes: DomainTypes) indentationLevel lines line: Result<Participant * Line list, ParseError list> =
             let participantIndentation = indentationLevel |> IndentationLevel.indentation
 
             match line |> Line.content with
@@ -138,39 +138,30 @@ module Parser =
                         let! componentParticipants =
                             componentParticipantLines
                             |> List.map (parseActiveParticipant domainTypes componentParticipantIndentation)
-                            |> Result.sequence
+                            |> Validation.ofResults
+                            |> Validation.toResult
 
-                        if componentParticipants |> List.isEmpty then
-                            return! Error <| ComponentWithoutParticipants (line |> Line.error (indentationLevel |> IndentationLevel.indentation))
-
-                        let! _ =
+                        do!
                             componentParticipants
-                            |> List.mapi (fun index participant ->
-                                if participant |> ActiveParticipant.name |> FieldName |> componentFields.ContainsKey
-                                    then Ok ()
-                                    else
-                                        let number, position, content =
-                                            componentParticipantLines.[index]
-                                            |> Line.error componentParticipantIndentation
-
-                                        let definedFields =
-                                            componentFields
-                                            |> Map.keys
-                                            |> List.map FieldName.value
-
-                                        Error <| UndefinedComponentParticipant (number, position, content, componentName, definedFields, (participant |> ActiveParticipant.name))
-                            )
-                            |> Result.sequence
+                            |> Assert.definedComponentParticipants indentationLevel line
+                                componentName
+                                componentParticipantIndentation
+                                componentParticipantLines
+                                componentFields
 
                         return Component { Name = componentName; Participants = componentParticipants }, lines
                     }
-                | _ -> Error <| UndefinedParticipant (line |> Line.error (indentationLevel |> IndentationLevel.indentation))
+                | _ ->
+                    Error [
+                        UndefinedParticipant (line |> Line.error (indentationLevel |> IndentationLevel.indentation))
+                    ]
 
             | _ ->
                 result {
                     let! activeParticipant =
                         line
                         |> parseActiveParticipant domainTypes participantIndentation
+                        |> Validation.ofResult
 
                     return Participant activeParticipant, lines
                 }
@@ -178,7 +169,7 @@ module Parser =
         let rec private parseParticipants participants: ParseParticipants = fun output domainTypes indentationLevel -> function
             | [] ->
                 match participants with
-                | [] -> Error MissingParticipants
+                | [] -> Error [ MissingParticipants ]
                 | participants -> Ok (participants |> List.rev)
 
             | LineDepth (Depth 1) line :: lines ->
@@ -193,10 +184,12 @@ module Parser =
                 }
 
             | line :: _ ->
-                Error <| WrongParticipantIndentation (line |> Line.error (indentationLevel |> IndentationLevel.indentation))
+                Error [
+                    WrongParticipantIndentation (line |> Line.error (indentationLevel |> IndentationLevel.indentation))
+                ]
 
         let parse domainTypes: ParseLines<Participant list> = fun output indentationLevel -> function
-            | [] -> Error MissingParticipants
+            | [] -> Error [ MissingParticipants ]
 
             | KeyWord.Participants :: lines ->
                 result {
@@ -211,7 +204,7 @@ module Parser =
                     return { Item = participants; Lines = lines }
                 }
 
-            | _ -> Error MissingParticipants
+            | _ -> Error [ MissingParticipants ]
 
     [<RequireQualifiedAccess>]
     module private Parts =
@@ -665,7 +658,7 @@ module Parser =
 
         let parse tucName participants domainTypes: ParseLines<TucPart list> = fun output indentationLevel lines ->
             match lines with
-            | [] -> Error <| MissingUseCase tucName
+            | [] -> Error [ MissingUseCase tucName ]
 
             | lines ->
                 result {
@@ -679,6 +672,7 @@ module Parser =
                     let! parts =
                         lines
                         |> parseParts [] (Depth 0) output tucName participants domainTypes indentationLevel
+                        |> Validation.ofResult
 
                     return { Item = parts; Lines = [] }
                 }
@@ -689,11 +683,11 @@ module Parser =
                 match lines with
                 | (KeyWord.Tuc name as line) :: lines ->
                     match name with
-                    | String.IsEmpty -> Error <| TucMustHaveName (line |> Line.error (Indentation 0))
+                    | String.IsEmpty -> Error [ TucMustHaveName (line |> Line.error (Indentation 0)) ]
                     | name -> Ok (TucName name, lines)
 
                 | _ ->
-                    Error <| MissingTucName
+                    Error [ MissingTucName ]
 
             let! { Item = participants; Lines = lines } =
                 lines
@@ -719,11 +713,15 @@ module Parser =
                 | [] -> Ok ()
                 | wrongLines -> Error <| WrongIndentationLevel (indentationLevel, wrongLines |> List.map RawLine.valuei)
 
-    let rec private parseLines (output: MF.ConsoleApplication.Output) domainTypes indentationLevel tucAcc = function
+    let rec private parseLines (output: MF.ConsoleApplication.Output) domainTypes indentationLevel (tucAcc: Result<Tuc, ParseError list> list) = function
         | [] ->
             match tucAcc with
-            | [] -> Error MissingTucName
-            | tuc -> Ok (tuc |> List.rev)
+            | [] -> Error [ MissingTucName ]
+            | tuc ->
+                tuc
+                |> List.rev
+                |> Validation.ofResults
+                |> Result.mapError List.concat
 
         | lines ->
             result {
@@ -749,7 +747,7 @@ module Parser =
                     |> output.Messages ""
                     |> output.NewLine
 
-                let! tuc =
+                let tuc =
                     currentTucLines
                     |> parseTuc output domainTypes indentationLevel
 
@@ -778,12 +776,15 @@ module Parser =
                 | { Indentation = indentation } when indentation |> Indentation.size > 0 ->  Some (IndentationLevel indentation)
                 | _ -> None
             )
-            |> Result.ofOption MissingIndentation
+            |> Result.ofOption [ MissingIndentation ]
 
         if output.IsVerbose() then
             output.Message <| sprintf "[Tuc] Current indentation level is <c:magenta>%d</c>" (indentationLevel |> IndentationLevel.size)
 
-        do! rawLines |> assertLinesIndentation indentationLevel
+        do!
+            rawLines
+            |> assertLinesIndentation indentationLevel
+            |> Validation.ofResult
 
         return!
             rawLines

@@ -1,0 +1,27 @@
+tuc parse error test
+participants
+    StreamComponent
+        GenericService parts
+        Service parts
+
+tuc parse error test 2
+participants
+    StreamComponent
+    GenericService parts
+    Service parts
+
+tuc correct tuc
+participants
+    GenericService parts
+    Service parts
+
+GenericService
+    Service.DoSomeWork
+
+tuc parse error test 3
+participants
+    GenericService parts
+    Service parts
+
+GenericService
+    Service.UndefinedMethod

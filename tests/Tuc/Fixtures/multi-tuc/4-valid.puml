@@ -1,0 +1,62 @@
+@startuml 4 Valid tucs in 1 file
+
+== Correct 1 ==
+
+actor "GenericService" as GenericService <<parts>>
+participant "Service" as Service <<parts>>
+
+activate GenericService
+GenericService -> Service ++: DoSomeWork(Id)
+Service --> GenericService --: WorkResult
+
+deactivate GenericService
+== Correct 2 ==
+
+actor "GenericService" as GenericService <<parts>>
+participant "Service" as Service <<parts>>
+collections "InputStream" as InputStream <<parts>>
+box "StreamComponent"
+    participant "StreamListener" as StreamListener <<parts>>
+end box
+
+activate GenericService
+InputStream ->> StreamListener: ReadEvent(InputEvent)
+    activate StreamListener
+    note over StreamListener
+    do: something on event
+    end note
+    deactivate StreamListener
+
+deactivate GenericService
+== Correct tuc 3 ==
+
+actor "GenericService" as GenericService <<parts>>
+collections "InputStream" as InputStream <<parts>>
+
+activate GenericService
+alt the weather is nice
+    GenericService ->> InputStream: InputEvent.EventA
+end
+
+deactivate GenericService
+== Correct tuc 4 ==
+
+actor "GenericService" as GenericService <<parts>>
+collections "InputStream" as InputStream <<parts>>
+participant "StreamListener" as StreamListener <<parts>>
+
+activate GenericService
+InputStream ->> StreamListener: ReadEvent(InputEvent)
+    activate StreamListener
+    InputStream ->> StreamListener: InputEvent.EventA
+    note over StreamListener
+    do:
+        something with EventA
+        and create EventB out of it
+    end note
+    StreamListener ->> InputStream: InputEvent.EventB
+    deactivate StreamListener
+
+deactivate GenericService
+
+@enduml

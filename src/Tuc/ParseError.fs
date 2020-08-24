@@ -179,7 +179,7 @@ module ParseError =
                 match definedMethods with
                 | [] -> sprintf "%s not defined any methods." serviceHas
                 | definedMethods ->
-                    sprintf "%s defined methods:%s</c>"
+                    sprintf "%s defined methods:%s"
                         serviceHas
                         (definedMethods |> List.formatLines "  - " id)
 

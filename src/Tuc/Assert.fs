@@ -13,6 +13,44 @@ module private Assert =
         | DomainType (SingleCaseUnion { ConstructorName = "Initiator" }) -> Ok ()
         | _ -> Error <| IsNotInitiator (line |> Line.error indentation)
 
+    let definedComponentParticipants
+        indentationLevel
+        line
+        componentName
+        componentParticipantIndentation
+        (componentParticipantLines: Line list)
+        (componentFields: Map<FieldName, _>)
+        componentParticipants
+
+        = result {
+            if componentParticipants |> List.isEmpty then
+                return! Error [
+                    ComponentWithoutParticipants (line |> Line.error (indentationLevel |> IndentationLevel.indentation))
+                ]
+
+            let! _ =
+                componentParticipants
+                |> List.mapi (fun index participant ->
+                    if participant |> ActiveParticipant.name |> FieldName |> componentFields.ContainsKey
+                        then Ok ()
+                        else
+                            let number, position, content =
+                                componentParticipantLines.[index]
+                                |> Line.error componentParticipantIndentation
+
+                            let definedFields =
+                                componentFields
+                                |> Map.keys
+                                |> List.map FieldName.value
+
+                            Error <| UndefinedComponentParticipant (number, position, content, componentName, definedFields, (participant |> ActiveParticipant.name))
+                )
+                |> Validation.ofResults
+                |> Validation.toResult
+
+            return ()
+        }
+
     let rec private assertIsOfEventType (output: MF.ConsoleApplication.Output) indentation line (DomainTypes domainTypes) eventType (event: Event) =
         let isDebug = output.IsDebug()
         if isDebug then
