@@ -1,0 +1,17 @@
+@startuml Initiator's lifeline
+
+== test ==
+
+actor "GenericService" as GenericService <<parts>>
+
+activate GenericService
+note over GenericService
+do:
+    something
+    in the lifeline
+    of the GenericService
+end note
+
+deactivate GenericService
+
+@enduml

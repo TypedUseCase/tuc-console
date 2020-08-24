@@ -136,19 +136,23 @@ module Generate =
                 ]
 
             | ServiceMethodCall { Caller = caller; Service = service; Method = method; Execution = execution } ->
+                let arguments, returns =
+                    method.Function
+                    |> FunctionDefinition.fold
+
                 let callMethod =
                     sprintf "%s -> %s ++: %s(%s)"
                         (caller |> ActiveParticipant.name)
                         (service |> ActiveParticipant.name)
                         (method.Name |> FieldName.value)
-                        (method.Function.Arguments |> List.map TypeDefinition.value |> String.concat " -> ")
+                        (arguments |> List.map TypeDefinition.value |> String.concat ", ")
                     |> PumlPart
 
                 let methodReturns =
                     sprintf "%s --> %s --: %s"
                         (service |> ActiveParticipant.name)
                         (caller |> ActiveParticipant.name)
-                        (method.Function.Returns |> TypeDefinition.value)
+                        (returns |> TypeDefinition.value)
                     |> PumlPart
 
                 [
@@ -157,12 +161,7 @@ module Generate =
                     yield methodReturns |> PumlPart.indent indentation
                 ]
 
-            | PostEvent { Caller = caller; Stream = stream } ->
-                let event =
-                    match stream with
-                    | Stream { StreamType = (DomainType (ResolvedType.Stream { EventType = TypeName event })) } -> event
-                    | participant -> failwithf "[Logic] There is no stream in the post event, but there is a %A" participant
-
+            | PostEvent { Caller = caller; Stream = stream; Event = { Original = event } } ->
                 let postEvent =
                     sprintf "%s ->> %s: %s"
                         (caller |> ActiveParticipant.name)
@@ -174,13 +173,25 @@ module Generate =
                     postEvent |> PumlPart.indent indentation
                 ]
 
-            | HandleEventInStream { Stream = stream; Service = service; Method = method; Execution = execution } ->
+            | ReadEvent { Caller = caller; Stream = stream; Event = { Original = event } } ->
+                let readEvent =
+                    sprintf "%s ->> %s: %s"
+                        (stream |> ActiveParticipant.name)
+                        (caller |> ActiveParticipant.name)
+                        event
+                    |> PumlPart
+
+                [
+                    readEvent |> PumlPart.indent indentation
+                ]
+
+            | HandleEventInStream { Stream = stream; Service = service; Handler = handlerMethod; Execution = execution } ->
                 let handlerCalled =
                     sprintf "%s ->> %s: %s(%s)"
                         (stream |> ActiveParticipant.name)
                         (service |> ActiveParticipant.name)
-                        (method.Name |> FieldName.value)
-                        (method.Function.Arguments |> List.map TypeDefinition.value |> String.concat " -> ")
+                        (handlerMethod.Name |> FieldName.value)
+                        (handlerMethod.Handler.Handles |> TypeDefinition.value)
                     |> PumlPart
 
                 [

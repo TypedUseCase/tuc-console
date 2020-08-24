@@ -15,6 +15,7 @@ module TypeName =
 type TypeDefinition =
     | Type of TypeName
     | Function of FunctionDefinition
+    | Handler of HandlerDefinition
     | Tuple of TypeDefinition list
     | Option of TypeDefinition
     | List of TypeDefinition
@@ -22,8 +23,13 @@ type TypeDefinition =
     | GenericType of GenericDefinition
 
 and FunctionDefinition = {
-    Arguments: TypeDefinition list
+    Argument: TypeDefinition
     Returns: TypeDefinition
+}
+
+and HandlerDefinition = {
+    Name: TypeName
+    Handles: TypeDefinition
 }
 
 and GenericDefinition = {
@@ -36,22 +42,17 @@ type MethodDefinition = {
     Function: FunctionDefinition
 }
 
+type HandlerMethodDefinition = {
+    Name: FieldName
+    Handler: HandlerDefinition
+}
+
+type Fields<'FieldType> = Map<FieldName, 'FieldType>
+
 [<RequireQualifiedAccess>]
-module TypeDefinition =
-    let rec value = function
-        | Type name -> name |> TypeName.value
-        | Function { Arguments = args; Returns = returns } ->
-            sprintf "%s -> %s"
-                (args |> List.map value |> String.concat " -> ")
-                (returns |> value)
-        | Tuple values -> values |> List.map value |> String.concat " * "
-        | Option ofType -> ofType |> value |> sprintf "%s option"
-        | List ofType -> ofType |> value |> sprintf "%s list"
-        | GenericParameter parameter -> parameter |> TypeName.value |> sprintf "'%s"
-        | GenericType { Type = gType; Argument = argument } ->
-            sprintf "%s<%s>"
-                (gType |> TypeName.value)
-                (argument |> value)
+module Fields =
+    let empty: Fields<_> = Map.empty
+    let ofList fields: Fields<_> = Map.ofList fields
 
 type ResolvedType =
     | ScalarType of ScalarType
@@ -86,14 +87,23 @@ and UnionCase = {
 
 and Record = {
     Name: TypeName
-    Fields: Map<FieldName, TypeDefinition>
-    Methods: Map<FieldName, FunctionDefinition>
+    Fields: Fields<TypeDefinition>
+    Methods: Fields<FunctionDefinition>
+    Handlers: Fields<HandlerDefinition>
 }
 
 and Stream = {
     Name: TypeName
     EventType: TypeName
 }
+
+[<RequireQualifiedAccess>]
+module UnionCase =
+    let name ({ Name = name }: UnionCase) = name
+
+[<RequireQualifiedAccess>]
+module SingleCaseUnion =
+    let name ({ Name = name }: SingleCaseUnion) = name
 
 [<RequireQualifiedAccess>]
 module ScalarType =
@@ -103,6 +113,14 @@ module ScalarType =
         | Float -> TypeName "float"
         | Bool -> TypeName "bool"
         | Unit -> TypeName "unit"
+
+    let parse = function
+        | "string" -> Some String
+        | "int" -> Some Int
+        | "float" -> Some Float
+        | "bool" -> Some Bool
+        | "unit" -> Some Unit
+        | _ -> None
 
     let isScalar = function
         | "string"
@@ -139,6 +157,34 @@ module ResolvedType =
         | Stream _ -> "Stream"
         | Unresolved _ -> "Unresolved"
 
+[<RequireQualifiedAccess>]
+module TypeDefinition =
+    let rec value = function
+        | Type name -> name |> TypeName.value
+        | Function { Argument = args; Returns = returns } -> sprintf "%s -> %s" (args |> value) (returns |> value)
+        | Handler { Name = name; Handles = handles } -> sprintf "%s<%s>" (name |> TypeName.value) (handles |> value)
+        | Tuple values -> values |> List.map value |> String.concat " * "
+        | Option ofType -> ofType |> value |> sprintf "%s option"
+        | List ofType -> ofType |> value |> sprintf "%s list"
+        | GenericParameter parameter -> parameter |> TypeName.value |> sprintf "'%s"
+        | GenericType { Type = gType; Argument = argument } -> sprintf "%s<%s>" (gType |> TypeName.value) (argument |> value)
+
+    let (|IsScalar|_|) = function
+        | Type (TypeName name) -> name |> ScalarType.parse
+        | _ -> None
+
+[<RequireQualifiedAccess>]
+module FunctionDefinition =
+    let fold: FunctionDefinition -> _ = fun { Argument = a; Returns = r } ->
+        let rec folder acc = function
+            | Function { Argument = a; Returns = Function _ as f } -> f |> folder (a :: acc)
+            | Function { Argument = a; Returns = r } -> r :: a :: acc
+            | t -> t :: acc
+
+        match folder [ a ] r with
+        | [] -> failwithf "[Logic] Unexpected case"
+        | returns :: args -> (args |> List.rev), returns
+
 type DomainType = DomainType of ResolvedType
 
 [<RequireQualifiedAccess>]
@@ -148,6 +194,10 @@ module DomainType =
 
     let (|Initiator|_|) = function
         | DomainType (SingleCaseUnion { ConstructorName = "Initiator" }) -> Some ()
+        | _ -> None
+
+    let (|Stream|_|) = function
+        | DomainType (Stream { EventType = TypeName eventType } ) -> Some eventType
         | _ -> None
 
 //
@@ -204,14 +254,16 @@ and Contact = {
             FieldName "Email", Type (email |> ResolvedType.name)
             FieldName "Phone", Type (phone |> ResolvedType.name)
         ]
-        Methods = Map.empty
+        Methods = Fields.empty
+        Handlers = Fields.empty
     }
     let indentityMatchingSet = Record {
         Name = TypeName "IdentityMatchingSet"
         Fields = Map.ofList [
             FieldName "Contact", Type (contact |> ResolvedType.name)
         ]
-        Methods = Map.empty
+        Methods = Fields.empty
+        Handlers = Fields.empty
     }
 
 (* type PersonId = PersonId of Id *)
@@ -265,16 +317,17 @@ type InteractionCollector = {
 }
  *)
     let postInteraction = {
-        Arguments = [ Type (interactionEvent |> ResolvedType.name) ]
+        Argument = Type (interactionEvent |> ResolvedType.name)
         Returns = Type (commandResult |> ResolvedType.name)
     }
 
     let interactionCollector = Record {
         Name = TypeName "InteractionCollector"
-        Fields = Map.empty
+        Fields = Fields.empty
         Methods = Map.ofList [
             FieldName "PostInteraction", postInteraction
         ]
+        Handlers = Fields.empty
     }
 
     let postInteractionMethod = {
@@ -288,21 +341,22 @@ type PersonIdentificationEngine = {
 }
  *)
     let onInteractionEvent = {
-        Arguments = [ Type (interactionEvent |> ResolvedType.name) ]
-        Returns = Type (TypeName "unit")
+        Name = interactionEvent |> ResolvedType.name
+        Handles = Type (TypeName "unit")
     }
 
     let personIdentificationEngine = Record {
         Name = TypeName "PersonIdentificationEngine"
-        Fields = Map.empty
-        Methods = Map.ofList [
+        Fields = Fields.empty
+        Methods = Fields.empty
+        Handlers = Map.ofList [
             FieldName "OnInteractionEvent", onInteractionEvent
         ]
     }
 
     let onInteractionEventMethod = {
         Name = FieldName "OnInteractionEvent"
-        Function = onInteractionEvent
+        Handler = onInteractionEvent
     }
 
 (*
@@ -311,16 +365,17 @@ type PersonAggregate = {
 }
  *)
     let identifyPerson = {
-        Arguments = [ Type (indentityMatchingSet |> ResolvedType.name) ]
+        Argument = Type (indentityMatchingSet |> ResolvedType.name)
         Returns = Type (person |> ResolvedType.name)
     }
 
     let personAggregate = Record {
         Name = TypeName "PersonAggregate"
-        Fields = Map.empty
+        Fields = Fields.empty
         Methods = Map.ofList [
             FieldName "IdentifyPerson", identifyPerson
         ]
+        Handlers = Fields.empty
     }
 
     let identifyPersonMethod = {

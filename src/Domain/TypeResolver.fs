@@ -43,3 +43,11 @@ module private TypeResolvers =
     let (|IsTypeWithGenericArgs|_|): TypeResolver = function
         | t when t.HasTypeDefinition && t.GenericArguments |> Seq.isEmpty |> not -> Some t
         | _ -> None
+
+    let (|IsGenericHandler|_|): TypeResolver = function
+        | IsTypeWithGenericArgs t when t.TypeDefinition.DisplayName.EndsWith "Handler" ->
+            match t.GenericArguments |> Seq.toList with
+            | [] -> failwithf "[GenericHandler] There is no generic argument in the Handler."
+            | [ data ] -> Some data
+            | _ -> failwithf "[GenericHandler] There is more then one generic argument in the Handler."
+        | _ -> None

@@ -8,6 +8,31 @@ type TucName = TucName of string
 module TucName =
     let value (TucName name) = name
 
+[<RequireQualifiedAccess>]
+type EventError =
+    | Empty
+    | WrongFormat
+
+type Event = {
+    Original: string
+    Path: string list
+}
+
+[<RequireQualifiedAccess>]
+module Event =
+    open MF.TucConsole
+
+    let ofString = function
+        | String.IsEmpty ->
+            Error EventError.Empty
+        | wrongFormat when wrongFormat.Contains " " || wrongFormat.StartsWith "." || wrongFormat.EndsWith "." ->
+            Error EventError.WrongFormat
+        | event ->
+            Ok {
+                Original = event
+                Path = event.Split "." |> List.ofSeq
+            }
+
 type Tuc = {
     Name: TucName
     Participants: Participant list
@@ -49,6 +74,7 @@ and TucPart =
     | Lifeline of Lifeline
     | ServiceMethodCall of ServiceMethodCall
     | PostEvent of PostEvent
+    | ReadEvent of ReadEvent
     | HandleEventInStream of HandleEventInStream
     | Do of Do
     | LeftNote of Note
@@ -90,12 +116,19 @@ and ServiceMethodCall = {
 and PostEvent = {
     Caller: ActiveParticipant
     Stream: ActiveParticipant
+    Event: Event
+}
+
+and ReadEvent = {
+    Caller: ActiveParticipant
+    Stream: ActiveParticipant
+    Event: Event
 }
 
 and HandleEventInStream = {
     Stream: ActiveParticipant
     Service: ActiveParticipant
-    Method: MethodDefinition
+    Handler: HandlerMethodDefinition
     Execution: TucPart list
 }
 
@@ -191,7 +224,7 @@ GenericService
         Lifeline { Initiator = genericServiceParticipant; Execution = [
             ServiceMethodCall { Caller = genericServiceParticipant; Service = interactionCollectorParticipant; Method = postInteractionMethod; Execution = [
                 Do { Caller = interactionCollectorParticipant; Actions = [ "vyroba udalosti z dat osoby" ] }
-                PostEvent { Caller = interactionCollectorParticipant; Stream = interactionCollectorStreamParticipant }
+                PostEvent { Caller = interactionCollectorParticipant; Stream = interactionCollectorStreamParticipant; Event = { Original = "InteractionEvent"; Path = [ "InteractionEvent" ] } }
                 RightNote { Lines = [ "poznamka" ] }
             ] }
         ] }
@@ -217,7 +250,7 @@ GenericService
     let ``handle event in stream`` =
         Lifeline { Initiator = genericServiceParticipant; Execution = [
             ServiceMethodCall { Caller = genericServiceParticipant; Service = interactionCollectorParticipant; Method = postInteractionMethod; Execution = [
-                HandleEventInStream { Stream = interactionCollectorStreamParticipant; Service = personIdentificationEngineParticipant; Method = onInteractionEventMethod; Execution = [
+                HandleEventInStream { Stream = interactionCollectorStreamParticipant; Service = personIdentificationEngineParticipant; Handler = onInteractionEventMethod; Execution = [
                     Note {
                         Caller = personIdentificationEngineParticipant
                         Lines = [

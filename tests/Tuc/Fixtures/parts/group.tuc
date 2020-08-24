@@ -1,0 +1,11 @@
+tuc test
+participants
+    GenericService parts
+
+group Main group
+    GenericService
+        group first part
+            do something
+
+        group last part
+            do then return a result

@@ -1,0 +1,6 @@
+tuc parse error test
+participants
+    GenericService parts
+
+GenericService
+        "This is too much indented"

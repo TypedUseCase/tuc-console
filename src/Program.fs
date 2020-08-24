@@ -20,7 +20,7 @@ let main argv =
                 Argument.domain
             ]
             Options = [
-                Option.noValue "only-parse" (Some "p") "Whether to just parse domain and dump a results."
+                Option.noValue "only-resolved" (Some "r") "Whether to just show a resolved domain types."
                 Option.noValue "count" (Some "c") "Whether to just show a count of results."
                 Option.noValue "watch" (Some "w") "Whether to watch domain file(s) for changes."
             ]
@@ -34,7 +34,7 @@ let main argv =
             Help = None
             Arguments = [
                 Argument.domain
-                Argument.tuc
+                Argument.tucFileOrDir
             ]
             Options = [
                 Option.noValue "watch" (Some "w") "Whether to watch domain file(s) and tuc file for changes."
@@ -49,7 +49,7 @@ let main argv =
             Help = None
             Arguments = [
                 Argument.domain
-                Argument.tuc
+                Argument.tucFile
             ]
             Options = [
                 Option.optional "output" (Some "o") "Path to an output file for generated PlantUML. (It must be a .puml)" None

@@ -1,0 +1,24 @@
+@startuml Call a service method
+
+== test ==
+
+actor "GenericService" as GenericService <<parts>>
+participant "Service" as Service <<parts>>
+
+activate GenericService
+GenericService -> Service ++: DoSomeWork(Id)
+Service --> GenericService --: WorkResult
+GenericService -> Service ++: DoSomeWork(Id)
+    note over Service
+    do:
+        handle
+        the id
+        and returns a result
+    end note
+    Service -> Service ++: MethodWithMoreArgs(Id, string, InputEvent)
+    Service --> Service --: WorkResult
+Service --> GenericService --: WorkResult
+
+deactivate GenericService
+
+@enduml

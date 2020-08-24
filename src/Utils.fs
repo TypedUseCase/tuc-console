@@ -143,6 +143,25 @@ module List =
             |> String.concat newLineWithPrefix
             |> (+) newLineWithPrefix
 
+    let formatAvailableItems onEmpty onItems wantedItem definedItems =
+        let normalizeItem =
+            String.toLower
+
+        let similarDefinedItem =
+            definedItems
+            |> List.tryFind (normalizeItem >> (=) (wantedItem |> normalizeItem))
+
+        let availableItems =
+            definedItems
+            |> List.map (function
+                | similarItem when (Some similarItem) = similarDefinedItem -> sprintf "%s  <--- maybe this one here?" similarItem
+                | item -> item
+            )
+
+        match availableItems with
+        | [] -> onEmpty
+        | items -> items |> onItems
+
     /// It splits a list by a true/false result of the given function, when the first false occures, it will left all other items in false branch
     /// Example: [ 2; 4; 6; 7; 8; 9; 10 ] |> List.splitBy isEven results in ( [ 2; 4; 6 ], [ 7; 8; 9; 10 ] )
     let splitBy f list =

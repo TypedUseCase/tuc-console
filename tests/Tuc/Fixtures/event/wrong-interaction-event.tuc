@@ -1,0 +1,10 @@
+tuc InteractionEvent with typo
+participants
+    GenericService consents
+    InteractionCollector consents
+    [InteractionStream] consents
+
+section InteractionEvent - typo
+GenericService
+    InteractionCollector.Post
+        InteractionEvents -> [InteractionStream]

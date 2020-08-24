@@ -1,0 +1,12 @@
+tuc test
+participants
+    GenericService parts
+
+GenericService
+    loop until its done
+        do
+            do something
+            then return a result
+
+loop Infinitely
+    "> Do something over and over"

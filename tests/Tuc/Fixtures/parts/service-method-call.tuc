@@ -1,0 +1,16 @@
+tuc test
+participants
+    GenericService parts
+    Service parts
+
+GenericService
+    Service.DoSomeWork
+        // with empty body
+
+    Service.DoSomeWork
+        do
+            handle
+            the id
+            and returns a result
+
+        Service.MethodWithMoreArgs

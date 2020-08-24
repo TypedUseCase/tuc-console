@@ -1,0 +1,30 @@
+@startuml If
+
+== test ==
+
+actor "GenericService" as GenericService <<parts>>
+
+activate GenericService
+alt the weather is nice
+    alt it is over a 30°C
+        note over GenericService
+        do:
+            nothing
+            because its to hot
+        end note
+    else
+        note over GenericService
+        do: some work
+        end note
+    end
+else
+    alt it is raining
+        note over GenericService
+        do: work
+        end note
+    end
+end
+
+deactivate GenericService
+
+@enduml

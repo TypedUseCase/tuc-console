@@ -1,0 +1,23 @@
+@startuml Groups
+
+== test ==
+
+actor "GenericService" as GenericService <<parts>>
+
+activate GenericService
+group Main group
+    group first part
+        note over GenericService
+        do: something
+        end note
+    end
+    group last part
+        note over GenericService
+        do: then return a result
+        end note
+    end
+end
+
+deactivate GenericService
+
+@enduml

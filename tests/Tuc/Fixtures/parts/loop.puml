@@ -1,0 +1,21 @@
+@startuml Loops
+
+== test ==
+
+actor "GenericService" as GenericService <<parts>>
+
+activate GenericService
+loop until its done
+    note over GenericService
+    do:
+        do something
+        then return a result
+    end note
+end
+loop Infinitely
+    note right: Do something over and over
+end
+
+deactivate GenericService
+
+@enduml

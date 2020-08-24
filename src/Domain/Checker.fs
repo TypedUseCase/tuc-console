@@ -6,7 +6,8 @@ open MF.TucConsole
 module Checker =
     let rec private allTypeNamesOfDefinition = function
         | Type name -> [ name ]
-        | Function { Arguments = args; Returns = rets } -> (args |> List.collect allTypeNamesOfDefinition) @ (rets |> allTypeNamesOfDefinition)
+        | Function { Argument = args; Returns = rets } -> (args |> allTypeNamesOfDefinition) @ (rets |> allTypeNamesOfDefinition)
+        | Handler { Name = name; Handles = handles } -> name :: (handles |> allTypeNamesOfDefinition)
         | Tuple names -> names |> List.collect allTypeNamesOfDefinition
         | Option name -> name |> allTypeNamesOfDefinition
         | List name -> name |> allTypeNamesOfDefinition

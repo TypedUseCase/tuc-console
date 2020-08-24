@@ -1,0 +1,10 @@
+tuc Confirmed with typo
+participants
+    GenericService consents
+    InteractionCollector consents
+    [InteractionStream] consents
+
+section InteractionEvent.Confirmed - typo
+GenericService
+    InteractionCollector.Post
+        InteractionEvent.Confirmes -> [InteractionStream]

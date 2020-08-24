@@ -1,0 +1,12 @@
+tuc test
+participants
+    GenericService parts
+    [InputStream] parts
+
+GenericService
+    // read InputEvent
+    [InputStream] -> InputEvent
+
+    // read concrete InputEvent
+    [InputStream] -> InputEvent.EventA
+    [InputStream] -> InputEvent.EventC.C2

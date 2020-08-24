@@ -8,6 +8,12 @@ nuget FSharp.Compiler.Service
 nuget PlantUml.Net
 nuget MF.ConsoleApplication ~> 2.0
 
+group Tests
+    storage: none
+    source https://api.nuget.org/v3/index.json
+    nuget Expecto
+    nuget YoloDev.Expecto.TestSdk
+
 // [ FAKE GROUP ]
 group Build
     storage none

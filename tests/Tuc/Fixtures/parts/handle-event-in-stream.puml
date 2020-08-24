@@ -1,0 +1,22 @@
+@startuml Handle event in stream
+
+== test ==
+
+actor "GenericService" as GenericService <<parts>>
+participant "StreamListener" as StreamListener <<parts>>
+collections "InputStream" as InputStream <<parts>>
+
+activate GenericService
+InputStream ->> StreamListener: ReadEvent(InputEvent)
+    activate StreamListener
+    deactivate StreamListener
+InputStream ->> StreamListener: ReadEvent(InputEvent)
+    activate StreamListener
+    note over StreamListener
+    do: something with the event
+    end note
+    deactivate StreamListener
+
+deactivate GenericService
+
+@enduml

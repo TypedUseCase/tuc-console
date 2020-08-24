@@ -16,7 +16,7 @@ type ToolDir =
     | Local of string
 
 // ========================================================================================================
-// === F# / Console Application fake build ======================================================== 1.2.0 =
+// === F# / Console Application fake build ======================================================== 1.3.0 =
 // --------------------------------------------------------------------------------------------------------
 // Options:
 //  - no-clean   - disables clean of dirs in the first step (required on CI)
@@ -240,6 +240,7 @@ Target.create "Release" (fun _ ->
 
     !! "**/*.*proj"
     -- "example/**/*.*proj"
+    -- "tests/**/*.*proj"
     |> Seq.collect (fun project -> runtimeIds |> List.collect (fun runtimeId -> [project, runtimeId]))
     |> Seq.iter (fun (project, runtimeId) ->
         sprintf "publish -c Release /p:PublishSingleFile=true -o %s/%s --self-contained -r %s %s" releaseDir runtimeId runtimeId project
@@ -266,6 +267,9 @@ Target.create "Run" (fun _ ->
     ==> "Build"
     ==> "Lint"
     ==> "Tests"
-    ==> "Release" <=> "Watch" <=> "Run"
+    ==> "Release"
+
+"Build"
+    ==> "Watch" <=> "Run"
 
 Target.runOrDefaultWithArguments "Build"

@@ -1,0 +1,11 @@
+tuc test
+participants
+    GenericService parts
+
+GenericService
+    do Some stuff
+
+    do
+        multi
+        line
+        do

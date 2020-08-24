@@ -1,0 +1,40 @@
+tuc Valid use case
+participants
+    GenericService consents as "Generic Service"
+    InteractionCollector consents
+    [InteractionStream] consents
+
+section InteractionEvent
+GenericService
+    InteractionCollector.Post
+        InteractionEvent -> [InteractionStream]
+
+section InteractionEvent.Confirmed
+GenericService
+    InteractionCollector.Post
+        InteractionEvent.Confirmed -> [InteractionStream]
+
+section InteractionEvent.Other
+GenericService
+    InteractionCollector.Post
+        InteractionEvent.Other -> [InteractionStream]
+
+section InteractionEvent.Interaction
+GenericService
+    InteractionCollector.Post
+        InteractionEvent.Interaction -> [InteractionStream]
+
+section InteractionEvent.Rejected by user
+GenericService
+    InteractionCollector.Post
+        InteractionEvent.Rejected.UserRejected -> [InteractionStream]
+
+section InteractionEvent.Rejected Foo
+GenericService
+    InteractionCollector.Post
+        InteractionEvent.Rejected.UserRejected.Foo -> [InteractionStream]
+
+section InteractionEvent.Rejected - expired
+GenericService
+    InteractionCollector.Post
+        InteractionEvent.Rejected.Expired -> [InteractionStream]
