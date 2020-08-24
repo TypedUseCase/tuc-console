@@ -12,3 +12,5 @@ GenericService
             handle
             the id
             and returns a result
+
+        Service.MethodWithMoreArgs

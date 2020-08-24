@@ -26,6 +26,7 @@ type StreamListener = {
 
 type Service = {
     DoSomeWork: Id -> WorkResult
+    MethodWithMoreArgs: Id -> string -> InputEvent -> WorkResult
 }
 
 and WorkResult =

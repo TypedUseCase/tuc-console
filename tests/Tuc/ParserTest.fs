@@ -222,6 +222,17 @@ module Event =
             )
         ]
 
+[<RequireQualifiedAccess>]
+module Example =
+    let path = "./Tuc/Fixtures/example"
+
+    let case = case path
+
+    let provider: Case list =
+        [
+            case "Readme example" "definition.tuc" (Ok "result.puml")
+        ]
+
 [<Tests>]
 let parserTests =
     let output = MF.ConsoleApplication.Output.console
