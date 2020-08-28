@@ -1,0 +1,39 @@
+#!/bin/bash
+
+DOC_PATH="docs/tuc/examples"
+
+docs=(
+    "lifeline"
+    "section"
+    "service-method-call"
+    "post-event"
+    "read-event"
+    "handle-event-in-stream"
+    "group"
+    "if-else"
+    "loop"
+    "do"
+    "left-note"
+    "note"
+    "right-note"
+)
+
+function generateDoc() {
+    NAME="$1"
+
+    echo "Generating $NAME ..."
+
+    bin/console t:g \
+        "$DOC_PATH/" \
+        "$DOC_PATH/$NAME.tuc" \
+        -i "$DOC_PATH/$NAME.png" \
+        -o "$DOC_PATH/$NAME.puml"
+}
+
+for doc in "${docs[@]}"
+do
+    :
+    generateDoc "$doc"
+done
+
+echo "done"
