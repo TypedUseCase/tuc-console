@@ -6,9 +6,9 @@ actor "Main Service" as MainService <<My>>
 
 activate MainService
 loop until it's done
-    note over MainService
+    hnote over MainService
     do: something
-    end note
+    end hnote
 end
 
 deactivate MainService

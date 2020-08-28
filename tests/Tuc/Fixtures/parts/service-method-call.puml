@@ -9,12 +9,12 @@ activate GenericService
 GenericService -> Service ++: DoSomeWork(Id)
 Service --> GenericService --: WorkResult
 GenericService -> Service ++: DoSomeWork(Id)
-    note over Service
+    hnote over Service
     do:
         handle
         the id
         and returns a result
-    end note
+    end hnote
     Service -> Service ++: MethodWithMoreArgs(Id, string, InputEvent)
     Service --> Service --: WorkResult
 Service --> GenericService --: WorkResult

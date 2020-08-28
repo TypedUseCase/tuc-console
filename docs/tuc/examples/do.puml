@@ -5,15 +5,15 @@
 actor "Main Service" as MainService <<My>>
 
 activate MainService
-note over MainService
+hnote over MainService
 do: Some work
-end note
-note over MainService
+end hnote
+hnote over MainService
 do:
     one thing
     other thing
     and the last thing
-end note
+end hnote
 
 deactivate MainService
 

@@ -7,21 +7,21 @@ actor "Main Service" as MainService <<My>>
 activate MainService
 alt the weather is nice
     alt it is over a 30°C
-        note over MainService
+        hnote over MainService
         do:
             nothing
             because its to hot
-        end note
+        end hnote
     else
-        note over MainService
+        hnote over MainService
         do: some work
-        end note
+        end hnote
     end
 else
     alt it is raining
-        note over MainService
+        hnote over MainService
         do: work
-        end note
+        end hnote
     end
 end
 

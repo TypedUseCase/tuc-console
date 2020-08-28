@@ -12,9 +12,9 @@ InputStream ->> StreamListener: ReadEvent(InputEvent)
     deactivate StreamListener
 InputStream ->> StreamListener: ReadEvent(InputEvent)
     activate StreamListener
-    note over StreamListener
+    hnote over StreamListener
     do: something with the event
-    end note
+    end hnote
     deactivate StreamListener
 
 deactivate GenericService

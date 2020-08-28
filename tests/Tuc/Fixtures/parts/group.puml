@@ -7,14 +7,14 @@ actor "GenericService" as GenericService <<parts>>
 activate GenericService
 group Main group
     group first part
-        note over GenericService
+        hnote over GenericService
         do: something
-        end note
+        end hnote
     end
     group last part
-        note over GenericService
+        hnote over GenericService
         do: then return a result
-        end note
+        end hnote
     end
 end
 

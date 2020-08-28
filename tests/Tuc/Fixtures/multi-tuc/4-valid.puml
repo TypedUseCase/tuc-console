@@ -22,9 +22,9 @@ end box
 activate GenericService
 InputStream ->> StreamListener: ReadEvent(InputEvent)
     activate StreamListener
-    note over StreamListener
+    hnote over StreamListener
     do: something on event
-    end note
+    end hnote
     deactivate StreamListener
 
 deactivate GenericService
@@ -49,11 +49,11 @@ activate GenericService
 InputStream ->> StreamListener: ReadEvent(InputEvent)
     activate StreamListener
     InputStream ->> StreamListener: InputEvent.EventA
-    note over StreamListener
+    hnote over StreamListener
     do:
         something with EventA
         and create EventB out of it
-    end note
+    end hnote
     StreamListener ->> InputStream: InputEvent.EventB
     deactivate StreamListener
 

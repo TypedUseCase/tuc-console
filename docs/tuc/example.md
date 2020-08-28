@@ -141,26 +141,26 @@ participant "Person Aggregate" as PersonAggregate <<consents>>
 
 activate GenericService
 GenericService -> InteractionCollector ++: PostInteraction(InteractionEvent)
-    note over InteractionCollector
+    hnote over InteractionCollector
     do: create an interaction event based on interaction
-    end note
+    end hnote
     InteractionCollector ->> InteractionCollectorStream: InteractionEvent
     InteractionCollectorStream ->> PersonIdentificationEngine: OnInteractionEvent(InteractionEvent)
         activate PersonIdentificationEngine
         PersonIdentificationEngine -> PersonAggregate ++: IdentifyPerson(IdentityMatchingSet)
-            note over PersonAggregate
+            hnote over PersonAggregate
             do:
                 normalize contact
                 identify a person based on the normalized contact
-            end note
+            end hnote
             alt PersonFound
-                note over PersonAggregate
+                hnote over PersonAggregate
                 do: return Person
-                end note
+                end hnote
             else
-                note over PersonAggregate
+                hnote over PersonAggregate
                 do: return Error
-                end note
+                end hnote
             end
         PersonAggregate --> PersonIdentificationEngine --: Person
         deactivate PersonIdentificationEngine

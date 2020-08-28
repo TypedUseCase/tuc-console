@@ -447,12 +447,12 @@ actor "Main Service" as MainService <<My>>
 
 activate MainService
 group Grouped together
-    note over MainService
+    hnote over MainService
     do: something
-    end note
-    note over MainService
+    end hnote
+    hnote over MainService
     do: something else
-    end note
+    end hnote
 end
 
 deactivate MainService
@@ -528,21 +528,21 @@ actor "Main Service" as MainService <<My>>
 activate MainService
 alt the weather is nice
     alt it is over a 30°C
-        note over MainService
+        hnote over MainService
         do:
             nothing
             because its to hot
-        end note
+        end hnote
     else
-        note over MainService
+        hnote over MainService
         do: some work
-        end note
+        end hnote
     end
 else
     alt it is raining
-        note over MainService
+        hnote over MainService
         do: work
-        end note
+        end hnote
     end
 end
 
@@ -588,9 +588,9 @@ actor "Main Service" as MainService <<My>>
 
 activate MainService
 loop until it's done
-    note over MainService
+    hnote over MainService
     do: something
-    end note
+    end hnote
 end
 
 deactivate MainService
@@ -878,15 +878,15 @@ Results:
 actor "Main Service" as MainService <<My>>
 
 activate MainService
-note over MainService
+hnote over MainService
 do: Some work
-end note
-note over MainService
+end hnote
+hnote over MainService
 do:
     one thing
     other thing
     and the last thing
-end note
+end hnote
 
 deactivate MainService
 

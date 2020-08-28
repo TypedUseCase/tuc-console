@@ -6,12 +6,12 @@ actor "Main Service" as MainService <<My>>
 
 activate MainService
 group Grouped together
-    note over MainService
+    hnote over MainService
     do: something
-    end note
-    note over MainService
+    end hnote
+    hnote over MainService
     do: something else
-    end note
+    end hnote
 end
 
 deactivate MainService
