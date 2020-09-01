@@ -6,6 +6,18 @@ type FieldName = FieldName of string
 module FieldName =
     let value (FieldName name) = name
 
+type DomainName = DomainName of string
+
+[<RequireQualifiedAccess>]
+module DomainName =
+    open MF.TucConsole
+
+    let value (DomainName name) = name
+
+    let parse = function
+        | Regex "^(.+?)Domain$" [ domainName ] -> Some (DomainName domainName)
+        | _ -> None
+
 type TypeName = TypeName of string
 
 [<RequireQualifiedAccess>]
@@ -70,12 +82,14 @@ and ScalarType =
     | Unit
 
 and SingleCaseUnion = {
+    Domain: DomainName option
     Name: TypeName
     ConstructorName: string
     ConstructorArgument: TypeDefinition
 }
 
 and DiscriminatedUnion = {
+    Domain: DomainName option
     Name: TypeName
     Cases: UnionCase list
 }
@@ -86,6 +100,7 @@ and UnionCase = {
 }
 
 and Record = {
+    Domain: DomainName option
     Name: TypeName
     Fields: Fields<TypeDefinition>
     Methods: Fields<FunctionDefinition>
@@ -93,6 +108,7 @@ and Record = {
 }
 
 and Stream = {
+    Domain: DomainName option
     Name: TypeName
     EventType: TypeName
 }
@@ -207,186 +223,3 @@ module DomainType =
 type ParseDomainError =
     | UnresolvedTypes of TypeName list
     | UndefinedTypes of TypeName list
-
-//
-// Example
-//
-
-module internal Example =
-(* type Email = Email of string *)
-    let email = SingleCaseUnion {
-        Name = TypeName "Email"
-        ConstructorName = "Email"
-        ConstructorArgument = Type (TypeName "string")
-    }
-(* type Phone = Phone of string *)
-    let phone = SingleCaseUnion {
-        Name = TypeName "Phone"
-        ConstructorName = "Phone"
-        ConstructorArgument = Type (TypeName "string")
-    }
-
-(*
-type InteractionEvent =
-    | Confirmation
-    | Rejection
- *)
-    let interactionEvent = DiscriminatedUnion {
-        Name = TypeName "InteractionEvent"
-        Cases = [
-            { Name = TypeName "Confirmation"; Argument = Type (TypeName "unit") }
-            { Name = TypeName "Rejection"; Argument = Type (TypeName "unit") }
-        ]
-    }
-
-(*
-type IdentityMatchingSet = {
-  Contact: Contact
-}
-and Contact = {
-    Email: Email option
-    Phone: Phone option
-}
- *)
-    let contact = Record {
-        Name = TypeName "Contact"
-        Fields = Map.ofList [
-            FieldName "Email", Type (email |> ResolvedType.name)
-            FieldName "Phone", Type (phone |> ResolvedType.name)
-        ]
-        Methods = Fields.empty
-        Handlers = Fields.empty
-    }
-    let indentityMatchingSet = Record {
-        Name = TypeName "IdentityMatchingSet"
-        Fields = Map.ofList [
-            FieldName "Contact", Type (contact |> ResolvedType.name)
-        ]
-        Methods = Fields.empty
-        Handlers = Fields.empty
-    }
-
-(* type PersonId = PersonId of Id *)
-    let personId = SingleCaseUnion {
-        Name = TypeName "PersonId"
-        ConstructorName = "PersonId"
-        ConstructorArgument = Type (TypeName "Id")
-    }
-    (*
-type Person =
-  | Complete of PersonId * IdentityMatchingSet * PersonAttributes
-  | Incomplete of PersonId
-  | Inconsistent of PersonId
-  | Nonexisting
-     *)
-    let person = DiscriminatedUnion {
-        Name = TypeName "Person"
-        Cases = [
-            { Name = TypeName "Complete"; Argument = Tuple [ Type (personId |> ResolvedType.name); Type (indentityMatchingSet |> ResolvedType.name) (* ; personAttributes *) ] }
-            { Name = TypeName "Incomplete"; Argument = Type (personId |> ResolvedType.name) }
-            { Name = TypeName "Inconsistent"; Argument = Type (personId |> ResolvedType.name) }
-            { Name = TypeName "Nonexisting"; Argument = Type (TypeName "unit") }
-        ]
-    }
-
-(*
-type CommandResult =
-  | Accepted
-  | Error
- *)
-    let commandResult = DiscriminatedUnion {
-        Name = TypeName "CommandResult"
-        Cases = [
-            { Name = TypeName "Accepted"; Argument = Type (TypeName "unit") }
-            { Name = TypeName "Error"; Argument = Type (TypeName "unit") }
-        ]
-    }
-
-(*
-type GenericService = Initiator
- *)
-    let genericService = SingleCaseUnion {
-        Name = TypeName "GenericService"
-        ConstructorName = "Initiator"
-        ConstructorArgument = Type (TypeName "unit")
-    }
-
-(*
-type InteractionCollector = {
-    PostInteraction: InteractionEvent -> CommandResult
-}
- *)
-    let postInteraction = {
-        Argument = Type (interactionEvent |> ResolvedType.name)
-        Returns = Type (commandResult |> ResolvedType.name)
-    }
-
-    let interactionCollector = Record {
-        Name = TypeName "InteractionCollector"
-        Fields = Fields.empty
-        Methods = Map.ofList [
-            FieldName "PostInteraction", postInteraction
-        ]
-        Handlers = Fields.empty
-    }
-
-    let postInteractionMethod = {
-        Name = FieldName "PostInteraction"
-        Function = postInteraction
-    }
-
-(*
-type PersonIdentificationEngine = {
-    OnInteractionEvent: InteractionEvent -> unit
-}
- *)
-    let onInteractionEvent = {
-        Name = interactionEvent |> ResolvedType.name
-        Handles = Type (TypeName "unit")
-    }
-
-    let personIdentificationEngine = Record {
-        Name = TypeName "PersonIdentificationEngine"
-        Fields = Fields.empty
-        Methods = Fields.empty
-        Handlers = Map.ofList [
-            FieldName "OnInteractionEvent", onInteractionEvent
-        ]
-    }
-
-    let onInteractionEventMethod = {
-        Name = FieldName "OnInteractionEvent"
-        Handler = onInteractionEvent
-    }
-
-(*
-type PersonAggregate = {
-    IdentifyPerson: IdentityMatchingSet -> Person
-}
- *)
-    let identifyPerson = {
-        Argument = Type (indentityMatchingSet |> ResolvedType.name)
-        Returns = Type (person |> ResolvedType.name)
-    }
-
-    let personAggregate = Record {
-        Name = TypeName "PersonAggregate"
-        Fields = Fields.empty
-        Methods = Map.ofList [
-            FieldName "IdentifyPerson", identifyPerson
-        ]
-        Handlers = Fields.empty
-    }
-
-    let identifyPersonMethod = {
-        Name = FieldName "IdentifyPerson"
-        Function = identifyPerson
-    }
-
-(*
-type InteractionCollectorStream = InteractionEvent list
- *)
-    let interactionCollectorStream = Stream {
-        Name = TypeName "InteractionCollectorStream"
-        EventType = interactionEvent |> ResolvedType.name
-    }

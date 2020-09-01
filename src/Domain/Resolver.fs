@@ -140,7 +140,7 @@ module Resolver =
                 | _ -> None
         )
 
-    let private collectUnionCases parent: CollectMany<FSharpUnionCase, ResolvedType> = fun output cases ->
+    let private collectUnionCases parentDomain parent: CollectMany<FSharpUnionCase, ResolvedType> = fun output cases ->
         if output.IsVerbose() then
             cases |> Seq.length |> sprintf " - %s.UnionCases [%d]" (parent |> TypeName.value) |> output.Message
 
@@ -155,7 +155,13 @@ module Resolver =
 
             match argument with
             | GenericType { Type = TypeName "Stream"; Argument = Type eventType } ->
-                [ Stream { Name = TypeName stream.DisplayName; EventType = eventType }]
+                [
+                    Stream {
+                        Domain = parentDomain
+                        Name = TypeName stream.DisplayName
+                        EventType = eventType
+                    }
+                ]
 
             | notAStream ->
                 failwithf "[ResolveError][UnionCase] Type %A seems to be a stream but has not a specific generic type Stream<'Event> in it.\nIt has: %A\n"
@@ -165,6 +171,7 @@ module Resolver =
         | [ singleCaseUnion ] ->
             [
                 SingleCaseUnion {
+                    Domain = parentDomain
                     Name = parent
                     ConstructorName = singleCaseUnion.DisplayName
                     ConstructorArgument =
@@ -176,6 +183,7 @@ module Resolver =
         | discriminatedUnionCases ->
             [
                 DiscriminatedUnion {
+                    Domain = parentDomain
                     Name = parent
                     Cases =
                         discriminatedUnionCases
@@ -205,6 +213,7 @@ module Resolver =
                 |>> collectEntities (Some globalEntity) output
 
             | record when record.IsFSharpRecord ->
+                let domainName = record.AccessPath |> DomainName.parse
                 let typeName = TypeName record.DisplayName
 
                 if record.NestedEntities |> Seq.isEmpty |> not then
@@ -214,6 +223,7 @@ module Resolver =
 
                 [
                     Record {
+                        Domain = domainName
                         Name = typeName
                         Fields =
                             fields
@@ -231,13 +241,14 @@ module Resolver =
                 ]
 
             | unionCase when unionCase.IsFSharpUnion ->
+                let domainName = unionCase.AccessPath |> DomainName.parse
                 let typeName = TypeName unionCase.DisplayName
 
                 if unionCase.NestedEntities |> Seq.isEmpty |> not then
                     failwithf "[ResolveError][Entity] UnionCase nested entities: %A" unionCase.NestedEntities
 
                 unionCase.UnionCases
-                |>> collectUnionCases typeName output
+                |>> collectUnionCases domainName typeName output
 
             | e ->
                 e.DisplayName
@@ -253,9 +264,8 @@ module Resolver =
                 if e.UnionCases |> Seq.isEmpty |> not then
                     failwithf "[ResolveError][Entity] Unexpected Entity UnionCases: %A" e.UnionCases
 
-                [
-                    yield! e.NestedEntities |>> collectEntities (Some e) output
-                ]
+                e.NestedEntities
+                |>> collectEntities (Some e) output
         )
 
     let resolve output (parsedDomains: ParsedDomain list): Result<ResolvedType list, _> =

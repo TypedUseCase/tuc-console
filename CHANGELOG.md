@@ -2,6 +2,11 @@
 
 <!-- There is always Unreleased section on the top. Subsections (Add, Changed, Fix, Removed) should be Add as needed. -->
 ## Unreleased
+- Add `DomainName` to the domain types
+    - `Record`
+    - `SingleCaseUnion`
+    - `DiscriminatedUnion`
+    - `Stream`
 
 ## 0.2.0 - 2020-09-01
 - Parse left and right notes in tuc
