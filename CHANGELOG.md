@@ -2,6 +2,8 @@
 
 <!-- There is always Unreleased section on the top. Subsections (Add, Changed, Fix, Removed) should be Add as needed. -->
 ## Unreleased
+
+## 0.2.0 - 2020-08-12
 - Parse left and right notes in tuc
 - Add tuc part
     - `ReadEvent` from stream
