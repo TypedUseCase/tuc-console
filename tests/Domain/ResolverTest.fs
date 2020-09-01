@@ -58,6 +58,7 @@ module Domain =
 
         let recordTypes = [
             Record {
+                Domain = None
                 Name = TypeName "Name"
                 Fields = Fields.ofList [
                     FieldName "FirstName", string
@@ -68,9 +69,10 @@ module Domain =
                 Handlers = Fields.empty
             }
 
-            SingleCaseUnion { Name = TypeName "Id"; ConstructorName = "UUID"; ConstructorArgument = unit }
+            SingleCaseUnion { Domain = None; Name = TypeName "Id"; ConstructorName = "UUID"; ConstructorArgument = unit }
 
             Record {
+                Domain = None
                 Name = TypeName "ContractCreatedEvent"
                 Fields = Fields.ofList [
                     FieldName "ContractId", Type (TypeName "Id")
@@ -82,6 +84,7 @@ module Domain =
             }
 
             Record {
+                Domain = None
                 Name = TypeName "Intent"
                 Fields = Fields.ofList [
                     FieldName "Purpose", string
@@ -91,9 +94,10 @@ module Domain =
                 Handlers = Fields.empty
             }
 
-            SingleCaseUnion { Name = TypeName "Text"; ConstructorName = "Text"; ConstructorArgument = string }
+            SingleCaseUnion { Domain = None; Name = TypeName "Text"; ConstructorName = "Text"; ConstructorArgument = string }
 
             Record {
+                Domain = None
                 Name = TypeName "Service"
                 Fields = Fields.empty
                 Methods = Fields.ofList [
@@ -104,9 +108,9 @@ module Domain =
                 Handlers = Fields.empty
             }
 
-            SingleCaseUnion { Name = TypeName "SingleAttribute"; ConstructorName = "SingleAttribute"; ConstructorArgument = string }
+            SingleCaseUnion { Domain = None; Name = TypeName "SingleAttribute"; ConstructorName = "SingleAttribute"; ConstructorArgument = string }
 
-            DiscriminatedUnion { Name = TypeName "MethodResult"; Cases = [
+            DiscriminatedUnion { Domain = None; Name = TypeName "MethodResult"; Cases = [
                 { Name = TypeName "Ok"; Argument = unit }
                 { Name = TypeName "Error"; Argument = unit }
             ]}
@@ -116,58 +120,58 @@ module Domain =
             case "Empty domain" "empty.fsx" (Ok [])
 
             case "Options" "options.fsx" (Ok [
-                SingleCaseUnion { Name = TypeName "MaybeName"; ConstructorName = "MaybeName"; ConstructorArgument = Option string }
+                SingleCaseUnion { Domain = None; Name = TypeName "MaybeName"; ConstructorName = "MaybeName"; ConstructorArgument = Option string }
             ])
 
             case "Single Case Unions" "singleCaseUnions.fsx" (Ok [
-                SingleCaseUnion { Name = TypeName "FirstType"; ConstructorName = "FirstType"; ConstructorArgument = unit }
+                SingleCaseUnion { Domain = None; Name = TypeName "FirstType"; ConstructorName = "FirstType"; ConstructorArgument = unit }
 
-                SingleCaseUnion { Name = TypeName "SecondType"; ConstructorName = "SecondTypeCtr"; ConstructorArgument = string }
+                SingleCaseUnion { Domain = None; Name = TypeName "SecondType"; ConstructorName = "SecondTypeCtr"; ConstructorArgument = string }
 
-                SingleCaseUnion { Name = TypeName "ThirdType"; ConstructorName = "ThirdType"; ConstructorArgument = Tuple [ string; string ] }
+                SingleCaseUnion { Domain = None; Name = TypeName "ThirdType"; ConstructorName = "ThirdType"; ConstructorArgument = Tuple [ string; string ] }
 
-                SingleCaseUnion { Name = TypeName "FourthType"; ConstructorName = "FourthType"; ConstructorArgument = Tuple [ string; int ] }
+                SingleCaseUnion { Domain = None; Name = TypeName "FourthType"; ConstructorName = "FourthType"; ConstructorArgument = Tuple [ string; int ] }
             ])
 
             case "Discriminated unions" "discriminatedUnions.fsx" (Ok [
-                DiscriminatedUnion { Name = TypeName "FirstType"; Cases = [
+                DiscriminatedUnion { Domain = None; Name = TypeName "FirstType"; Cases = [
                     { Name = TypeName "CaseA"; Argument = unit }
                     { Name = TypeName "CaseB"; Argument = unit }
                 ] }
 
-                DiscriminatedUnion { Name = TypeName "SecondType"; Cases = [
+                DiscriminatedUnion { Domain = None; Name = TypeName "SecondType"; Cases = [
                     { Name = TypeName "CaseA"; Argument = string }
                     { Name = TypeName "CaseB"; Argument = unit }
                     { Name = TypeName "CaseC"; Argument = Type (TypeName "FirstType") }
                 ] }
 
-                DiscriminatedUnion { Name = TypeName "ThirdType"; Cases = [
+                DiscriminatedUnion { Domain = None; Name = TypeName "ThirdType"; Cases = [
                     { Name = TypeName "First"; Argument = Type (TypeName "FirstType") }
                     { Name = TypeName "Second"; Argument = Type (TypeName "SecondType") }
                     { Name = TypeName "Fourth"; Argument = Type (TypeName "FourthType") }
                 ] }
 
-                DiscriminatedUnion { Name = TypeName "FourthType"; Cases = [
+                DiscriminatedUnion { Domain = None; Name = TypeName "FourthType"; Cases = [
                     { Name = TypeName "CaseFooBar"; Argument = Tuple [ Type (TypeName "Foo"); Type (TypeName "Bar") ] }
                     { Name = TypeName "CaseFun"; Argument = Function { Argument = Type (TypeName "Foo"); Returns = Type (TypeName "Bar") }  }
                 ] }
 
-                SingleCaseUnion { Name = TypeName "Foo"; ConstructorName = "Foo"; ConstructorArgument = unit }
-                SingleCaseUnion { Name = TypeName "Bar"; ConstructorName = "Bar"; ConstructorArgument = unit }
+                SingleCaseUnion { Domain = None; Name = TypeName "Foo"; ConstructorName = "Foo"; ConstructorArgument = unit }
+                SingleCaseUnion { Domain = None; Name = TypeName "Bar"; ConstructorName = "Bar"; ConstructorArgument = unit }
 
-                DiscriminatedUnion { Name = TypeName "RecursiveType"; Cases = [
+                DiscriminatedUnion { Domain = None; Name = TypeName "RecursiveType"; Cases = [
                     { Name = TypeName "Other"; Argument = string }
                     { Name = TypeName "Self"; Argument = Type (TypeName "RecursiveType") }
                 ] }
             ])
 
             case "Functions" "functions.fsx" (Ok [
-                SingleCaseUnion { Name = TypeName "Function"; ConstructorName = "Function"; ConstructorArgument = Function {
+                SingleCaseUnion { Domain = None; Name = TypeName "Function"; ConstructorName = "Function"; ConstructorArgument = Function {
                     Argument = string
                     Returns = string
                 } }
 
-                SingleCaseUnion { Name = TypeName "SecondFunction"; ConstructorName = "SecondFunction"; ConstructorArgument = Function {
+                SingleCaseUnion { Domain = None; Name = TypeName "SecondFunction"; ConstructorName = "SecondFunction"; ConstructorArgument = Function {
                     Argument = Tuple [ int; string ]
                     Returns = Function {
                         Argument = unit
@@ -175,7 +179,7 @@ module Domain =
                     }
                 } }
 
-                SingleCaseUnion { Name = TypeName "GenericFunction"; ConstructorName = "GenericFunction"; ConstructorArgument = Function {
+                SingleCaseUnion { Domain = None; Name = TypeName "GenericFunction"; ConstructorName = "GenericFunction"; ConstructorArgument = Function {
                     Argument = string
                     Returns = Function {
                         Argument = GenericParameter (TypeName "Input")
@@ -183,7 +187,7 @@ module Domain =
                     }
                 } }
 
-                SingleCaseUnion { Name = TypeName "ComplexFunction"; ConstructorName = "ComplexFunction"; ConstructorArgument = Function {
+                SingleCaseUnion { Domain = None; Name = TypeName "ComplexFunction"; ConstructorName = "ComplexFunction"; ConstructorArgument = Function {
                     Argument = GenericParameter (TypeName "Input") |> List
                     Returns = Function {
                         Argument = string |> Option
@@ -204,6 +208,7 @@ module Domain =
                 yield! recordTypes
 
                 yield Record {
+                    Domain = None
                     Name = TypeName "Contract"
                     Fields = Fields.ofList [
                         FieldName "Text", string
@@ -215,18 +220,19 @@ module Domain =
             ])
 
             case "Generics" "generics.fsx" (Ok [
-                SingleCaseUnion { Name = TypeName "Stream"; ConstructorName = "Stream"; ConstructorArgument = GenericParameter (TypeName "Event") |> List }
+                SingleCaseUnion { Domain = None; Name = TypeName "Stream"; ConstructorName = "Stream"; ConstructorArgument = GenericParameter (TypeName "Event") |> List }
 
-                SingleCaseUnion { Name = TypeName "StreamHandler"; ConstructorName = "StreamHandler"; ConstructorArgument = Function { Argument = GenericParameter (TypeName "Event"); Returns = unit } }
+                SingleCaseUnion { Domain = None; Name = TypeName "StreamHandler"; ConstructorName = "StreamHandler"; ConstructorArgument = Function { Argument = GenericParameter (TypeName "Event"); Returns = unit } }
 
-                DiscriminatedUnion { Name = TypeName "InteractionEvent"; Cases = [
+                DiscriminatedUnion { Domain = None; Name = TypeName "InteractionEvent"; Cases = [
                     { Name = TypeName "Confirmation"; Argument = unit }
                     { Name = TypeName "Rejection"; Argument = unit }
                 ] }
 
-                Stream { Name = TypeName "InteractionCollectorStream"; EventType = TypeName "InteractionEvent" }
+                Stream { Domain = None; Name = TypeName "InteractionCollectorStream"; EventType = TypeName "InteractionEvent" }
 
                 Record {
+                    Domain = None
                     Name = TypeName "PersonIdentificationEngine"
                     Fields = Fields.empty
                     Methods = Fields.empty
@@ -235,7 +241,7 @@ module Domain =
                     ]
                 }
 
-                SingleCaseUnion { Name = TypeName "Method"; ConstructorName = "Method"; ConstructorArgument = Function {
+                SingleCaseUnion { Domain = None; Name = TypeName "Method"; ConstructorName = "Method"; ConstructorArgument = Function {
                     Argument = Type (TypeName "Input") |> List |> Option
                     Returns = GenericType {
                         Type = TypeName "Async"
@@ -246,8 +252,8 @@ module Domain =
                     } |> List
                 } }
 
-                SingleCaseUnion { Name = TypeName "Input"; ConstructorName = "Input"; ConstructorArgument = string }
-                SingleCaseUnion { Name = TypeName "Output"; ConstructorName = "Output"; ConstructorArgument = string }
+                SingleCaseUnion { Domain = None; Name = TypeName "Input"; ConstructorName = "Input"; ConstructorArgument = string }
+                SingleCaseUnion { Domain = None; Name = TypeName "Output"; ConstructorName = "Output"; ConstructorArgument = string }
             ])
         ]
 

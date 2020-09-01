@@ -1,11 +1,11 @@
 tuc Identify person on interaction
 participants
-  ConsentManager
-    GenericService consents as "Generic Service"
+  ConsentManager consents
+    GenericService as "Generic Service"
     InteractionCollector consents as "Interaction Collector"
   [InteractionCollectorStream] consents
   PersonIdentificationEngine consents as "PID"
-  PersonAggregate consents as "Person Aggregate"
+  PersonAggregate consents
 
 GenericService
   InteractionCollector.PostInteraction

@@ -2,8 +2,8 @@
 
 == test ==
 
-actor "GenericService" as GenericService <<parts>>
-collections "InputStream" as InputStream <<parts>>
+actor "GenericService" as GenericService <<Parts>>
+collections "InputStream" as InputStream <<Parts>>
 
 activate GenericService
 GenericService ->> InputStream: InputEvent

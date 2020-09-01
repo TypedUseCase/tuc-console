@@ -1,8 +1,8 @@
 tuc Confirmed with typo
 participants
-    GenericService consents
-    InteractionCollector consents
-    [InteractionStream] consents
+    GenericService Tests
+    InteractionCollector Tests
+    [InteractionStream] Tests
 
 section InteractionEvent.Confirmed - typo
 GenericService

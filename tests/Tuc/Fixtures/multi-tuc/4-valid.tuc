@@ -1,18 +1,18 @@
 tuc Correct 1
 participants
-    GenericService parts
-    Service parts
+    GenericService tests
+    Service tests
 
 GenericService
     Service.DoSomeWork
 
 tuc Correct 2
 participants
-    GenericService parts
-    Service parts
-    [InputStream] parts
-    StreamComponent
-        StreamListener parts
+    GenericService tests
+    Service tests
+    [InputStream] tests
+    StreamComponent tests
+        StreamListener
 
 [InputStream]
     StreamListener.ReadEvent
@@ -20,8 +20,8 @@ participants
 
 tuc Correct tuc 3
 participants
-    GenericService parts
-    [InputStream] parts
+    GenericService tests
+    [InputStream] tests
 
 GenericService
     if the weather is nice
@@ -29,9 +29,9 @@ GenericService
 
 tuc Correct tuc 4
 participants
-    GenericService parts
-    [InputStream] parts
-    StreamListener parts
+    GenericService tests
+    [InputStream] tests
+    StreamListener tests
 
 GenericService
     [InputStream]

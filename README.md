@@ -29,7 +29,7 @@ Interaction collector service identify a person and accepts an interaction.
 
 *Note: All files are in the [example](https://github.com/MortalFlesh/tuc-console/tree/master/example) dir.*
 
-### domain.fsx
+### consentsDomain.fsx
 ```fs
 // Common types
 
@@ -68,7 +68,7 @@ and PersonId = PersonId of Id
 
 // Streams
 
-type InteractionCollectorStream = Stream<InteractionEvent>
+type InteractionCollectorStream = InteractionCollectorStream of Stream<InteractionEvent>
 
 // Services
 
@@ -79,11 +79,16 @@ type InteractionCollector = {
 }
 
 type PersonIdentificationEngine = {
-    OnInteractionEvent: InteractionEvent -> unit
+    OnInteractionEvent: StreamHandler<InteractionEvent>
 }
 
 type PersonAggregate = {
     IdentifyPerson: IdentityMatchingSet -> Person
+}
+
+type ConsentManager = {
+    GenericService: GenericService
+    InteractionCollector: InteractionCollector
 }
 ```
 
@@ -91,12 +96,12 @@ type PersonAggregate = {
 ```tuc
 tuc Identify person on interaction
 participants
-  ConsentManager
-    GenericService consents as "Generic Service"
+  ConsentManager consents
+    GenericService as "Generic Service"
     InteractionCollector consents as "Interaction Collector"
   [InteractionCollectorStream] consents
   PersonIdentificationEngine consents as "PID"
-  PersonAggregate consents as "Person Aggregate"
+  PersonAggregate consents
 
 GenericService
   InteractionCollector.PostInteraction
@@ -147,35 +152,35 @@ out of it.
 == Identify person on interaction ==
 
 box "ConsentManager"
-    actor "Generic Service" as GenericService <<consents>>
-    participant "Interaction Collector" as InteractionCollector <<consents>>
+    actor "Generic Service" as GenericService <<Consents>>
+    participant "Interaction Collector" as InteractionCollector <<Consents>>
 end box
-collections "InteractionCollectorStream" as InteractionCollectorStream <<consents>>
-participant "PID" as PersonIdentificationEngine <<consents>>
-participant "Person Aggregate" as PersonAggregate <<consents>>
+collections "InteractionCollectorStream" as InteractionCollectorStream <<Consents>>
+participant "PID" as PersonIdentificationEngine <<Consents>>
+participant "PersonAggregate" as PersonAggregate <<Consents>>
 
 activate GenericService
 GenericService -> InteractionCollector ++: PostInteraction(InteractionEvent)
-    note over InteractionCollector
+    hnote over InteractionCollector
     do: create an interaction event based on interaction
-    end note
+    end hnote
     InteractionCollector ->> InteractionCollectorStream: InteractionEvent
     InteractionCollectorStream ->> PersonIdentificationEngine: OnInteractionEvent(InteractionEvent)
         activate PersonIdentificationEngine
         PersonIdentificationEngine -> PersonAggregate ++: IdentifyPerson(IdentityMatchingSet)
-            note over PersonAggregate
+            hnote over PersonAggregate
             do:
                 normalize contact
                 identify a person based on the normalized contact
-            end note
+            end hnote
             alt PersonFound
-                note over PersonAggregate
+                hnote over PersonAggregate
                 do: return Person
-                end note
+                end hnote
             else
-                note over PersonAggregate
+                hnote over PersonAggregate
                 do: return Error
-                end note
+                end hnote
             end
         PersonAggregate --> PersonIdentificationEngine --: Person
         deactivate PersonIdentificationEngine

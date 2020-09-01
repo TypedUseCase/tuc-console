@@ -1,8 +1,8 @@
 tuc Valid use case
 participants
-    GenericService consents as "Generic Service"
-    InteractionCollector consents
-    [InteractionStream] consents
+    GenericService tests as "Generic Service"
+    InteractionCollector tests
+    [InteractionStream] Tests
 
 section InteractionEvent
 GenericService

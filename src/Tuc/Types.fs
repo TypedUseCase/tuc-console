@@ -53,14 +53,14 @@ and ActiveParticipant =
     | Stream of StreamParticipant
 
 and ServiceParticipant = {
-    Domain: string
+    Domain: DomainName
     Context: string
     Alias: string
     ServiceType: DomainType
 }
 
 and StreamParticipant = {
-    Domain: string
+    Domain: DomainName
     Context: string
     Alias: string
     StreamType: DomainType

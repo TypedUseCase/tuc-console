@@ -17,13 +17,13 @@ module Dump =
         | ActiveParticipant.Service { Domain = domain; Context = context; Alias = alias } ->
             sprintf "<c:cyan>%s</c>(<c:gray>%s.%s</c>)"
                 alias
-                domain
+                (domain |> DomainName.value)
                 context
 
         | ActiveParticipant.Stream { Domain = domain; Context = context; Alias = alias } ->
             sprintf "<c:purple>[</c><c:cyan>%s</c>(<c:gray>%s.%s</c>)<c:purple>]</c>"
                 alias
-                domain
+                (domain |> DomainName.value)
                 context
 
     let private formatParticipant indentation: Format<Participant> = function

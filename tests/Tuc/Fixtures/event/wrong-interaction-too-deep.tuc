@@ -1,8 +1,8 @@
 tuc too deep Interaction
 participants
-    GenericService consents
-    InteractionCollector consents
-    [InteractionStream] consents
+    GenericService Tests
+    InteractionCollector Tests
+    [InteractionStream] Tests
 
 section InteractionEvent.Interaction.Interaction
 GenericService

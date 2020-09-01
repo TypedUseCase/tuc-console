@@ -131,6 +131,14 @@ module private Errors =
         let n, p, c = line |> Line.error indentation
         WrongEvent (n, p, c, cases)
 
+    let undefinedParticipantInDomain indentation line domain =
+        let n, p, c = line |> Line.error indentation
+        UndefinedParticipantInDomain (n, p, c, domain |> DomainName.value)
+
+    let wrongComponentParticipantDomain indentation line componentDomain =
+        let n, p, c = line |> Line.error indentation
+        WrongComponentParticipantDomain (n, p, c, componentDomain |> DomainName.value)
+
 module private ParserPatterns =
     let (|HasDomainType|_|) name (DomainTypes domainTypes) =
         domainTypes

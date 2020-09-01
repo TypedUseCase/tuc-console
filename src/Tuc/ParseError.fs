@@ -15,7 +15,9 @@ type ParseError =
     | WrongParticipantIndentation of lineNumber: int * position: int * line: string
     | ComponentWithoutParticipants of lineNumber: int * position: int * line: string
     | UndefinedComponentParticipant of lineNumber: int * position: int * line: string * componentName: string * definedFields: string list * wantedService: string
+    | WrongComponentParticipantDomain of lineNumber: int * position: int * line: string * componentDomain: string
     | InvalidParticipant of lineNumber: int * position: int * line: string
+    | UndefinedParticipantInDomain of lineNumber: int * position: int * line: string * domain: string
     | UndefinedParticipant of lineNumber: int * position: int * line: string
 
     // Parts
@@ -126,8 +128,19 @@ module ParseError =
                 componentName
                 formattedFields
 
+        | WrongComponentParticipantDomain (lineNumber, position, line, componentDomain) ->
+            sprintf "This participant is not defined in the component's domain %s, or it has other domain defined." componentDomain
+            |> red
+            |> formatLineWithError lineNumber position line
+
         | InvalidParticipant (lineNumber, position, line) ->
             "<c:red>There is an invalid participant. Participant format is:</c> <c:cyan>ServiceName Domain</c> <c:yellow>(as \"alias\")</c> <c:red>(Alias part is optional)</c>"
+            |> formatLineWithError lineNumber position line
+
+        | UndefinedParticipantInDomain (lineNumber, position, line, domain) ->
+            domain
+            |> sprintf "There is an undefined participant in the %s domain. (It is not defined in the given Domain types, or it is not defined as a Record.)"
+            |> red
             |> formatLineWithError lineNumber position line
 
         | UndefinedParticipant (lineNumber, position, line) ->
@@ -324,7 +337,9 @@ module ParseError =
         | WrongParticipantIndentation _ -> "Wrong Participant Indentation"
         | ComponentWithoutParticipants _ -> "Component Without Participants"
         | UndefinedComponentParticipant _ -> "Undefined Component Participant"
+        | WrongComponentParticipantDomain _ -> "Wrong Component Participant Domain"
         | InvalidParticipant _ -> "Invalid Participant"
+        | UndefinedParticipantInDomain _ -> "Undefined Participant In Domain"
         | UndefinedParticipant _ -> "Undefined Participant"
 
         // Parts

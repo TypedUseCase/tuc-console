@@ -72,50 +72,92 @@ module Parser =
             let service = Service >> Ok
 
             match domainTypes with
-            | HasDomainType serviceName (DomainType (Record _ as componentType)) ->
+            | HasDomainType serviceName (DomainType.ServiceInDomain serviceDomain componentType) ->
                 service {
                     Domain = serviceDomain
                     Context = serviceName
                     Alias = alias
                     ServiceType = DomainType componentType
                 }
-            | HasDomainType serviceName (DomainType.Initiator as serviceType) ->
+            | HasDomainType serviceName (DomainType.InitiatorInDomain serviceDomain as serviceType) ->
                 service {
                     Domain = serviceDomain
                     Context = serviceName
                     Alias = alias
                     ServiceType = serviceType
                 }
-            | _ -> Error <| UndefinedParticipant (line |> Line.error indentation)
+            | _ -> Error <| Errors.undefinedParticipantInDomain indentation line serviceDomain
 
         let private parseStream streamName streamDomain alias indentation line domainTypes =
             let stream = ActiveParticipant.Stream >> Ok
 
             match domainTypes with
-            | HasDomainType streamName (DomainType (Stream _ as componentType)) ->
+            | HasDomainType streamName (DomainType.Stream streamDomain componentType) ->
                 stream {
                     Domain = streamDomain
                     Context = streamName
                     Alias = alias
                     StreamType = DomainType componentType
                 }
-            | _ -> Error <| UndefinedParticipant (line |> Line.error indentation)
+            | _ -> Error <| Errors.undefinedParticipantInDomain indentation line streamDomain
 
         let private parseActiveParticipant (domainTypes: DomainTypes) indentation line =
             match line with
             | IndentedLine indentation line ->
                 match line |> Line.content with
                 | Regex @"^(\w+){1} (\w+){1}$" [ serviceName; serviceDomain ] ->
-                    domainTypes |> parseService serviceName serviceDomain serviceName indentation line
+                    domainTypes |> parseService serviceName (DomainName.create serviceDomain) serviceName indentation line
 
                 | Regex @"^(\w+){1} (\w+){1} as ""(.+){1}""$" [ serviceName; serviceDomain; alias ] ->
-                    domainTypes |> parseService serviceName serviceDomain alias indentation line
+                    domainTypes |> parseService serviceName (DomainName.create serviceDomain) alias indentation line
 
                 | Regex @"^\[(\w+){1}\] (\w+){1}$" [ streamName; streamDomain ] ->
-                    domainTypes |> parseStream streamName streamDomain streamName indentation line
+                    domainTypes |> parseStream streamName (DomainName.create streamDomain) streamName indentation line
 
                 | Regex @"^\[(\w+){1}\] (\w+){1} as ""(.+){1}""$" [ streamName; streamDomain; alias ] ->
-                    domainTypes |> parseStream streamName streamDomain alias indentation line
+                    domainTypes |> parseStream streamName (DomainName.create streamDomain) alias indentation line
+
+                | _ -> Error <| InvalidParticipant (line |> Line.error indentation)
+
+            | _ -> Error <| WrongParticipantIndentation (line |> Line.error indentation)
+
+        let private parseComponentActiveParticipant (domainTypes: DomainTypes) indentation componentDomain line =
+            match line with
+            | IndentedLine indentation line ->
+                match line |> Line.content with
+                // Service
+                | Regex @"^(\w+){1}$" [ serviceName ] ->
+                    domainTypes |> parseService serviceName componentDomain serviceName indentation line
+
+                | Regex @"^(\w+){1} (\w+){1}$" [ serviceName; serviceDomain ] ->
+                    if componentDomain |> DomainName.eq serviceDomain
+                    then domainTypes |> parseService serviceName componentDomain serviceName indentation line
+                    else Error <| Errors.wrongComponentParticipantDomain indentation line componentDomain
+
+                | Regex @"^(\w+){1} (\w+){1} as ""(.+){1}""$" [ serviceName; serviceDomain; alias ] ->
+                    if componentDomain |> DomainName.eq serviceDomain
+                    then domainTypes |> parseService serviceName componentDomain alias indentation line
+                    else Error <| Errors.wrongComponentParticipantDomain indentation line componentDomain
+
+                | Regex @"^(\w+){1} as ""(.+){1}""$" [ serviceName; alias ] ->
+                    domainTypes |> parseService serviceName componentDomain alias indentation line
+
+                // Stream
+                | Regex @"^\[(\w+){1}\]$" [ streamName ] ->
+                    domainTypes |> parseStream streamName componentDomain streamName indentation line
+
+                | Regex @"^\[(\w+){1}\] (\w+){1}$" [ streamName; streamDomain ] ->
+                    if componentDomain |> DomainName.eq streamDomain
+                    then domainTypes |> parseStream streamName componentDomain streamName indentation line
+                    else Error <| Errors.wrongComponentParticipantDomain indentation line componentDomain
+
+                | Regex @"^\[(\w+){1}\] (\w+){1} as ""(.+){1}""$" [ streamName; streamDomain; alias ] ->
+                    if componentDomain |> DomainName.eq streamDomain
+                    then domainTypes |> parseStream streamName componentDomain alias indentation line
+                    else Error <| Errors.wrongComponentParticipantDomain indentation line componentDomain
+
+                | Regex @"^\[(\w+){1}\] as ""(.+){1}""$" [ streamName; alias ] ->
+                    domainTypes |> parseStream streamName componentDomain alias indentation line
 
                 | _ -> Error <| InvalidParticipant (line |> Line.error indentation)
 
@@ -125,36 +167,57 @@ module Parser =
             let participantIndentation = indentationLevel |> IndentationLevel.indentation
 
             match line |> Line.content with
-            | Regex @"^(\w+){1}$" [ componentName ] ->
-                match domainTypes with
-                | HasDomainType componentName (DomainType (Record { Fields = componentFields })) ->
-                    result {
-                        let componentParticipantIndentation = participantIndentation |> Indentation.goDeeper indentationLevel
+            | Regex @"^(\w+){1} (\w+){1}$" [ componentName; domainName ] ->
+                let domainName = DomainName.create domainName
 
-                        let componentParticipantLines, lines =
-                            lines
-                            |> List.splitBy (Line.isIndentedOrMore componentParticipantIndentation)
+                let parsedComponent =
+                    match domainTypes with
+                    | HasDomainType componentName (DomainType.Component domainName componentFields) ->
+                        result {
+                            let componentParticipantIndentation = participantIndentation |> Indentation.goDeeper indentationLevel
 
-                        let! componentParticipants =
-                            componentParticipantLines
-                            |> List.map (parseActiveParticipant domainTypes componentParticipantIndentation)
-                            |> Validation.ofResults
-                            |> Validation.toResult
+                            let componentParticipantLines, lines =
+                                lines
+                                |> List.splitBy (Line.isIndentedOrMore componentParticipantIndentation)
 
-                        do!
-                            componentParticipants
-                            |> Assert.definedComponentParticipants indentationLevel line
-                                componentName
-                                componentParticipantIndentation
+                            let! componentParticipants =
                                 componentParticipantLines
-                                componentFields
+                                |> List.map (parseComponentActiveParticipant domainTypes componentParticipantIndentation domainName)
+                                |> Validation.ofResults
+                                |> Validation.toResult
 
-                        return Component { Name = componentName; Participants = componentParticipants }, lines
+                            do!
+                                componentParticipants
+                                |> Assert.definedComponentParticipants indentationLevel line
+                                    componentName
+                                    componentParticipantIndentation
+                                    componentParticipantLines
+                                    componentFields
+
+                            return Component { Name = componentName; Participants = componentParticipants }, lines
+                        }
+
+                    | _ ->
+                        Error [
+                            Errors.undefinedParticipantInDomain (indentationLevel |> IndentationLevel.indentation) line domainName
+                        ]
+
+                match parsedComponent with
+                | Ok parsedComponent -> Ok parsedComponent
+
+                | Error ([ UndefinedParticipantInDomain _ ]) ->
+                    // since component syntax is the same as active participant without an alias, we must also try to parse active participant
+                    // but it is only possible, when it is an Undefind participant in domain, otherwise it is just a component error
+                    result {
+                        let! activeParticipant =
+                            line
+                            |> parseActiveParticipant domainTypes participantIndentation
+                            |> Validation.ofResult
+
+                        return Participant activeParticipant, lines
                     }
-                | _ ->
-                    Error [
-                        UndefinedParticipant (line |> Line.error (indentationLevel |> IndentationLevel.indentation))
-                    ]
+
+                | Error componentError -> Error componentError
 
             | _ ->
                 result {
@@ -565,7 +628,7 @@ module Parser =
                 | None, _ ->
                     Error <| EventPostedWithoutACaller (line |> Line.error indentation)
 
-                | Some caller, IsParticipant participants (ActiveParticipant.Stream { StreamType = DomainType.Stream eventTypeName } as stream) ->
+                | Some caller, IsParticipant participants (ActiveParticipant.Stream { StreamType = DomainType.StreamEvent eventTypeName } as stream) ->
                     result {
                         let! event =
                             eventName
@@ -590,7 +653,7 @@ module Parser =
                 | None, _ ->
                     Error <| EventReadWithoutACaller (line |> Line.error indentation)
 
-                | Some caller, IsParticipant participants (ActiveParticipant.Stream { StreamType = DomainType.Stream eventTypeName } as stream) ->
+                | Some caller, IsParticipant participants (ActiveParticipant.Stream { StreamType = DomainType.StreamEvent eventTypeName } as stream) ->
                     result {
                         let! event =
                             eventName

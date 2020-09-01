@@ -2,8 +2,8 @@
 
 == test ==
 
-actor "GenericService" as GenericService <<parts>>
-participant "Service" as Service <<parts>>
+actor "GenericService" as GenericService <<Parts>>
+participant "Service" as Service <<Parts>>
 
 activate GenericService
 GenericService -> Service ++: DoSomeWork(Id)

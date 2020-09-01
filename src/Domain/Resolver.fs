@@ -287,6 +287,7 @@ module Resolver =
             |> List.map (fun (Key typeName, t) ->
                 [
                     typeName |> TypeName.value
+                    t |> ResolvedType.domain |> Option.map DomainName.value |> Option.defaultValue "-"
                     t |> ResolvedType.getType
                 ]
             )
@@ -294,7 +295,8 @@ module Resolver =
             |> function
                 | [] -> output.Error "There are no resolved types in given domain."
                 | resolvedTypes ->
-                    resolvedTypes
+                    [ "Type Name"; "Domain Name"; "Resolved Type" ]
+                    :: resolvedTypes
                     |> output.Options (sprintf "Resolved (or scalar) types [%d]:" (resolvedTypes |> List.length))
 
         let resolvedTypes =

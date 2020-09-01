@@ -45,13 +45,13 @@ module Generate =
     module private Participant =
         let private generateActive: Generate<ActiveParticipant> = fun output -> function
             | Service { Domain = domain; Context = context; Alias = alias; ServiceType = DomainType.Initiator } ->
-                [ PumlPart (sprintf "actor %A as %s <<%s>>" alias context domain) ]
+                [ PumlPart (sprintf "actor %A as %s <<%s>>" alias context (domain |> DomainName.value)) ]
 
             | Service { Domain = domain; Context = context; Alias = alias } ->
-                [ PumlPart (sprintf "participant %A as %s <<%s>>" alias context domain) ]
+                [ PumlPart (sprintf "participant %A as %s <<%s>>" alias context (domain |> DomainName.value)) ]
 
             | Stream { Domain = domain; Context = context; Alias = alias } ->
-                [ PumlPart (sprintf "collections %A as %s <<%s>>" alias context domain) ]
+                [ PumlPart (sprintf "collections %A as %s <<%s>>" alias context (domain |> DomainName.value)) ]
 
         let generate: Generate<Participant> = fun output -> function
             | Component { Name = name; Participants = participants } ->

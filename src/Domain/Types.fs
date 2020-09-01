@@ -6,17 +6,24 @@ type FieldName = FieldName of string
 module FieldName =
     let value (FieldName name) = name
 
-type DomainName = DomainName of string
+[<AutoOpen>]
+module DomainNameModule =
+    type DomainName = private DomainName of string
 
-[<RequireQualifiedAccess>]
-module DomainName =
-    open MF.TucConsole
+    [<RequireQualifiedAccess>]
+    module DomainName =
+        open MF.TucConsole
 
-    let value (DomainName name) = name
+        let value (DomainName name) = name
 
-    let parse = function
-        | Regex "^(.+?)Domain$" [ domainName ] -> Some (DomainName domainName)
-        | _ -> None
+        let create = String.trim ' ' >> String.ucFirst >> DomainName
+
+        let parse = function
+            | Regex "^(.+?)Domain$" [ domainName ] -> Some (create domainName)
+            | _ -> None
+
+        let eq a b =
+            a |> create = b
 
 type TypeName = TypeName of string
 
@@ -65,6 +72,10 @@ type Fields<'FieldType> = Map<FieldName, 'FieldType>
 module Fields =
     let empty: Fields<_> = Map.empty
     let ofList fields: Fields<_> = Map.ofList fields
+
+    let (|Empty|_|): Fields<_> -> _ = function
+        | empty when empty.IsEmpty -> Some ()
+        | _ -> None
 
 type ResolvedType =
     | ScalarType of ScalarType
@@ -165,6 +176,13 @@ module ResolvedType =
         | Stream { Name = name }
         | Unresolved name -> name
 
+    let domain = function
+        | SingleCaseUnion { Domain = domain }
+        | Record { Domain = domain }
+        | DiscriminatedUnion { Domain = domain }
+        | Stream { Domain = domain } -> domain
+        | _ -> None
+
     let getType = function
         | ScalarType _ -> "ScalarType"
         | SingleCaseUnion _ -> "SingleCaseUnion"
@@ -208,12 +226,28 @@ module DomainType =
     let name (DomainType resolvedType) = resolvedType |> ResolvedType.name
     let nameValue = name >> TypeName.value
 
+    let (|InitiatorInDomain|_|) domain = function
+        | DomainType (SingleCaseUnion { ConstructorName = "Initiator"; Domain = initiatorDomain }) when initiatorDomain = Some domain -> Some ()
+        | _ -> None
+
     let (|Initiator|_|) = function
         | DomainType (SingleCaseUnion { ConstructorName = "Initiator" }) -> Some ()
         | _ -> None
 
-    let (|Stream|_|) = function
-        | DomainType (Stream { EventType = TypeName eventType } ) -> Some eventType
+    let (|ServiceInDomain|_|) domain = function
+        | DomainType (Record { Domain = recordDomain } as service) when recordDomain = Some domain -> Some service
+        | _ -> None
+
+    let (|StreamEvent|_|) = function
+        | DomainType (Stream { EventType = TypeName eventType }) -> Some eventType
+        | _ -> None
+
+    let (|Stream|_|) domain = function
+        | DomainType (Stream { Domain = streamDomain } as stream) when streamDomain = Some domain -> Some stream
+        | _ -> None
+
+    let (|Component|_|) domain = function
+        | DomainType (Record { Fields = componentFields; Domain = recordDomain; Methods = Fields.Empty; Handlers = Fields.Empty }) when recordDomain = Some domain -> Some componentFields
         | _ -> None
 
 //
