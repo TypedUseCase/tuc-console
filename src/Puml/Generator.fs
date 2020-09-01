@@ -204,17 +204,17 @@ module Generate =
 
             | Do { Caller = caller; Actions = [ action ]} ->
                 [
-                    PumlPart (sprintf "note over %s" (caller |> ActiveParticipant.name)) |> PumlPart.indent indentation
+                    PumlPart (sprintf "hnote over %s" (caller |> ActiveParticipant.name)) |> PumlPart.indent indentation
                     PumlPart (sprintf "do: %s" action) |> PumlPart.indent indentation
-                    PumlPart "end note" |> PumlPart.indent indentation
+                    PumlPart "end hnote" |> PumlPart.indent indentation
                 ]
 
             | Do { Caller = caller; Actions = actions } ->
                 [
-                    yield PumlPart (sprintf "note over %s" (caller |> ActiveParticipant.name)) |> PumlPart.indent indentation
+                    yield PumlPart (sprintf "hnote over %s" (caller |> ActiveParticipant.name)) |> PumlPart.indent indentation
                     yield PumlPart "do:" |> PumlPart.indent indentation
                     yield! actions |> List.map PumlPart |> PumlPart.indentMany deeper
-                    yield PumlPart "end note" |> PumlPart.indent indentation
+                    yield PumlPart "end hnote" |> PumlPart.indent indentation
                 ]
 
             | LeftNote { Lines = [ line ] } ->

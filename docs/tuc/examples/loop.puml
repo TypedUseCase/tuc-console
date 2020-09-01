@@ -1,0 +1,16 @@
+@startuml loop
+
+== Loop ==
+
+actor "Main Service" as MainService <<My>>
+
+activate MainService
+loop until it's done
+    hnote over MainService
+    do: something
+    end hnote
+end
+
+deactivate MainService
+
+@enduml

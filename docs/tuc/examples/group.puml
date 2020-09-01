@@ -1,0 +1,19 @@
+@startuml group
+
+== Group ==
+
+actor "Main Service" as MainService <<My>>
+
+activate MainService
+group Grouped together
+    hnote over MainService
+    do: something
+    end hnote
+    hnote over MainService
+    do: something else
+    end hnote
+end
+
+deactivate MainService
+
+@enduml

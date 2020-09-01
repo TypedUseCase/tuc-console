@@ -11,6 +11,8 @@
 - Allow to use FQ name for events and use deeper event name
 - Allow to check multiple .tuc files in a dir at once
 - Parse .tuc with more errors, if possible
+- Make a `Do` as a `hnote` in `puml`
+- Change tuc comment from `//` to `#`, so it won't conflict with `//italic//` in notes, etc.
 
 ## 0.1.0 - 2020-08-12
 - Initial implementation

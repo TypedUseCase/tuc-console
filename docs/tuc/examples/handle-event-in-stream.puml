@@ -1,0 +1,14 @@
+@startuml handle-event-in-stream
+
+== Handle Event in Stream ==
+
+participant "StreamListener" as StreamListener <<My>>
+collections "InteractionStream" as InteractionStream <<My>>
+
+InteractionStream ->> StreamListener: OnInteractionEvent(InteractionEvent)
+    activate StreamListener
+    note over StreamListener: this is part of execution
+    deactivate StreamListener
+
+
+@enduml

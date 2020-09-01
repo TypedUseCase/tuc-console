@@ -1,0 +1,20 @@
+@startuml do
+
+== Do ==
+
+actor "Main Service" as MainService <<My>>
+
+activate MainService
+hnote over MainService
+do: Some work
+end hnote
+hnote over MainService
+do:
+    one thing
+    other thing
+    and the last thing
+end hnote
+
+deactivate MainService
+
+@enduml

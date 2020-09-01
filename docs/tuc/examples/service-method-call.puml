@@ -1,0 +1,15 @@
+@startuml service-method-call
+
+== Service Method Call ==
+
+actor "Main Service" as MainService <<My>>
+participant "Service" as Service <<My>>
+
+activate MainService
+MainService -> Service ++: Method(Input)
+    note over Service: this is part of execution
+Service --> MainService --: Output
+
+deactivate MainService
+
+@enduml

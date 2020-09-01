@@ -198,7 +198,7 @@ module ParseError =
                 match definedHandlers with
                 | [] -> sprintf "%s not defined any handlers." serviceHas
                 | definedHandlers ->
-                    sprintf "%s defined handlers:%s</c>"
+                    sprintf "%s defined handlers:%s"
                         serviceHas
                         (definedHandlers |> List.formatLines "  - " id)
 

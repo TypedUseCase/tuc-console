@@ -1,0 +1,14 @@
+@startuml section
+
+== Section ==
+
+actor "Main Service" as MainService <<My>>
+
+activate MainService
+
+== There is just a section ==
+
+
+deactivate MainService
+
+@enduml

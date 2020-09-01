@@ -1,0 +1,6 @@
+tuc Lifeline
+participants
+    MainService My as "Main Service"
+
+MainService
+    "this is a lifeline"

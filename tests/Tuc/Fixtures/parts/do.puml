@@ -5,15 +5,15 @@
 actor "GenericService" as GenericService <<parts>>
 
 activate GenericService
-note over GenericService
+hnote over GenericService
 do: Some stuff
-end note
-note over GenericService
+end hnote
+hnote over GenericService
 do:
     multi
     line
     do
-end note
+end hnote
 
 deactivate GenericService
 

@@ -1,0 +1,22 @@
+@startuml note
+
+== Note ==
+
+actor "Main Service" as MainService <<My>>
+
+activate MainService
+note over MainService: this is a note
+note over MainService
+This is **bold**
+This is
+This is ""monospaced""
+This is --stroked--
+This is __underlined__
+This is ~~waved~~
+This is <back:cadetblue><size:18>formatted</size></back>
+<u:red>This</u> is <color #118888>displayed</color> **<color purple>on a </color> <s:red>Main</strike> Service**.
+end note
+
+deactivate MainService
+
+@enduml

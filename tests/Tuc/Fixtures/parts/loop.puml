@@ -6,11 +6,11 @@ actor "GenericService" as GenericService <<parts>>
 
 activate GenericService
 loop until its done
-    note over GenericService
+    hnote over GenericService
     do:
         do something
         then return a result
-    end note
+    end hnote
 end
 loop Infinitely
     note right: Do something over and over

@@ -1,0 +1,30 @@
+@startuml if-else
+
+== If-else ==
+
+actor "Main Service" as MainService <<My>>
+
+activate MainService
+alt the weather is nice
+    alt it is over a 30°C
+        hnote over MainService
+        do:
+            nothing
+            because its to hot
+        end hnote
+    else
+        hnote over MainService
+        do: some work
+        end hnote
+    end
+else
+    alt it is raining
+        hnote over MainService
+        do: work
+        end hnote
+    end
+end
+
+deactivate MainService
+
+@enduml

@@ -1,0 +1,28 @@
+---
+---
+
+@import "{{ site.theme }}";
+
+@media only screen and (min-width: 980px) {
+    .shell {
+        width: 1200px!important;
+    }
+
+    span.banner-fix {
+        left: 618px;
+    }
+
+    #main_content {
+
+        p > img {
+            float: left;
+            margin-right: 10px;
+            margin-bottom: 20px;
+        }
+
+        h2 {
+            clear: both;
+        }
+
+    }
+}

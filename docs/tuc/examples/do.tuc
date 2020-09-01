@@ -1,0 +1,11 @@
+tuc Do
+participants
+    MainService My as "Main Service"
+
+MainService
+    do Some work
+
+    do
+        one thing
+        other thing
+        and the last thing

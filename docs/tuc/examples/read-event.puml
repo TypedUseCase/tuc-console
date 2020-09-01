@@ -1,0 +1,17 @@
+@startuml read-event
+
+== Read Event ==
+
+actor "Main Service" as MainService <<My>>
+collections "InteractionStream" as InteractionStream <<My>>
+
+activate MainService
+InteractionStream ->> MainService: InteractionEvent
+InteractionStream ->> MainService: InteractionEvent.Confirmed
+InteractionStream ->> MainService: InteractionEvent.Rejected
+InteractionStream ->> MainService: InteractionEvent.Rejected.Expired
+InteractionStream ->> MainService: InteractionEvent.Rejected.Rejected
+
+deactivate MainService
+
+@enduml

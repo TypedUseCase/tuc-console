@@ -7,21 +7,21 @@ actor "GenericService" as GenericService <<parts>>
 activate GenericService
 alt the weather is nice
     alt it is over a 30°C
-        note over GenericService
+        hnote over GenericService
         do:
             nothing
             because its to hot
-        end note
+        end hnote
     else
-        note over GenericService
+        hnote over GenericService
         do: some work
-        end note
+        end hnote
     end
 else
     alt it is raining
-        note over GenericService
+        hnote over GenericService
         do: work
-        end note
+        end hnote
     end
 end
 
