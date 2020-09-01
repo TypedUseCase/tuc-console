@@ -5,7 +5,7 @@ Tuc Parts
 
 ---
 
-There **must** be at lease one part of the use-case.
+There **must** be at lease one part of the use-case in the Tuc definition.
 
 ## Use-Case Parts
 - [Lifeline](#lifeline)
@@ -25,7 +25,7 @@ There **must** be at lease one part of the use-case.
 ---
 
 ## Lifeline
-> Life line is the execution of the **Initiator**.
+> Life line is the execution of the [**Initiator**](/tuc-console/domain/#initiator).
 
 * It **may** contain other use-case parts, indented by one level.
 * It _activates_ an Initiator and _deactivates_ it, in the end of a lifeline.
@@ -33,7 +33,7 @@ There **must** be at lease one part of the use-case.
 ### Syntax
 ```tuc
 {InitiatorService}
-    // indented execution of the lifeline
+    # indented execution of the lifeline
 ```
 
 ### Example
@@ -75,6 +75,7 @@ deactivate MainService
 > It is a simple divider in the puml.
 
 * It **must not** be indented (_so it **can not** be in any execution, body, etc._)
+* It **must** have a name
 
 ### Syntax
 ```tuc
@@ -121,7 +122,7 @@ deactivate MainService
 ### Syntax
 ```tuc
 {ServiceName}.{MethodName}
-    // indented execution of the method
+    # indented execution of the method
 ```
 
 Service Type is found in the Domain Types, it must contain a MethodName as a field with a function (_method_). The type of the Method is used in the puml.
@@ -148,9 +149,9 @@ participants
     MainService My as "Main Service"
     Service My
 
-MainService                             // MainService is the caller
-    Service.Method                      // Method `Method` is called on the `Service`
-        "this is part of execution"     // This is part of the Method execution
+MainService                             # MainService is the caller
+    Service.Method                      # Method `Method` is called on the `Service`
+        "this is part of execution"     # This is part of the Method execution
 ```
 
 Results:
@@ -218,10 +219,10 @@ participants
     MainService My as "Main Service"
     [InteractionStream] My
 
-MainService                                     // MainService is the caller
-    InteractionEvent -> [InteractionStream]     // InteractionEvent is posted to the stream
+MainService                                     # MainService is the caller
+    InteractionEvent -> [InteractionStream]     # InteractionEvent is posted to the stream
 
-    // Event concrete events can be posted to the stream
+    # Event concrete events can be posted to the stream
     InteractionEvent.Confirmed -> [InteractionStream]
 
     InteractionEvent.Rejected -> [InteractionStream]
@@ -296,10 +297,10 @@ participants
     MainService My as "Main Service"
     [InteractionStream] My
 
-MainService                                     // MainService is the caller
-    [InteractionStream] -> InteractionEvent     // InteractionEvent is read from the stream
+MainService                                     # MainService is the caller
+    [InteractionStream] -> InteractionEvent     # InteractionEvent is read from the stream
 
-    // Even concrete events can be read from the stream
+    # Even concrete events can be read from the stream
     [InteractionStream] -> InteractionEvent.Confirmed
 
     [InteractionStream] -> InteractionEvent.Rejected
@@ -342,7 +343,7 @@ deactivate MainService
 ```tuc
 [{TypeName}Stream]
     {ServiceName}.{HandlerName}
-        // indented execution of the method
+        # indented execution of the method
 ```
 
 Service Type is found in the Domain Types, it must contain a HandlerName as a field with a function (_[handler](/tuc-console/domain/#handler)_). The type of the Handler is used for checking a Stream Type.
@@ -381,9 +382,9 @@ participants
     StreamListener My
     [InteractionStream] My
 
-[InteractionStream]                     // Stream of the Event type of the handler
-    StreamListener.OnInteractionEvent   // Handler `OnInteractionEvent` is called on the `StreamListener`
-        "this is part of execution"     // This is part of the Handler execution
+[InteractionStream]                     # Stream of the Event type of the handler
+    StreamListener.OnInteractionEvent   # Handler `OnInteractionEvent` is called on the `StreamListener`
+        "this is part of execution"     # This is part of the Handler execution
 ```
 
 Results:
@@ -417,7 +418,7 @@ InteractionStream ->> StreamListener: OnInteractionEvent(InteractionEvent)
 ### Syntax
 ```tuc
 group {Group name}
-    // indented body of the group
+    # indented body of the group
 ```
 
 ### Example
@@ -471,15 +472,15 @@ deactivate MainService
 ### Syntax
 ```tuc
 if {Condition}
-    // indented body of the if
+    # indented body of the if
 ```
 
 With `else`
 ```tuc
 if {Condition}
-    // indented body of the if
+    # indented body of the if
 else
-    // indented body of the else
+    # indented body of the else
 ```
 
 **NOTE**: There is no `else if` syntax, if you need to use it, you need to have other `if/if-else` in the `else` branch.
@@ -487,10 +488,10 @@ else
 With another `if` in `else`
 ```tuc
 if {Condition}
-    // indented body of the if
+    # indented body of the if
 else
     if {Condition}
-        // indented body of the else-if
+        # indented body of the else-if
 ```
 
 ### Example
@@ -561,7 +562,7 @@ deactivate MainService
 ### Syntax
 ```tuc
 loop {Condition}
-    // indented body of the loop
+    # indented body of the loop
 ```
 
 ### Example
@@ -835,6 +836,7 @@ deactivate MainService
 * It **must** contain at least one action, indented by one level, when it is multi-line
 * It **may** contain a formatting, supported by a [PlantUML](https://plantuml.com/sequence-diagram#ezoic-pub-ad-placeholder-141)
 * It will start with a `do:` key word and will have another shape, then regular note
+* It **may** contain a formatting, supported by a [PlantUML](https://plantuml.com/sequence-diagram#ezoic-pub-ad-placeholder-141)
 
 ### Syntax
 Single line do

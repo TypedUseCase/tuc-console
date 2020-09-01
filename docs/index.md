@@ -20,5 +20,6 @@ It is basically a use case definition, for which this console application can ge
     - [Domain example](/tuc-console/domain/#domain-example)
     - [Share types between domains](/tuc-console/domain/#share-types-between-domains)
 - [TUC](/tuc-console/tuc/)
-    - [Parts](/tuc-console/tuc/parts.html)
+    - [Syntax](/tuc-console/tuc/#syntax)
+    - [Structure](/tuc-console/tuc/#structure)
     - [Example](/tuc-console/tuc/example.html)

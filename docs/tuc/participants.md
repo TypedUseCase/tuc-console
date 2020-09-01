@@ -34,15 +34,15 @@ participants
 
 ### Syntax
 ```tuc
-participants                                    // keyword starting a participant section
-    {TypeName} {DomainName} ( as "{Alias}" )    // active participant
+participants                                    # keyword starting a participant section
+    {TypeName} {DomainName} ( as "{Alias}" )    # active participant
 ```
 
 ### Type Name
 > Participant's Domain type name.
 
 * It **must** be defined in [Domain Types](/tuc-console/domain/#domain-types) as a `Record` or as the [Initiator](/tuc-console/domain/#initiator).
-* So it **must** contains only chars, available for F# type name.
+* So it **must** contain only chars, available for F# type name.
 
 **TIP**: Use a PascalCase for type name.
 
@@ -98,9 +98,9 @@ Component **can not** be used anywhere in the use-case - its only purpose is _gr
 
 ### Syntax
 ```tuc
-participants                                            // keyword starting a participant section
-    {ComponentTypeName} {DomainName}                    // component participant
-        {TypeName} ( {DomainName} ) ( as "{Alias}" )    // active participant, from component
+participants                                            # keyword starting a participant section
+    {ComponentTypeName} {DomainName}                    # component participant
+        {TypeName} ( {DomainName} ) ( as "{Alias}" )    # active participant, from component
 ```
 
 * It **must** be defined in the Domain types as a `Record`, containing its services as fields.
@@ -128,10 +128,10 @@ type ServiceComponent = {
 
 ```tuc
 participants
-    MainService Example as "Main Service"   // this is Active Participant
-    ServiceComponent Example                // this is a Component
-        ServiceA Example                    // this is Active Participant of the Component
-        ServiceB as "Service B"             // this is Active Participant of the Component
+    MainService Example as "Main Service"   # this is Active Participant
+    ServiceComponent Example                # this is a Component
+        ServiceA Example                    # this is Active Participant of the Component
+        ServiceB as "Service B"             # this is Active Participant of the Component
 ```
 
 In puml:
@@ -150,11 +150,11 @@ end box
 
 ### Syntax
 ```tuc
-participants                                    // keyword starting a participant section
-    [{TypeName}] {DomainName} ( as "{Alias}" )  // active participant
+participants                                    # keyword starting a participant section
+    [{TypeName}] {DomainName} ( as "{Alias}" )  # active participant
 ```
 
-* It has the same syntax as an Active Participant (_also in the Component_), but its Type name **must** be in `[]`.
+* It has the same syntax as an Active Participant (_also in the Component_), but its Type name **must** be in `[ ]`.
 * It **must** be defined as a Generic type in Domain types, with exactly one Generic Parameter.
 
 Example of different data objects (_you can use whatever names you want_).
@@ -192,8 +192,8 @@ database "InteractionCache" as InteractionCache <<My>>
 * It has the same syntax as the Data Object, but it **must** have `Stream` suffix.
 
 ```tuc
-participants                                            // keyword starting a participant section
-    [{TypeName}Stream] {DomainName} ( as "{Alias}" )    // active participant
+participants                                            # keyword starting a participant section
+    [{TypeName}Stream] {DomainName} ( as "{Alias}" )    # active participant
 ```
 
 **NOTE**: It has a [special definition in the domain types](/tuc-console/domain/#stream).

@@ -8,8 +8,8 @@ Tuc
 > **T**yped **U**se-**C**ase
 
 ## Table of contents
-- [Syntax](#syntax)
-- [Structure](#structure)
+- [Syntax](/tuc-console/tuc/#syntax)
+- [Structure](/tuc-console/tuc/#structure)
     - [Tuc Name](/tuc-console/tuc/#tuc-name)
     - [Participants](/tuc-console/tuc/#participants)
     - [Parts](/tuc-console/tuc/#use-case-parts)
@@ -29,23 +29,23 @@ Nested structure is indented by spaces.
 
 ```tuc
 MainInitiator
-    // here is the body (lifeline) of the initiator, currently indented by 4 spaces
+    # here is the body (lifeline) of the initiator, currently indented by 4 spaces
 ```
 
 ### Comments
-You can comment your tuc file with the simple syntax of `//`.
-Everything behind `//` is ignored and the parser won't do anything with it (_at the moment_).
+You can comment your tuc file with the simple syntax of `#`.
+Everything behind `#` is ignored and the parser won't do anything with it (_at the moment_).
 
 ```tuc
-// this is comment
+# this is comment
 ```
 
-There are no multi-line comments.
+There are no special multi-line comments.
 ```tuc
-// this
-// is
-// multi-line
-// comment
+# this
+# is
+# multi-line
+# comment
 ```
 
 ## Structure
@@ -56,12 +56,12 @@ Single tuc definition **must** consist of 3 parts:
 
 Single tuc definition
 ```tuc
-tuc Example     // tuc name
+tuc Example     # tuc name
 
-participants    // participants
+participants    # participants
     MyService MyDomain
 
-MyService       // use-case parts
+MyService       # use-case parts
     do something
 ```
 
@@ -83,7 +83,7 @@ All participants of the use case **must** be defined.
 **NOTE**: Order in this definition determines the order of participants in puml result.
 
 Their definition **must** start with `participants` key word.
-Then there are participants defined as a name of the `Record` in the Domain Types and its Domain.
+Then there are participants defined as a name of the `Record` (or [`Initiator`](/tuc-console/domain/#initiator)) in the Domain Types and its Domain.
 
 The minimal participants definition.
 ```tuc
@@ -91,7 +91,7 @@ participants
     MyService MyDomainName
 ```
 
-**NOTE**: Participants are the first indented line in the tuc file, so they determine the indentation level of the entire file.
+**NOTE**: Participants are the first indented line(s) in the tuc file, so they determine the indentation level of the entire file.
 
 Read more about [participants here](/tuc-console/tuc/participants.html).
 

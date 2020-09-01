@@ -12,7 +12,7 @@ Interaction collector service identify a person and accepts an interaction.
 
 *It is just a simplified real-life process.*
 
-*Note: All files are in the [example](https://github.com/MortalFlesh/tuc-console/tree/master/example) dir.*
+**Note**: All files are in the [example](https://github.com/MortalFlesh/tuc-console/tree/master/example) dir.
 
 ## domain.fsx
 ```fs

@@ -7,7 +7,7 @@ Domain
 
 > Domain is a DDD model, written in the F# as `.fsx` (_F# script_).
 
-It should only contains `Types` (_at least for now_).
+It should only contain `Types` (_at least for now_).
 
 ## How does it work?
 It uses a [Fsharp.Compiler.Service](https://github.com/fsharp/FSharp.Compiler.Service) under the hood.
@@ -57,7 +57,7 @@ It allows you to [post events into the stream](/tuc-console/tuc/parts.html#post-
 type Stream<'Event> = Stream of 'Event list
 ```
 
-Stream are used as a type of you concrete stream.
+Stream are used as a type of your concrete stream.
 
 For example, when you have a stream of Interactions, it might be as following:
 ```fs
@@ -79,12 +79,12 @@ Handlers allow you to handle a Data from DataObjects, by a [special tuc syntax](
 type Handler<'Data> = Handler of ('Data -> unit)
 ```
 
-So you can for example have a `StreamHandler`, which would handle an Event in a [Stream](#stream).
+So for example you can have a `StreamHandler`, which would handle an Event in a [Stream](#stream).
 ```fs
 type StreamHandler<'Event> = StreamHandler of ('Event -> unit)
 ```
 
-Handle is just a function, so you need a Service, to _contain_ such handler.
+Handler is just a function, so you need a Service, to _contain_ such handler.
 ```fs
 type StreamListenerService = {
     OnInteractionEvent = StreamHandler<InteractionEvent>
@@ -131,7 +131,7 @@ and PersonId = PersonId of Id
 
 // Streams
 
-type InteractionCollectorStream = Stream<InteractionEvent>
+type InteractionCollectorStream = InteractionCollectorStream of Stream<InteractionEvent>
 
 // Services
 
