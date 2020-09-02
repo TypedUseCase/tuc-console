@@ -17,6 +17,7 @@ module PumlError =
 module Generate =
     type private PumlPart = PumlPart of string
     type private Generate<'TucPart> = MF.ConsoleApplication.Output -> 'TucPart -> PumlPart list
+    type private GenerateTuc = MF.ConsoleApplication.Output -> Map<string, ActiveParticipant> -> PumlPart list -> Tuc list -> Map<string, ActiveParticipant> * PumlPart list
 
     let private indentSize = 4
 
@@ -253,41 +254,49 @@ module Generate =
                     yield PumlPart "end note" |> PumlPart.indent indentation
                 ]
 
-    let private generate: Generate<Tuc> = fun output tuc ->
-        let name =
-            tuc.Name
-            |> TucName.value
-            |> sprintf "== %s =="
-            |> PumlPart
+    let rec private generate: GenerateTuc = fun output activatedMainInitiators acc -> function
+        | [] -> activatedMainInitiators, acc
+        | tuc :: tucs ->
+            let name =
+                tuc.Name
+                |> TucName.value
+                |> sprintf "== %s =="
+                |> PumlPart
 
-        let mainInitiator =
-            tuc.Participants
-            |> List.collect Participant.active
-            |> List.tryPick (function
-                | Service { ServiceType = DomainType.Initiator } as actor -> Some actor
-                | _ -> None
-            )
+            let mainInitiator =
+                tuc.Participants
+                |> List.collect Participant.active
+                |> List.tryPick (function
+                    | Service { ServiceType = DomainType.Initiator } as actor -> Some actor
+                    | _ -> None
+                )
 
-        [
-            PumlPart.combine [
-                yield name
-                yield PumlPart.emptyLine
+            let parts = [
+                PumlPart.combine [
+                    yield name
+                    yield PumlPart.emptyLine
 
-                yield! tuc.Participants |> List.collect (Participant.generate output)
-                yield PumlPart.emptyLine
+                    yield! tuc.Participants |> List.collect (Participant.generate output)
+                    yield PumlPart.emptyLine
 
-                match mainInitiator with
-                | Some mainInitiator -> yield mainInitiator |> Participant.activate
-                | _ -> ()
+                    match mainInitiator with
+                    | Some mainInitiator ->
+                        if activatedMainInitiators |> Map.containsKey (mainInitiator |> ActiveParticipant.name) |> not
+                            then yield mainInitiator |> Participant.activate
+                    | _ -> ()
 
-                yield! tuc.Parts |> List.collect (Part.generate mainInitiator 0 output)
-                yield PumlPart.emptyLine
-
-                match mainInitiator with
-                | Some mainInitiator -> yield mainInitiator |> Participant.deactivate
-                | _ -> ()
+                    yield! tuc.Parts |> List.collect (Part.generate mainInitiator 0 output)
+                    yield PumlPart.emptyLine
+                ]
             ]
-        ]
+
+            let activatedMainInitiators =
+                match mainInitiator with
+                | Some mainInitiator -> activatedMainInitiators |> Map.add (mainInitiator |> ActiveParticipant.name) mainInitiator
+                | _ -> activatedMainInitiators
+
+            tucs
+            |> generate output activatedMainInitiators (acc @ parts)
 
     let private createPuml pumlName = function
         | [] -> Error NoTucProvided
@@ -300,8 +309,12 @@ module Generate =
             |> Ok
 
     let puml (output: MF.ConsoleApplication.Output) pumlName (tucs: Tuc list) =
-        tucs
-        |> List.collect (generate output)
+        let activatedMainInitiators, parts =
+            tucs
+            |> generate output Map.empty []
+
+        parts
+        @ (activatedMainInitiators |> Map.toList |> List.map (snd >> Participant.deactivate))
         |> createPuml pumlName
 
     open PlantUml.Net

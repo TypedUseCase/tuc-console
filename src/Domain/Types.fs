@@ -239,7 +239,7 @@ module DomainType =
         | _ -> None
 
     let (|StreamEvent|_|) = function
-        | DomainType (Stream { EventType = TypeName eventType }) -> Some eventType
+        | DomainType (Stream { Domain = domain; EventType = TypeName eventType }) -> Some (domain, eventType)
         | _ -> None
 
     let (|Stream|_|) domain = function

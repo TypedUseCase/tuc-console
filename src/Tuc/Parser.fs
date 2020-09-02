@@ -72,14 +72,14 @@ module Parser =
             let service = Service >> Ok
 
             match domainTypes with
-            | HasDomainType serviceName (DomainType.ServiceInDomain serviceDomain componentType) ->
+            | HasDomainType (Some serviceDomain) serviceName (DomainType.ServiceInDomain serviceDomain componentType) ->
                 service {
                     Domain = serviceDomain
                     Context = serviceName
                     Alias = alias
                     ServiceType = DomainType componentType
                 }
-            | HasDomainType serviceName (DomainType.InitiatorInDomain serviceDomain as serviceType) ->
+            | HasDomainType (Some serviceDomain) serviceName (DomainType.InitiatorInDomain serviceDomain as serviceType) ->
                 service {
                     Domain = serviceDomain
                     Context = serviceName
@@ -92,7 +92,7 @@ module Parser =
             let stream = ActiveParticipant.Stream >> Ok
 
             match domainTypes with
-            | HasDomainType streamName (DomainType.Stream streamDomain componentType) ->
+            | HasDomainType (Some streamDomain) streamName (DomainType.Stream streamDomain componentType) ->
                 stream {
                     Domain = streamDomain
                     Context = streamName
@@ -172,7 +172,7 @@ module Parser =
 
                 let parsedComponent =
                     match domainTypes with
-                    | HasDomainType componentName (DomainType.Component domainName componentFields) ->
+                    | HasDomainType (Some domainName) componentName (DomainType.Component domainName componentFields) ->
                         result {
                             let componentParticipantIndentation = participantIndentation |> Indentation.goDeeper indentationLevel
 
@@ -628,11 +628,11 @@ module Parser =
                 | None, _ ->
                     Error <| EventPostedWithoutACaller (line |> Line.error indentation)
 
-                | Some caller, IsParticipant participants (ActiveParticipant.Stream { StreamType = DomainType.StreamEvent eventTypeName } as stream) ->
+                | Some caller, IsParticipant participants (ActiveParticipant.Stream { StreamType = DomainType.StreamEvent (domain, eventTypeName) } as stream) ->
                     result {
                         let! event =
                             eventName
-                            |> Assert.event output indentation line domainTypes eventTypeName
+                            |> Assert.event output indentation line domainTypes eventTypeName domain
 
                         let part = PostEvent {
                             Caller = caller
@@ -653,11 +653,11 @@ module Parser =
                 | None, _ ->
                     Error <| EventReadWithoutACaller (line |> Line.error indentation)
 
-                | Some caller, IsParticipant participants (ActiveParticipant.Stream { StreamType = DomainType.StreamEvent eventTypeName } as stream) ->
+                | Some caller, IsParticipant participants (ActiveParticipant.Stream { StreamType = DomainType.StreamEvent (domain, eventTypeName) } as stream) ->
                     result {
                         let! event =
                             eventName
-                            |> Assert.event output indentation line domainTypes eventTypeName
+                            |> Assert.event output indentation line domainTypes eventTypeName domain
 
                         let part = ReadEvent {
                             Caller = caller
@@ -822,7 +822,9 @@ module Parser =
 
         let domainTypes =
             domainTypes
-            |> List.map (fun (DomainType t) -> t |> ResolvedType.name, t)
+            |> List.map (fun (DomainType t) ->
+                (t |> ResolvedType.domain, t |> ResolvedType.name), t
+            )
             |> Map.ofList
             |> DomainTypes
 

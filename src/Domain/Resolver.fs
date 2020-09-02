@@ -10,7 +10,7 @@ module Resolver =
     open MF.TucConsole.Option.Operators
     open TypeResolvers
 
-    let private resolvedTypes: Cache<TypeName, ResolvedType> = Cache.empty()
+    let private resolvedTypes: Cache<DomainName option * TypeName, ResolvedType> = Cache.empty()
 
     type private Collect<'In, 'Out> = MF.ConsoleApplication.Output -> 'In list -> 'Out
     type private CollectMany<'In, 'Out> = MF.ConsoleApplication.Output -> 'In list -> 'Out list
@@ -19,7 +19,7 @@ module Resolver =
         List.iter (fun parsedType ->
             resolvedTypes
             |> Cache.set
-                (parsedType |> ResolvedType.name |> Key)
+                ((parsedType |> ResolvedType.domain, parsedType |> ResolvedType.name) |> Key)
                 parsedType
         )
 
@@ -284,10 +284,10 @@ module Resolver =
         if output.IsVerbose() then
             resolvedTypes
             |> Cache.items
-            |> List.map (fun (Key typeName, t) ->
+            |> List.map (fun (Key (domain, typeName), t) ->
                 [
                     typeName |> TypeName.value
-                    t |> ResolvedType.domain |> Option.map DomainName.value |> Option.defaultValue "-"
+                    domain |> Option.map DomainName.value |> Option.defaultValue "-"
                     t |> ResolvedType.getType
                 ]
             )

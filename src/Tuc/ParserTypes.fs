@@ -5,7 +5,7 @@ open MF.TucConsole
 open MF.Tuc
 open MF.Domain
 
-type private DomainTypes = DomainTypes of Map<TypeName, ResolvedType>
+type private DomainTypes = DomainTypes of Map<DomainName option * TypeName, ResolvedType>
 
 type private Depth = Depth of int
 type private Indentation = Indentation of int
@@ -140,9 +140,9 @@ module private Errors =
         WrongComponentParticipantDomain (n, p, c, componentDomain |> DomainName.value)
 
 module private ParserPatterns =
-    let (|HasDomainType|_|) name (DomainTypes domainTypes) =
+    let (|HasDomainType|_|) domain name (DomainTypes domainTypes) =
         domainTypes
-        |> Map.tryFind (TypeName name)
+        |> Map.tryFind (domain, TypeName name)
         |> Option.map DomainType
 
     let (|LineDepth|_|) (Depth depth): Line -> _ = function

@@ -51,7 +51,7 @@ module private Assert =
             return ()
         }
 
-    let rec private assertIsOfEventType (output: MF.ConsoleApplication.Output) indentation line (DomainTypes domainTypes) eventType (event: Event) =
+    let rec private assertIsOfEventType (output: MF.ConsoleApplication.Output) indentation line (DomainTypes domainTypes) domain eventType (event: Event) =
         let isDebug = output.IsDebug()
         if isDebug then
             output.Message (String.replicate 60 "." |> sprintf "<c:yellow>%s</c>")
@@ -105,7 +105,7 @@ module private Assert =
 
                                 | { Name = name; Argument = (Type arg) } ->
                                     domainTypes
-                                    |> Map.tryFind arg
+                                    |> Map.tryFind (domain, arg)
                                     |> Option.map (fun argType -> name, DomainType argType)
 
                                 | _ -> None
@@ -120,7 +120,7 @@ module private Assert =
 
         event.Path |> assertType [ eventType |> DomainType.name, eventType ] []
 
-    let event output indentation line domainTypes eventTypeName eventName = result {
+    let event output indentation line domainTypes eventTypeName domain eventName = result {
         let! event =
             eventName
             |> Event.ofString
@@ -128,10 +128,10 @@ module private Assert =
 
         let! eventType =
             match domainTypes with
-            | HasDomainType eventTypeName eventType -> Ok eventType
+            | HasDomainType domain eventTypeName eventType -> Ok eventType
             | _ -> Error <| UndefinedEventType (line |> Line.error indentation)
 
-        do! event |> assertIsOfEventType output indentation line domainTypes eventType
+        do! event |> assertIsOfEventType output indentation line domainTypes domain eventType
 
         return event
     }

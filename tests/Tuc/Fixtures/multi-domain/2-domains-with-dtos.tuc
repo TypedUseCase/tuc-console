@@ -1,0 +1,26 @@
+tuc Multi domain - one
+participants
+    MainService one
+    Sender one
+
+MainService
+    Sender.SendDto
+
+tuc Multi domain - two
+participants
+    MainService two
+    Receiver two
+
+MainService
+    Receiver.ReceiveDto
+
+tuc Multi domain - together
+participants
+    MainService one
+    Sender one
+    Receiver two
+
+MainService
+    Sender.SendDto
+
+    Receiver.ReceiveDto

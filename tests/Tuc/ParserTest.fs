@@ -267,6 +267,19 @@ module Formatted =
             case "Valid formatted notes, etc." "valid.tuc" (Ok "valid.puml")
         ]
 
+[<RequireQualifiedAccess>]
+module MultiDomain =
+    let path = "./Tuc/Fixtures/multi-domain"
+
+    let case = case path
+
+    let provider: Case list =
+        [
+            case "2 domains with DTOs." "2-domains-with-dtos.tuc" (Ok "2-domains-with-dtos.puml")
+
+            //case "Umbiguous services." "service-conflict.tuc" (Error ( ...todo... ))
+        ]
+
 [<Tests>]
 let parserTests =
     let output = MF.ConsoleApplication.Output.console
@@ -314,4 +327,14 @@ let parserTests =
                 |> Domain.parseDomainTypes output
 
             Formatted.provider |> test domainTypes
+
+        testCase "should parse multi-domain communication" <| fun _ ->
+            let oneDomainTypes =
+                MultiDomain.path </> "oneDomain.fsx"
+                |> Domain.parseDomainTypes output
+            let twoDomainTypes =
+                MultiDomain.path </> "twoDomain.fsx"
+                |> Domain.parseDomainTypes output
+
+            MultiDomain.provider |> test (oneDomainTypes @ twoDomainTypes)
     ]

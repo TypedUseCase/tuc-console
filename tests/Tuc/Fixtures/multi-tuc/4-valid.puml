@@ -9,7 +9,6 @@ activate GenericService
 GenericService -> Service ++: DoSomeWork(Id)
 Service --> GenericService --: WorkResult
 
-deactivate GenericService
 == Correct 2 ==
 
 actor "GenericService" as GenericService <<Tests>>
@@ -19,7 +18,6 @@ box "StreamComponent"
     participant "StreamListener" as StreamListener <<Tests>>
 end box
 
-activate GenericService
 InputStream ->> StreamListener: ReadEvent(InputEvent)
     activate StreamListener
     hnote over StreamListener
@@ -27,25 +25,21 @@ InputStream ->> StreamListener: ReadEvent(InputEvent)
     end hnote
     deactivate StreamListener
 
-deactivate GenericService
 == Correct tuc 3 ==
 
 actor "GenericService" as GenericService <<Tests>>
 collections "InputStream" as InputStream <<Tests>>
 
-activate GenericService
 alt the weather is nice
     GenericService ->> InputStream: InputEvent.EventA
 end
 
-deactivate GenericService
 == Correct tuc 4 ==
 
 actor "GenericService" as GenericService <<Tests>>
 collections "InputStream" as InputStream <<Tests>>
 participant "StreamListener" as StreamListener <<Tests>>
 
-activate GenericService
 InputStream ->> StreamListener: ReadEvent(InputEvent)
     activate StreamListener
     InputStream ->> StreamListener: InputEvent.EventA
