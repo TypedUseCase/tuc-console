@@ -1,0 +1,8 @@
+tuc Add Hierarchy Member
+participants
+  GenericService Hr as "Generic Service"
+  [WorkGroupFactStream] Hr
+
+section Adding Roles
+GenericService
+  WorkGroupFactEvent.WorkGroupEvent -> [WorkGroupFactStream]
