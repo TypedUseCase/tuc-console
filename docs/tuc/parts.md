@@ -633,7 +633,7 @@ MainService
 
     """
     This is **bold**
-    This is //italics//
+    This is *italics*
     This is ""monospaced""
     This is --stroked--
     This is __underlined__
@@ -658,7 +658,7 @@ activate MainService
 note over MainService: this is a note
 note over MainService
 This is **bold**
-This is
+This is //italics//
 This is ""monospaced""
 This is --stroked--
 This is __underlined__
@@ -708,7 +708,7 @@ MainService
 
         "<"
         This is **bold**
-        This is //italics//
+        This is *italics*
         This is ""monospaced""
         This is --stroked--
         This is __underlined__
@@ -735,7 +735,7 @@ MainService -> Service ++: Method(Input)
     note left: this is a note
     note left
     This is **bold**
-    This is
+    This is //italics//
     This is ""monospaced""
     This is --stroked--
     This is __underlined__
@@ -786,7 +786,7 @@ MainService
 
         ">"
         This is **bold**
-        This is //italics//
+        This is *italics*
         This is ""monospaced""
         This is --stroked--
         This is __underlined__
@@ -813,7 +813,7 @@ MainService -> Service ++: Method(Input)
     note right: this is a note
     note right
     This is **bold**
-    This is
+    This is //italics//
     This is ""monospaced""
     This is --stroked--
     This is __underlined__

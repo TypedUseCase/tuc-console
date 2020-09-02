@@ -9,7 +9,7 @@ MainService
 
         "<"
         This is **bold**
-        This is //italics//
+        This is *italics*
         This is ""monospaced""
         This is --stroked--
         This is __underlined__

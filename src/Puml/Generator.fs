@@ -45,13 +45,13 @@ module Generate =
     module private Participant =
         let private generateActive: Generate<ActiveParticipant> = fun output -> function
             | Service { Domain = domain; Context = context; Alias = alias; ServiceType = DomainType.Initiator } ->
-                [ PumlPart (sprintf "actor %A as %s <<%s>>" alias context (domain |> DomainName.value)) ]
+                [ PumlPart (sprintf "actor %A as %s <<%s>>" (alias |> Format.format) context (domain |> DomainName.value)) ]
 
             | Service { Domain = domain; Context = context; Alias = alias } ->
-                [ PumlPart (sprintf "participant %A as %s <<%s>>" alias context (domain |> DomainName.value)) ]
+                [ PumlPart (sprintf "participant %A as %s <<%s>>" (alias |> Format.format) context (domain |> DomainName.value)) ]
 
             | Stream { Domain = domain; Context = context; Alias = alias } ->
-                [ PumlPart (sprintf "collections %A as %s <<%s>>" alias context (domain |> DomainName.value)) ]
+                [ PumlPart (sprintf "collections %A as %s <<%s>>" (alias |> Format.format) context (domain |> DomainName.value)) ]
 
         let generate: Generate<Participant> = fun output -> function
             | Component { Name = name; Participants = participants } ->
@@ -205,7 +205,7 @@ module Generate =
             | Do { Caller = caller; Actions = [ action ]} ->
                 [
                     PumlPart (sprintf "hnote over %s" (caller |> ActiveParticipant.name)) |> PumlPart.indent indentation
-                    PumlPart (sprintf "do: %s" action) |> PumlPart.indent indentation
+                    PumlPart (sprintf "do: %s" (action |> Format.format)) |> PumlPart.indent indentation
                     PumlPart "end hnote" |> PumlPart.indent indentation
                 ]
 
@@ -213,43 +213,43 @@ module Generate =
                 [
                     yield PumlPart (sprintf "hnote over %s" (caller |> ActiveParticipant.name)) |> PumlPart.indent indentation
                     yield PumlPart "do:" |> PumlPart.indent indentation
-                    yield! actions |> List.map PumlPart |> PumlPart.indentMany deeper
+                    yield! actions |> List.map (Format.format >> PumlPart) |> PumlPart.indentMany deeper
                     yield PumlPart "end hnote" |> PumlPart.indent indentation
                 ]
 
             | LeftNote { Lines = [ line ] } ->
                 [
-                    PumlPart (sprintf "note left: %s" line) |> PumlPart.indent indentation
+                    PumlPart (sprintf "note left: %s" (line |> Format.format)) |> PumlPart.indent indentation
                 ]
 
             | LeftNote { Lines = lines } ->
                 [
                     yield PumlPart "note left" |> PumlPart.indent indentation
-                    yield! lines |> List.map PumlPart |> PumlPart.indentMany indentation
+                    yield! lines |> List.map (Format.format >> PumlPart) |> PumlPart.indentMany indentation
                     yield PumlPart "end note" |> PumlPart.indent indentation
                 ]
 
             | Note { Caller = caller; Lines = [ line ] } ->
                 [
-                    PumlPart (sprintf "note over %s: %s" (caller |> ActiveParticipant.name) line) |> PumlPart.indent indentation
+                    PumlPart (sprintf "note over %s: %s" (caller |> ActiveParticipant.name) (line |> Format.format)) |> PumlPart.indent indentation
                 ]
 
             | Note { Caller = caller; Lines = lines } ->
                 [
                     yield PumlPart (sprintf "note over %s" (caller |> ActiveParticipant.name)) |> PumlPart.indent indentation
-                    yield! lines |> List.map PumlPart |> PumlPart.indentMany indentation
+                    yield! lines |> List.map (Format.format >> PumlPart) |> PumlPart.indentMany indentation
                     yield PumlPart "end note" |> PumlPart.indent indentation
                 ]
 
             | RightNote { Lines = [ line ] } ->
                 [
-                    PumlPart (sprintf "note right: %s" line) |> PumlPart.indent indentation
+                    PumlPart (sprintf "note right: %s" (line |> Format.format)) |> PumlPart.indent indentation
                 ]
 
             | RightNote { Lines = lines } ->
                 [
                     yield PumlPart "note right" |> PumlPart.indent indentation
-                    yield! lines |> List.map PumlPart |> PumlPart.indentMany indentation
+                    yield! lines |> List.map (Format.format >> PumlPart) |> PumlPart.indentMany indentation
                     yield PumlPart "end note" |> PumlPart.indent indentation
                 ]
 

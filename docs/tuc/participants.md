@@ -229,6 +229,7 @@ Participant's Alias **may** contain a formatting, supported by a [PlantUML](http
 ```tuc
 participants
     MainService Domain as "**bold**"
+    MainService Domain as "*italics*"
     MainService Domain as "--stroked--"
     MainService Domain as "__underlined__"
     MainService Domain as "~~waved~~"

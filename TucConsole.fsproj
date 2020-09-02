@@ -46,6 +46,7 @@
 
   <ItemGroup>
     <Compile Include="src/Puml/Types.fs" />
+    <Compile Include="src/Puml/Formatter.fs" />
     <Compile Include="src/Puml/Generator.fs" />
   </ItemGroup>
 

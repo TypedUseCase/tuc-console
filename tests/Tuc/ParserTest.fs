@@ -256,6 +256,17 @@ module MultiTuc =
             ])
         ]
 
+[<RequireQualifiedAccess>]
+module Formatted =
+    let path = "./Tuc/Fixtures/formatted"
+
+    let case = case path
+
+    let provider: Case list =
+        [
+            case "Valid formatted notes, etc." "valid.tuc" (Ok "valid.puml")
+        ]
+
 [<Tests>]
 let parserTests =
     let output = MF.ConsoleApplication.Output.console
@@ -296,4 +307,11 @@ let parserTests =
                 |> Domain.parseDomainTypes output
 
             Example.provider |> test domainTypes
+
+        testCase "should parse formatted tuc" <| fun _ ->
+            let domainTypes =
+                Formatted.path </> "testsDomain.fsx"
+                |> Domain.parseDomainTypes output
+
+            Formatted.provider |> test domainTypes
     ]
