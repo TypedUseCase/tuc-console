@@ -4,9 +4,9 @@ participants
     [InputStream] parts
 
 GenericService
-    # read InputEvent
+    // read InputEvent
     [InputStream] -> InputEvent
 
-    # read concrete InputEvent
+    // read concrete InputEvent
     [InputStream] -> InputEvent.EventA
     [InputStream] -> InputEvent.EventC.C2

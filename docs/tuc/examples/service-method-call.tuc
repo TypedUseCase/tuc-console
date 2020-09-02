@@ -3,6 +3,6 @@ participants
     MainService My as "Main Service"
     Service My
 
-MainService                             # MainService is the caller
-    Service.Method                      # Method `Method` is called on the `Service`
-        "this is part of execution"     # This is part of the Method execution
+MainService                             // MainService is the caller
+    Service.Method                      // Method `Method` is called on the `Service`
+        "this is part of execution"     // This is part of the Method execution

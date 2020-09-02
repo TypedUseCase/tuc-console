@@ -3,7 +3,7 @@ participants
     GenericService parts
 
 GenericService
-    # empty lifeline
+    // empty lifeline
 
 GenericService
     do

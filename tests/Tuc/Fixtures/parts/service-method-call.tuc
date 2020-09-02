@@ -5,7 +5,7 @@ participants
 
 GenericService
     Service.DoSomeWork
-        # with empty body
+        // with empty body
 
     Service.DoSomeWork
         do

@@ -47,7 +47,7 @@ module private RawLine =
     let parse index line =
         let content, comment =
             match line with
-            | Regex @"^(.*?)?(#.*){1}$" [ content; comment ] -> content, Some comment
+            | Regex @"^(.*?)?(\/\/.*){1}$" [ content; comment ] -> content, Some comment
             | content -> content, None
 
         let content = content.Trim ' '

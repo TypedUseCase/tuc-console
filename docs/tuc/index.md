@@ -29,23 +29,23 @@ Nested structure is indented by spaces.
 
 ```tuc
 MainInitiator
-    # here is the body (lifeline) of the initiator, currently indented by 4 spaces
+    // here is the body (lifeline) of the initiator, currently indented by 4 spaces
 ```
 
 ### Comments
-You can comment your tuc file with the simple syntax of `#`.
-Everything behind `#` is ignored and the parser won't do anything with it (_at the moment_).
+You can comment your tuc file with the simple syntax of `//`.
+Everything behind `//` is ignored and the parser won't do anything with it (_at the moment_).
 
 ```tuc
-# this is comment
+// this is comment
 ```
 
 There are no special multi-line comments.
 ```tuc
-# this
-# is
-# multi-line
-# comment
+// this
+// is
+// multi-line
+// comment
 ```
 
 ## Structure
@@ -56,12 +56,12 @@ Single tuc definition **must** consist of 3 parts:
 
 Single tuc definition
 ```tuc
-tuc Example     # tuc name
+tuc Example     // tuc name
 
-participants    # participants
+participants    // participants
     MyService MyDomain
 
-MyService       # use-case parts
+MyService       // use-case parts
     do something
 ```
 
