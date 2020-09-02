@@ -46,7 +46,7 @@ type InteractionCollector = {
 }
 
 type PersonIdentificationEngine = {
-    OnInteractionEvent: InteractionEvent -> unit
+    OnInteractionEvent: StreamHandler<InteractionEvent>
 }
 
 type PersonAggregate = {

@@ -2,6 +2,15 @@
 
 <!-- There is always Unreleased section on the top. Subsections (Add, Changed, Fix, Removed) should be Add as needed. -->
 ## Unreleased
+- Add `DomainName` to the domain types
+    - `Record`
+    - `SingleCaseUnion`
+    - `DiscriminatedUnion`
+    - `Stream`
+- Parse/Check `Domain` of participants in tuc
+    - Component must have domain and it's participants must be in the same domain
+- Change tuc comment back to `//` from `#`, so it won't conflict with `#colorHash` in notes, etc.
+- Transform *italic* in tuc files
 
 ## 0.2.0 - 2020-09-01
 - Parse left and right notes in tuc

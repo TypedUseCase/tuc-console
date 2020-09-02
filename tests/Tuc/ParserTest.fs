@@ -142,13 +142,15 @@ module ParseErrors =
             // Participants
             case "WrongParticipantIndentation" "WrongParticipantIndentation.tuc" (Error [ WrongParticipantIndentation (4, 4, "        StreamListener parts") ])
             case "WrongParticipantIndentation in component" "WrongParticipantIndentation-in-component.tuc" (Error [ WrongParticipantIndentation (4, 8, "            StreamListener parts") ])
-            case "ComponentWithoutParticipants" "ComponentWithoutParticipants.tuc" (Error [ ComponentWithoutParticipants (4, 4, "    StreamComponent") ])
+            case "ComponentWithoutParticipants" "ComponentWithoutParticipants.tuc" (Error [ ComponentWithoutParticipants (4, 4, "    StreamComponent parts") ])
             case "UndefinedComponentParticipant" "UndefinedComponentParticipant.tuc" (Error [
                 UndefinedComponentParticipant (4, 8, "        GenericService parts", "StreamComponent", ["StreamListener"], "GenericService")
                 UndefinedComponentParticipant (5, 8, "        Service parts", "StreamComponent", ["StreamListener"], "Service")
             ])
+            case "WrongComponentParticipantDomain" "WrongComponentParticipantDomain.tuc" (Error [ WrongComponentParticipantDomain (5, 8, "        Service wrongDomain", "Parts") ])
             case "InvalidParticipant" "InvalidParticipant.tuc" (Error [ InvalidParticipant (3, 4, "    GenericService domain foo bar") ])
-            case "UndefinedParticipant in participant definition" "UndefinedParticipant-in-participants.tuc" (Error [ UndefinedParticipant (3, 4, "    UndefinedParticipantDefinition parts") ])
+            case "UndefinedParticipantInDomain in participant definition" "UndefinedParticipantInDomain.tuc" (Error [ UndefinedParticipantInDomain (3, 4, "    ServiceNotInDomain parts", "Parts") ])
+            case "UndefinedParticipantInDomain in participant definition" "UndefinedParticipant-in-participants.tuc" (Error [ UndefinedParticipantInDomain (3, 4, "    UndefinedParticipantDefinition parts", "Parts") ])
             case "UndefinedParticipant in parts" "UndefinedParticipant-in-parts.tuc" (Error [ UndefinedParticipant (6, 4, "    UndefinedParticipant.Foo") ])
 
             // parts
@@ -247,11 +249,35 @@ module MultiTuc =
             case "4 Valid tucs in 1 file" "4-valid.tuc" (Ok "4-valid.puml")
 
             case "3 Different Errors and 1 correct tuc" "3-different-errors.tuc" (Error [
-                UndefinedComponentParticipant (4, 8, "        GenericService parts", "StreamComponent", ["StreamListener"], "GenericService")
-                UndefinedComponentParticipant (5, 8, "        Service parts", "StreamComponent", ["StreamListener"], "Service")
-                ComponentWithoutParticipants (9, 4, "    StreamComponent")
+                UndefinedComponentParticipant (4, 8, "        GenericService tests", "StreamComponent", ["StreamListener"], "GenericService")
+                UndefinedComponentParticipant (5, 8, "        Service tests", "StreamComponent", ["StreamListener"], "Service")
+                ComponentWithoutParticipants (9, 4, "    StreamComponent tests")
                 CalledUndefinedMethod (27, 4, "    Service.UndefinedMethod", "Service", ["DoSomeWork"])
             ])
+        ]
+
+[<RequireQualifiedAccess>]
+module Formatted =
+    let path = "./Tuc/Fixtures/formatted"
+
+    let case = case path
+
+    let provider: Case list =
+        [
+            case "Valid formatted notes, etc." "valid.tuc" (Ok "valid.puml")
+        ]
+
+[<RequireQualifiedAccess>]
+module MultiDomain =
+    let path = "./Tuc/Fixtures/multi-domain"
+
+    let case = case path
+
+    let provider: Case list =
+        [
+            case "2 domains with DTOs." "2-domains-with-dtos.tuc" (Ok "2-domains-with-dtos.puml")
+
+            //case "Umbiguous services." "service-conflict.tuc" (Error ( ...todo... ))
         ]
 
 [<Tests>]
@@ -262,29 +288,53 @@ let parserTests =
     testList "Tuc.Parser" [
         testCase "should parse parts" <| fun _ ->
             let domainTypes =
-                Parts.path </> "domain.fsx"
+                Parts.path </> "partsDomain.fsx"
                 |> Domain.parseDomainTypes output
 
             Parts.provider |> test domainTypes
 
         testCase "should parse events" <| fun _ ->
             let domainTypes =
-                Event.path </> "domain.fsx"
+                Event.path </> "testsDomain.fsx"
                 |> Domain.parseDomainTypes output
 
             Event.provider |> test domainTypes
 
         testCase "should show nice parse errors" <| fun _ ->
             let domainTypes =
-                ParseErrors.path </> "domain.fsx"
+                ParseErrors.path </> "partsDomain.fsx"
                 |> Domain.parseDomainTypes output
 
             ParseErrors.provider |> test domainTypes
 
         testCase "should parse multiple tucs" <| fun _ ->
             let domainTypes =
-                MultiTuc.path </> "domain.fsx"
+                MultiTuc.path </> "testsDomain.fsx"
                 |> Domain.parseDomainTypes output
 
             MultiTuc.provider |> test domainTypes
+
+        testCase "should parse readme example" <| fun _ ->
+            let domainTypes =
+                Example.path </> "consentsDomain.fsx"
+                |> Domain.parseDomainTypes output
+
+            Example.provider |> test domainTypes
+
+        testCase "should parse formatted tuc" <| fun _ ->
+            let domainTypes =
+                Formatted.path </> "testsDomain.fsx"
+                |> Domain.parseDomainTypes output
+
+            Formatted.provider |> test domainTypes
+
+        testCase "should parse multi-domain communication" <| fun _ ->
+            let oneDomainTypes =
+                MultiDomain.path </> "oneDomain.fsx"
+                |> Domain.parseDomainTypes output
+            let twoDomainTypes =
+                MultiDomain.path </> "twoDomain.fsx"
+                |> Domain.parseDomainTypes output
+
+            MultiDomain.provider |> test (oneDomainTypes @ twoDomainTypes)
     ]

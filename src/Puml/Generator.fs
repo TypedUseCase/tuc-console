@@ -17,6 +17,7 @@ module PumlError =
 module Generate =
     type private PumlPart = PumlPart of string
     type private Generate<'TucPart> = MF.ConsoleApplication.Output -> 'TucPart -> PumlPart list
+    type private GenerateTuc = MF.ConsoleApplication.Output -> Map<string, ActiveParticipant> -> PumlPart list -> Tuc list -> Map<string, ActiveParticipant> * PumlPart list
 
     let private indentSize = 4
 
@@ -45,13 +46,13 @@ module Generate =
     module private Participant =
         let private generateActive: Generate<ActiveParticipant> = fun output -> function
             | Service { Domain = domain; Context = context; Alias = alias; ServiceType = DomainType.Initiator } ->
-                [ PumlPart (sprintf "actor %A as %s <<%s>>" alias context domain) ]
+                [ PumlPart (sprintf "actor %A as %s <<%s>>" (alias |> Format.format) context (domain |> DomainName.value)) ]
 
             | Service { Domain = domain; Context = context; Alias = alias } ->
-                [ PumlPart (sprintf "participant %A as %s <<%s>>" alias context domain) ]
+                [ PumlPart (sprintf "participant %A as %s <<%s>>" (alias |> Format.format) context (domain |> DomainName.value)) ]
 
             | Stream { Domain = domain; Context = context; Alias = alias } ->
-                [ PumlPart (sprintf "collections %A as %s <<%s>>" alias context domain) ]
+                [ PumlPart (sprintf "collections %A as %s <<%s>>" (alias |> Format.format) context (domain |> DomainName.value)) ]
 
         let generate: Generate<Participant> = fun output -> function
             | Component { Name = name; Participants = participants } ->
@@ -205,7 +206,7 @@ module Generate =
             | Do { Caller = caller; Actions = [ action ]} ->
                 [
                     PumlPart (sprintf "hnote over %s" (caller |> ActiveParticipant.name)) |> PumlPart.indent indentation
-                    PumlPart (sprintf "do: %s" action) |> PumlPart.indent indentation
+                    PumlPart (sprintf "do: %s" (action |> Format.format)) |> PumlPart.indent indentation
                     PumlPart "end hnote" |> PumlPart.indent indentation
                 ]
 
@@ -213,81 +214,89 @@ module Generate =
                 [
                     yield PumlPart (sprintf "hnote over %s" (caller |> ActiveParticipant.name)) |> PumlPart.indent indentation
                     yield PumlPart "do:" |> PumlPart.indent indentation
-                    yield! actions |> List.map PumlPart |> PumlPart.indentMany deeper
+                    yield! actions |> List.map (Format.format >> PumlPart) |> PumlPart.indentMany deeper
                     yield PumlPart "end hnote" |> PumlPart.indent indentation
                 ]
 
             | LeftNote { Lines = [ line ] } ->
                 [
-                    PumlPart (sprintf "note left: %s" line) |> PumlPart.indent indentation
+                    PumlPart (sprintf "note left: %s" (line |> Format.format)) |> PumlPart.indent indentation
                 ]
 
             | LeftNote { Lines = lines } ->
                 [
                     yield PumlPart "note left" |> PumlPart.indent indentation
-                    yield! lines |> List.map PumlPart |> PumlPart.indentMany indentation
+                    yield! lines |> List.map (Format.format >> PumlPart) |> PumlPart.indentMany indentation
                     yield PumlPart "end note" |> PumlPart.indent indentation
                 ]
 
             | Note { Caller = caller; Lines = [ line ] } ->
                 [
-                    PumlPart (sprintf "note over %s: %s" (caller |> ActiveParticipant.name) line) |> PumlPart.indent indentation
+                    PumlPart (sprintf "note over %s: %s" (caller |> ActiveParticipant.name) (line |> Format.format)) |> PumlPart.indent indentation
                 ]
 
             | Note { Caller = caller; Lines = lines } ->
                 [
                     yield PumlPart (sprintf "note over %s" (caller |> ActiveParticipant.name)) |> PumlPart.indent indentation
-                    yield! lines |> List.map PumlPart |> PumlPart.indentMany indentation
+                    yield! lines |> List.map (Format.format >> PumlPart) |> PumlPart.indentMany indentation
                     yield PumlPart "end note" |> PumlPart.indent indentation
                 ]
 
             | RightNote { Lines = [ line ] } ->
                 [
-                    PumlPart (sprintf "note right: %s" line) |> PumlPart.indent indentation
+                    PumlPart (sprintf "note right: %s" (line |> Format.format)) |> PumlPart.indent indentation
                 ]
 
             | RightNote { Lines = lines } ->
                 [
                     yield PumlPart "note right" |> PumlPart.indent indentation
-                    yield! lines |> List.map PumlPart |> PumlPart.indentMany indentation
+                    yield! lines |> List.map (Format.format >> PumlPart) |> PumlPart.indentMany indentation
                     yield PumlPart "end note" |> PumlPart.indent indentation
                 ]
 
-    let private generate: Generate<Tuc> = fun output tuc ->
-        let name =
-            tuc.Name
-            |> TucName.value
-            |> sprintf "== %s =="
-            |> PumlPart
+    let rec private generate: GenerateTuc = fun output activatedMainInitiators acc -> function
+        | [] -> activatedMainInitiators, acc
+        | tuc :: tucs ->
+            let name =
+                tuc.Name
+                |> TucName.value
+                |> sprintf "== %s =="
+                |> PumlPart
 
-        let mainInitiator =
-            tuc.Participants
-            |> List.collect Participant.active
-            |> List.tryPick (function
-                | Service { ServiceType = DomainType.Initiator } as actor -> Some actor
-                | _ -> None
-            )
+            let mainInitiator =
+                tuc.Participants
+                |> List.collect Participant.active
+                |> List.tryPick (function
+                    | Service { ServiceType = DomainType.Initiator } as actor -> Some actor
+                    | _ -> None
+                )
 
-        [
-            PumlPart.combine [
-                yield name
-                yield PumlPart.emptyLine
+            let parts = [
+                PumlPart.combine [
+                    yield name
+                    yield PumlPart.emptyLine
 
-                yield! tuc.Participants |> List.collect (Participant.generate output)
-                yield PumlPart.emptyLine
+                    yield! tuc.Participants |> List.collect (Participant.generate output)
+                    yield PumlPart.emptyLine
 
-                match mainInitiator with
-                | Some mainInitiator -> yield mainInitiator |> Participant.activate
-                | _ -> ()
+                    match mainInitiator with
+                    | Some mainInitiator ->
+                        if activatedMainInitiators |> Map.containsKey (mainInitiator |> ActiveParticipant.name) |> not
+                            then yield mainInitiator |> Participant.activate
+                    | _ -> ()
 
-                yield! tuc.Parts |> List.collect (Part.generate mainInitiator 0 output)
-                yield PumlPart.emptyLine
-
-                match mainInitiator with
-                | Some mainInitiator -> yield mainInitiator |> Participant.deactivate
-                | _ -> ()
+                    yield! tuc.Parts |> List.collect (Part.generate mainInitiator 0 output)
+                    yield PumlPart.emptyLine
+                ]
             ]
-        ]
+
+            let activatedMainInitiators =
+                match mainInitiator with
+                | Some mainInitiator -> activatedMainInitiators |> Map.add (mainInitiator |> ActiveParticipant.name) mainInitiator
+                | _ -> activatedMainInitiators
+
+            tucs
+            |> generate output activatedMainInitiators (acc @ parts)
 
     let private createPuml pumlName = function
         | [] -> Error NoTucProvided
@@ -300,8 +309,12 @@ module Generate =
             |> Ok
 
     let puml (output: MF.ConsoleApplication.Output) pumlName (tucs: Tuc list) =
-        tucs
-        |> List.collect (generate output)
+        let activatedMainInitiators, parts =
+            tucs
+            |> generate output Map.empty []
+
+        parts
+        @ (activatedMainInitiators |> Map.toList |> List.map (snd >> Participant.deactivate))
         |> createPuml pumlName
 
     open PlantUml.Net

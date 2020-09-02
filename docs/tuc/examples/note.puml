@@ -8,7 +8,7 @@ activate MainService
 note over MainService: this is a note
 note over MainService
 This is **bold**
-This is
+This is //italics//
 This is ""monospaced""
 This is --stroked--
 This is __underlined__

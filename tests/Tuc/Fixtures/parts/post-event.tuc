@@ -4,9 +4,9 @@ participants
     [InputStream] parts
 
 GenericService
-    # post InputEvent
+    // post InputEvent
     InputEvent -> [InputStream]
 
-    # post concrete InputEvent
+    // post concrete InputEvent
     InputEvent.EventA -> [InputStream]
     InputEvent.EventC.C2 -> [InputStream]

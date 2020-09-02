@@ -2,9 +2,9 @@
 
 == Valid use case ==
 
-actor "Generic Service" as GenericService <<consents>>
-participant "InteractionCollector" as InteractionCollector <<consents>>
-collections "InteractionStream" as InteractionStream <<consents>>
+actor "Generic Service" as GenericService <<Tests>>
+participant "InteractionCollector" as InteractionCollector <<Tests>>
+collections "InteractionStream" as InteractionStream <<Tests>>
 
 activate GenericService
 

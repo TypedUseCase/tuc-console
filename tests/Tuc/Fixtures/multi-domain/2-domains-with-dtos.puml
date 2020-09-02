@@ -1,0 +1,33 @@
+@startuml 2 domains with DTOs.
+
+== Multi domain - one ==
+
+actor "MainService" as MainService <<One>>
+participant "Sender" as Sender <<One>>
+
+activate MainService
+MainService -> Sender ++: SendDto(Dto)
+Sender --> MainService --: CommandResult
+
+== Multi domain - two ==
+
+actor "MainService" as MainService <<Two>>
+participant "Receiver" as Receiver <<Two>>
+
+MainService -> Receiver ++: ReceiveDto(Dto)
+Receiver --> MainService --: CommandResult
+
+== Multi domain - together ==
+
+actor "MainService" as MainService <<One>>
+participant "Sender" as Sender <<One>>
+participant "Receiver" as Receiver <<Two>>
+
+MainService -> Sender ++: SendDto(Dto)
+Sender --> MainService --: CommandResult
+MainService -> Receiver ++: ReceiveDto(Dto)
+Receiver --> MainService --: CommandResult
+
+deactivate MainService
+
+@enduml

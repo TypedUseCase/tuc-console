@@ -10,7 +10,7 @@ MainService -> Service ++: Method(Input)
     note right: this is a note
     note right
     This is **bold**
-    This is
+    This is //italics//
     This is ""monospaced""
     This is --stroked--
     This is __underlined__

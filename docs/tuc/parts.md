@@ -33,7 +33,7 @@ There **must** be at lease one part of the use-case in the Tuc definition.
 ### Syntax
 ```tuc
 {InitiatorService}
-    # indented execution of the lifeline
+    // indented execution of the lifeline
 ```
 
 ### Example
@@ -122,7 +122,7 @@ deactivate MainService
 ### Syntax
 ```tuc
 {ServiceName}.{MethodName}
-    # indented execution of the method
+    // indented execution of the method
 ```
 
 Service Type is found in the Domain Types, it must contain a MethodName as a field with a function (_method_). The type of the Method is used in the puml.
@@ -149,9 +149,9 @@ participants
     MainService My as "Main Service"
     Service My
 
-MainService                             # MainService is the caller
-    Service.Method                      # Method `Method` is called on the `Service`
-        "this is part of execution"     # This is part of the Method execution
+MainService                             // MainService is the caller
+    Service.Method                      // Method `Method` is called on the `Service`
+        "this is part of execution"     // This is part of the Method execution
 ```
 
 Results:
@@ -219,10 +219,10 @@ participants
     MainService My as "Main Service"
     [InteractionStream] My
 
-MainService                                     # MainService is the caller
-    InteractionEvent -> [InteractionStream]     # InteractionEvent is posted to the stream
+MainService                                     // MainService is the caller
+    InteractionEvent -> [InteractionStream]     // InteractionEvent is posted to the stream
 
-    # Event concrete events can be posted to the stream
+    // Event concrete events can be posted to the stream
     InteractionEvent.Confirmed -> [InteractionStream]
 
     InteractionEvent.Rejected -> [InteractionStream]
@@ -297,10 +297,10 @@ participants
     MainService My as "Main Service"
     [InteractionStream] My
 
-MainService                                     # MainService is the caller
-    [InteractionStream] -> InteractionEvent     # InteractionEvent is read from the stream
+MainService                                     // MainService is the caller
+    [InteractionStream] -> InteractionEvent     // InteractionEvent is read from the stream
 
-    # Even concrete events can be read from the stream
+    // Even concrete events can be read from the stream
     [InteractionStream] -> InteractionEvent.Confirmed
 
     [InteractionStream] -> InteractionEvent.Rejected
@@ -343,7 +343,7 @@ deactivate MainService
 ```tuc
 [{TypeName}Stream]
     {ServiceName}.{HandlerName}
-        # indented execution of the method
+        // indented execution of the method
 ```
 
 Service Type is found in the Domain Types, it must contain a HandlerName as a field with a function (_[handler](/tuc-console/domain/#handler)_). The type of the Handler is used for checking a Stream Type.
@@ -382,9 +382,9 @@ participants
     StreamListener My
     [InteractionStream] My
 
-[InteractionStream]                     # Stream of the Event type of the handler
-    StreamListener.OnInteractionEvent   # Handler `OnInteractionEvent` is called on the `StreamListener`
-        "this is part of execution"     # This is part of the Handler execution
+[InteractionStream]                     // Stream of the Event type of the handler
+    StreamListener.OnInteractionEvent   // Handler `OnInteractionEvent` is called on the `StreamListener`
+        "this is part of execution"     // This is part of the Handler execution
 ```
 
 Results:
@@ -418,7 +418,7 @@ InteractionStream ->> StreamListener: OnInteractionEvent(InteractionEvent)
 ### Syntax
 ```tuc
 group {Group name}
-    # indented body of the group
+    // indented body of the group
 ```
 
 ### Example
@@ -472,15 +472,15 @@ deactivate MainService
 ### Syntax
 ```tuc
 if {Condition}
-    # indented body of the if
+    // indented body of the if
 ```
 
 With `else`
 ```tuc
 if {Condition}
-    # indented body of the if
+    // indented body of the if
 else
-    # indented body of the else
+    // indented body of the else
 ```
 
 **NOTE**: There is no `else if` syntax, if you need to use it, you need to have other `if/if-else` in the `else` branch.
@@ -488,10 +488,10 @@ else
 With another `if` in `else`
 ```tuc
 if {Condition}
-    # indented body of the if
+    // indented body of the if
 else
     if {Condition}
-        # indented body of the else-if
+        // indented body of the else-if
 ```
 
 ### Example
@@ -562,7 +562,7 @@ deactivate MainService
 ### Syntax
 ```tuc
 loop {Condition}
-    # indented body of the loop
+    // indented body of the loop
 ```
 
 ### Example
@@ -633,7 +633,7 @@ MainService
 
     """
     This is **bold**
-    This is //italics//
+    This is *italics*
     This is ""monospaced""
     This is --stroked--
     This is __underlined__
@@ -658,7 +658,7 @@ activate MainService
 note over MainService: this is a note
 note over MainService
 This is **bold**
-This is
+This is //italics//
 This is ""monospaced""
 This is --stroked--
 This is __underlined__
@@ -708,7 +708,7 @@ MainService
 
         "<"
         This is **bold**
-        This is //italics//
+        This is *italics*
         This is ""monospaced""
         This is --stroked--
         This is __underlined__
@@ -735,7 +735,7 @@ MainService -> Service ++: Method(Input)
     note left: this is a note
     note left
     This is **bold**
-    This is
+    This is //italics//
     This is ""monospaced""
     This is --stroked--
     This is __underlined__
@@ -786,7 +786,7 @@ MainService
 
         ">"
         This is **bold**
-        This is //italics//
+        This is *italics*
         This is ""monospaced""
         This is --stroked--
         This is __underlined__
@@ -813,7 +813,7 @@ MainService -> Service ++: Method(Input)
     note right: this is a note
     note right
     This is **bold**
-    This is
+    This is //italics//
     This is ""monospaced""
     This is --stroked--
     This is __underlined__

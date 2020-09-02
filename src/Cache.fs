@@ -79,3 +79,7 @@ module ConcurrentCache =
 
         let clear (Cache storage) =
             storage.Clear()
+
+        let exists key =
+            tryFind key
+            >> Option.isSome

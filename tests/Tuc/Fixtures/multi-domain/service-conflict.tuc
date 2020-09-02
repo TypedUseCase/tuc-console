@@ -1,0 +1,7 @@
+tuc Multi domain - both
+participants
+    MainService one
+    MainService two
+
+MainService
+    "tuc don't know which MainService is that"

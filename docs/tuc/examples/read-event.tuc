@@ -3,10 +3,10 @@ participants
     MainService My as "Main Service"
     [InteractionStream] My
 
-MainService                                     # MainService is the caller
-    [InteractionStream] -> InteractionEvent     # InteractionEvent is read from the stream
+MainService                                     // MainService is the caller
+    [InteractionStream] -> InteractionEvent     // InteractionEvent is read from the stream
 
-    # Even concrete events can be read from the stream
+    // Even concrete events can be read from the stream
     [InteractionStream] -> InteractionEvent.Confirmed
 
     [InteractionStream] -> InteractionEvent.Rejected

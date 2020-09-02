@@ -1,8 +1,8 @@
 tuc Undefined rejection reason
 participants
-    GenericService consents
-    InteractionCollector consents
-    [InteractionStream] consents
+    GenericService Tests
+    InteractionCollector Tests
+    [InteractionStream] Tests
 
 section Rejected by undefined boo
 GenericService

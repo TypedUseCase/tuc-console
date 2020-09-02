@@ -34,8 +34,8 @@ participants
 
 ### Syntax
 ```tuc
-participants                                    # keyword starting a participant section
-    {TypeName} {DomainName} ( as "{Alias}" )    # active participant
+participants                                    // keyword starting a participant section
+    {TypeName} {DomainName} ( as "{Alias}" )    // active participant
 ```
 
 ### Type Name
@@ -98,9 +98,9 @@ Component **can not** be used anywhere in the use-case - its only purpose is _gr
 
 ### Syntax
 ```tuc
-participants                                            # keyword starting a participant section
-    {ComponentTypeName} {DomainName}                    # component participant
-        {TypeName} ( {DomainName} ) ( as "{Alias}" )    # active participant, from component
+participants                                            // keyword starting a participant section
+    {ComponentTypeName} {DomainName}                    // component participant
+        {TypeName} ( {DomainName} ) ( as "{Alias}" )    // active participant, from component
 ```
 
 * It **must** be defined in the Domain types as a `Record`, containing its services as fields.
@@ -128,10 +128,10 @@ type ServiceComponent = {
 
 ```tuc
 participants
-    MainService Example as "Main Service"   # this is Active Participant
-    ServiceComponent Example                # this is a Component
-        ServiceA Example                    # this is Active Participant of the Component
-        ServiceB as "Service B"             # this is Active Participant of the Component
+    MainService Example as "Main Service"   // this is Active Participant
+    ServiceComponent Example                // this is a Component
+        ServiceA Example                    // this is Active Participant of the Component
+        ServiceB as "Service B"             // this is Active Participant of the Component
 ```
 
 In puml:
@@ -150,8 +150,8 @@ end box
 
 ### Syntax
 ```tuc
-participants                                    # keyword starting a participant section
-    [{TypeName}] {DomainName} ( as "{Alias}" )  # active participant
+participants                                    // keyword starting a participant section
+    [{TypeName}] {DomainName} ( as "{Alias}" )  // active participant
 ```
 
 * It has the same syntax as an Active Participant (_also in the Component_), but its Type name **must** be in `[ ]`.
@@ -192,8 +192,8 @@ database "InteractionCache" as InteractionCache <<My>>
 * It has the same syntax as the Data Object, but it **must** have `Stream` suffix.
 
 ```tuc
-participants                                            # keyword starting a participant section
-    [{TypeName}Stream] {DomainName} ( as "{Alias}" )    # active participant
+participants                                            // keyword starting a participant section
+    [{TypeName}Stream] {DomainName} ( as "{Alias}" )    // active participant
 ```
 
 **NOTE**: It has a [special definition in the domain types](/tuc-console/domain/#stream).
@@ -229,6 +229,7 @@ Participant's Alias **may** contain a formatting, supported by a [PlantUML](http
 ```tuc
 participants
     MainService Domain as "**bold**"
+    MainService Domain as "*italics*"
     MainService Domain as "--stroked--"
     MainService Domain as "__underlined__"
     MainService Domain as "~~waved~~"

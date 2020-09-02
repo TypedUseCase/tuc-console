@@ -1,4 +1,4 @@
 tuc parse error test
 participants
-    GenericService parts
+    GenericService parts as "Generic"
         StreamListener parts

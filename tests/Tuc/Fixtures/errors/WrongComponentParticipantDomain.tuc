@@ -1,5 +1,5 @@
 tuc parse error test
 participants
     StreamComponent parts
-        GenericService parts
-        Service parts
+        GenericService
+        Service wrongDomain

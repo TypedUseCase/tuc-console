@@ -2,24 +2,22 @@
 
 == Correct 1 ==
 
-actor "GenericService" as GenericService <<parts>>
-participant "Service" as Service <<parts>>
+actor "GenericService" as GenericService <<Tests>>
+participant "Service" as Service <<Tests>>
 
 activate GenericService
 GenericService -> Service ++: DoSomeWork(Id)
 Service --> GenericService --: WorkResult
 
-deactivate GenericService
 == Correct 2 ==
 
-actor "GenericService" as GenericService <<parts>>
-participant "Service" as Service <<parts>>
-collections "InputStream" as InputStream <<parts>>
+actor "GenericService" as GenericService <<Tests>>
+participant "Service" as Service <<Tests>>
+collections "InputStream" as InputStream <<Tests>>
 box "StreamComponent"
-    participant "StreamListener" as StreamListener <<parts>>
+    participant "StreamListener" as StreamListener <<Tests>>
 end box
 
-activate GenericService
 InputStream ->> StreamListener: ReadEvent(InputEvent)
     activate StreamListener
     hnote over StreamListener
@@ -27,25 +25,21 @@ InputStream ->> StreamListener: ReadEvent(InputEvent)
     end hnote
     deactivate StreamListener
 
-deactivate GenericService
 == Correct tuc 3 ==
 
-actor "GenericService" as GenericService <<parts>>
-collections "InputStream" as InputStream <<parts>>
+actor "GenericService" as GenericService <<Tests>>
+collections "InputStream" as InputStream <<Tests>>
 
-activate GenericService
 alt the weather is nice
     GenericService ->> InputStream: InputEvent.EventA
 end
 
-deactivate GenericService
 == Correct tuc 4 ==
 
-actor "GenericService" as GenericService <<parts>>
-collections "InputStream" as InputStream <<parts>>
-participant "StreamListener" as StreamListener <<parts>>
+actor "GenericService" as GenericService <<Tests>>
+collections "InputStream" as InputStream <<Tests>>
+participant "StreamListener" as StreamListener <<Tests>>
 
-activate GenericService
 InputStream ->> StreamListener: ReadEvent(InputEvent)
     activate StreamListener
     InputStream ->> StreamListener: InputEvent.EventA

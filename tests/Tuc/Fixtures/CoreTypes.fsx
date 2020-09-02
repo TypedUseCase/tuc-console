@@ -16,3 +16,7 @@ type StreamHandler<'Event> = StreamHandler of ('Event -> unit)
 type CommandResult =
   | Accepted
   | Error
+
+type ServiceNotInDomain = {
+  Method: string -> unit
+}

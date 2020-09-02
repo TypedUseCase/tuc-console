@@ -2,7 +2,7 @@
 
 == test ==
 
-actor "GenericService" as GenericService <<parts>>
+actor "GenericService" as GenericService <<Parts>>
 
 activate GenericService
 loop until its done

@@ -53,14 +53,14 @@ and ActiveParticipant =
     | Stream of StreamParticipant
 
 and ServiceParticipant = {
-    Domain: string
+    Domain: DomainName
     Context: string
     Alias: string
     ServiceType: DomainType
 }
 
 and StreamParticipant = {
-    Domain: string
+    Domain: DomainName
     Context: string
     Alias: string
     StreamType: DomainType
@@ -161,124 +161,3 @@ module ActiveParticipant =
     let name = function
         | Service { ServiceType = t }
         | Stream { StreamType = t } -> t |> DomainType.nameValue
-
-module internal Example =
-    open MF.Domain.Example
-
-(*
-participants
-  consentManager
-    GenericService consents as "Generic Service"
-    InteractionCollector consents "Interaction Collector"
-  [InteractionCollectorStream] consents //domenu ma service, komponenta ne
-  PersonIdentificationEngine consents "PID"
-  PersonAggregate consents as "Person Aggregate"
- *)
-    let genericServiceParticipant = Service { Domain = "consents"; Context = "GenericService"; Alias = "Generic Service"; ServiceType = DomainType genericService }
-    let interactionCollectorParticipant = Service { Domain = "consents"; Context = "InteractionCollector"; Alias = "Interaction Collector"; ServiceType = DomainType interactionCollector }
-    let interactionCollectorStreamParticipant = Stream { Domain = "consents"; Context = "InteractionCollectorStream"; Alias = "InteractionCollectorStream"; StreamType = DomainType interactionCollectorStream }
-    let personIdentificationEngineParticipant = Service { Domain = "consents"; Context = "PersonIdentificationEngine"; Alias = "PID"; ServiceType = DomainType personIdentificationEngine }
-    let personAggregateParticipant = Service { Domain = "consents"; Context = "PersonAggregate"; Alias = "Person Aggregate"; ServiceType = DomainType personAggregate }
-
-    let participants: Participant list = [
-        Component ({ Name = "consentManager"; Participants = [
-            genericServiceParticipant
-            interactionCollectorParticipant
-        ]})
-        Participant interactionCollectorStreamParticipant
-        Participant personIdentificationEngineParticipant
-        Participant personAggregateParticipant
-    ]
-
-(* section Section 1 *)
-    let section1 = Section { Value = "Section 1" }
-
-(*
-group Skupina Bozich Funkci
-  GenericService
-    InteractionCollector.PostInteraction
-    loop until result is processed
-      do process result
- *)
-    let parts = [
-        Group { Name = "Skupina Bozich Funkci"; Body = [
-            Lifeline { Initiator = genericServiceParticipant; Execution = [
-                ServiceMethodCall { Caller = genericServiceParticipant; Service = interactionCollectorParticipant; Method = postInteractionMethod; Execution = [
-                    // empty body
-                ] }
-
-                Loop { Condition = "until result is processed"; Body = [
-                    Do { Caller = genericServiceParticipant; Actions = [ "process result" ] }
-                ] }
-            ] }
-        ] }
-    ]
-
-(*
-GenericService
-  InteractionCollector.PostInteraction
-    do vyroba udalosti z dat osoby
-    InteractionEvent -> [InteractionCollectorStream] "poznamka" //note k modelu
-*)
-    let ``send event to stream`` =
-        Lifeline { Initiator = genericServiceParticipant; Execution = [
-            ServiceMethodCall { Caller = genericServiceParticipant; Service = interactionCollectorParticipant; Method = postInteractionMethod; Execution = [
-                Do { Caller = interactionCollectorParticipant; Actions = [ "vyroba udalosti z dat osoby" ] }
-                PostEvent { Caller = interactionCollectorParticipant; Stream = interactionCollectorStreamParticipant; Event = { Original = "InteractionEvent"; Path = [ "InteractionEvent" ] } }
-                RightNote { Lines = [ "poznamka" ] }
-            ] }
-        ] }
-
-(*
-GenericService
-  InteractionCollector.PostInteraction
-    [InteractionCollectorStream]
-      PersonIdentificationEngine.OnInteractionEvent
-        """
-        poznamka
-        na vic radku
-        """
-        PersonAggregate.IdentifyPerson
-          do
-            prvni step
-            druhy step
-          if PersonFound
-            do return Person
-          else
-            do return Error
- *)
-    let ``handle event in stream`` =
-        Lifeline { Initiator = genericServiceParticipant; Execution = [
-            ServiceMethodCall { Caller = genericServiceParticipant; Service = interactionCollectorParticipant; Method = postInteractionMethod; Execution = [
-                HandleEventInStream { Stream = interactionCollectorStreamParticipant; Service = personIdentificationEngineParticipant; Handler = onInteractionEventMethod; Execution = [
-                    Note {
-                        Caller = personIdentificationEngineParticipant
-                        Lines = [
-                            "poznamka"
-                            "na vic radku"
-                        ]
-                    }
-
-                    ServiceMethodCall { Caller = personIdentificationEngineParticipant; Service = personAggregateParticipant; Method = identifyPersonMethod; Execution = [
-                        Do {
-                            Caller = personAggregateParticipant
-                            Actions = [
-                                "prvni step"
-                                "druhy step"
-                            ]
-                        }
-
-                        If {
-                            Condition = "PersonFound"
-                            Body = [
-                                Do { Caller = personAggregateParticipant; Actions = [ "return Person" ] }
-                            ]
-                            Else = Some [
-                                Do { Caller = personAggregateParticipant; Actions = [ "return Error" ] }
-                            ]
-                        }
-                    ] }
-                    RightNote { Lines = [ "poznamka" ] }
-                ] }
-            ] }
-        ] }
