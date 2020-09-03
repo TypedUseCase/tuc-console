@@ -61,7 +61,7 @@ module Common =
         | Ok expected, Ok actual ->
             let puml =
                 actual
-                |> Generate.puml output description
+                |> Generate.puml output None description
                 |> orFail PumlError.format
                 |> Puml.value
 

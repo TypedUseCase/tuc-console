@@ -79,6 +79,15 @@ module Console =
             |> FileOrDir.parse ".tuc"
             |> tee (FileOrDir.debug output "Tuc")
 
+        let getStyle ((input, output): IO) =
+            match input |> Input.getOptionValueAsString "style" with
+            | Some styleFile ->
+                if styleFile |> File.Exists |> not
+                    then failwithf "Style file does not exist at path %s" styleFile
+
+                Some (styleFile |> File.ReadAllText)
+            | _ -> None
+
     let private runForever = async {
         while true do
             do! Async.Sleep 1000
