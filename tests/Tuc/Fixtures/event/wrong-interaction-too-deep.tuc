@@ -7,4 +7,4 @@ participants
 section InteractionEvent.Interaction.Interaction
 GenericService
     InteractionCollector.Post
-        InteractionEvent.Interaction.Interaction -> [InteractionStream]
+        InteractionEvent.Interaction.Interaction.Interaction -> [InteractionStream]

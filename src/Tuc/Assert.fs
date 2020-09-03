@@ -70,7 +70,7 @@ module private Assert =
             cases
             |> List.tryFind (fst >> TypeName.value >> (=) eventName)
             |> Option.map snd
-            |> Result.ofOption (Errors.wrongEvent indentation line (cases |> casesNames))
+            |> Result.ofOption (Errors.wrongEvent indentation line eventName (cases |> casesNames))
 
         let debugChecking eventName =
             if isDebug then output.Message <| sprintf "\n<c:purple>Checking</c> <c:yellow>%s</c>" eventName
@@ -110,6 +110,16 @@ module private Assert =
 
                                 | _ -> None
                             )
+
+                        | DomainType (SingleCaseUnion { ConstructorName = name; ConstructorArgument = TypeDefinition.IsScalar scalar }) ->
+                            [ TypeName name, DomainType (ScalarType scalar) ]
+
+                        | DomainType (SingleCaseUnion { ConstructorName = name; ConstructorArgument = (Type arg) }) ->
+                            domainTypes
+                            |> Map.tryFind (domain, arg)
+                            |> Option.map (fun argType -> TypeName name, DomainType argType)
+                            |> Option.toList
+
                         | _ -> []
 
                     if isDebug then

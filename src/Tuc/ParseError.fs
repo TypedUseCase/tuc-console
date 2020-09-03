@@ -49,7 +49,7 @@ type ParseError =
     // Others
     | WrongEventName of lineNumber: int * position: int * line: string * message: string
     | UndefinedEventType of lineNumber: int * position: int * line: string
-    | WrongEvent of lineNumber: int * position: int * line: string * definedCases: string list
+    | WrongEvent of lineNumber: int * position: int * line: string * eventName: string * definedCases: string list
 
 [<RequireQualifiedAccess>]
 module ParseError =
@@ -309,17 +309,19 @@ module ParseError =
             |> red
             |> formatLineWithError lineNumber position line
 
-        | WrongEvent (lineNumber, position, line, cases) ->
+        | WrongEvent (lineNumber, position, line, eventName, cases) ->
             let error =
-                "There is no such a case for an event."
+                eventName
+                |> sprintf "There is no such a case for an event %s."
                 |> red
                 |> formatLineWithError lineNumber position line
 
             let defineCases =
                 match cases with
-                | [] -> "Event does not have defined any more cases."
+                | [] -> sprintf "Event %s does not have defined any more cases." eventName
                 | cases ->
-                    sprintf "Event has defined cases:%s"
+                    sprintf "Event %s has defined cases:%s"
+                        eventName
                         (cases |> List.formatLines "  - " id)
 
             sprintf "%s\n\n<c:red>%s</c>" error defineCases

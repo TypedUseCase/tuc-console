@@ -75,7 +75,7 @@ module Domain =
     open MF.Domain
     open ErrorHandling
 
-    let parseDomainTypes output domain =
+    let private parseDomain output domain =
         result {
             let! resolvedTypes =
                 domain
@@ -88,6 +88,12 @@ module Domain =
                 |> Checker.check output
         }
         |> orFail (List.map TypeName.value >> String.concat "\n  - " >> sprintf "Unresolved types:\n%s")
+
+    let parseDomainsTypes output path domainFiles =
+        let addPath domainFile = path </> domainFile
+
+        domainFiles
+        |> List.collect (addPath >> (parseDomain output))
 
 [<RequireQualifiedAccess>]
 module Parts =
@@ -189,12 +195,14 @@ module Event =
     let provider: Case list =
         [
             case "Valid cases" "valid.tuc" (Ok "valid.puml")
+            case "Hr - single case event" "hr.tuc" (Ok "hr.puml")
 
             case "InteractionEvent with typo" "wrong-interaction-event.tuc" (Error [
                 WrongEvent (
                     10,
                     8,
                     "        InteractionEvents -> [InteractionStream]",
+                    "InteractionEvents",
                     ["InteractionEvent"]
                 )
             ])
@@ -204,6 +212,7 @@ module Event =
                     10,
                     24,
                     "        InteractionEvent.Confirmes -> [InteractionStream]",
+                    "Confirmes",
                     ["Confirmed"; "Rejected"; "Interaction"; "Other"]
                 )
             ])
@@ -211,8 +220,9 @@ module Event =
             case "Interaction is too deep" "wrong-interaction-too-deep.tuc" (Error [
                 WrongEvent (
                     10,
-                    36,
-                    "        InteractionEvent.Interaction.Interaction -> [InteractionStream]",
+                    48,
+                    "        InteractionEvent.Interaction.Interaction.Interaction -> [InteractionStream]",
+                    "Interaction",
                     []
                 )
             ])
@@ -222,6 +232,7 @@ module Event =
                     10,
                     46,
                     "        InteractionEvent.Rejected.UserRejected.Boo -> [InteractionStream]",
+                    "Boo",
                     ["Foo"; "Bar"]
                 )
             ])
@@ -288,53 +299,66 @@ let parserTests =
     testList "Tuc.Parser" [
         testCase "should parse parts" <| fun _ ->
             let domainTypes =
-                Parts.path </> "partsDomain.fsx"
-                |> Domain.parseDomainTypes output
+                [
+                    "partsDomain.fsx"
+                ]
+                |> Domain.parseDomainsTypes output Parts.path
 
             Parts.provider |> test domainTypes
 
         testCase "should parse events" <| fun _ ->
             let domainTypes =
-                Event.path </> "testsDomain.fsx"
-                |> Domain.parseDomainTypes output
+                [
+                    "testsDomain.fsx"
+                    "hrDomain.fsx"
+                ]
+                |> Domain.parseDomainsTypes output Event.path
 
             Event.provider |> test domainTypes
 
         testCase "should show nice parse errors" <| fun _ ->
             let domainTypes =
-                ParseErrors.path </> "partsDomain.fsx"
-                |> Domain.parseDomainTypes output
+                [
+                    "partsDomain.fsx"
+                ]
+                |> Domain.parseDomainsTypes output ParseErrors.path
 
             ParseErrors.provider |> test domainTypes
 
         testCase "should parse multiple tucs" <| fun _ ->
             let domainTypes =
-                MultiTuc.path </> "testsDomain.fsx"
-                |> Domain.parseDomainTypes output
+                [
+                    "testsDomain.fsx"
+                ]
+                |> Domain.parseDomainsTypes output MultiTuc.path
 
             MultiTuc.provider |> test domainTypes
 
         testCase "should parse readme example" <| fun _ ->
             let domainTypes =
-                Example.path </> "consentsDomain.fsx"
-                |> Domain.parseDomainTypes output
+                [
+                    "consentsDomain.fsx"
+                ]
+                |> Domain.parseDomainsTypes output Example.path
 
             Example.provider |> test domainTypes
 
         testCase "should parse formatted tuc" <| fun _ ->
             let domainTypes =
-                Formatted.path </> "testsDomain.fsx"
-                |> Domain.parseDomainTypes output
+                [
+                    "testsDomain.fsx"
+                ]
+                |> Domain.parseDomainsTypes output Formatted.path
 
             Formatted.provider |> test domainTypes
 
         testCase "should parse multi-domain communication" <| fun _ ->
-            let oneDomainTypes =
-                MultiDomain.path </> "oneDomain.fsx"
-                |> Domain.parseDomainTypes output
-            let twoDomainTypes =
-                MultiDomain.path </> "twoDomain.fsx"
-                |> Domain.parseDomainTypes output
+            let domainTypes =
+                [
+                    "oneDomain.fsx"
+                    "twoDomain.fsx"
+                ]
+                |> Domain.parseDomainsTypes output MultiDomain.path
 
-            MultiDomain.provider |> test (oneDomainTypes @ twoDomainTypes)
+            MultiDomain.provider |> test domainTypes
     ]
