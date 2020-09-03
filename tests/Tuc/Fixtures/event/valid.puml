@@ -17,37 +17,37 @@ InteractionCollector --> GenericService --: unit
 == InteractionEvent.Confirmed ==
 
 GenericService -> InteractionCollector ++: Post(InteractionEvent)
-    InteractionCollector ->> InteractionStream: InteractionEvent.Confirmed
+    InteractionCollector ->> InteractionStream: Confirmed
 InteractionCollector --> GenericService --: unit
 
 == InteractionEvent.Other ==
 
 GenericService -> InteractionCollector ++: Post(InteractionEvent)
-    InteractionCollector ->> InteractionStream: InteractionEvent.Other
+    InteractionCollector ->> InteractionStream: Other
 InteractionCollector --> GenericService --: unit
 
 == InteractionEvent.Interaction ==
 
 GenericService -> InteractionCollector ++: Post(InteractionEvent)
-    InteractionCollector ->> InteractionStream: InteractionEvent.Interaction
+    InteractionCollector ->> InteractionStream: Interaction
 InteractionCollector --> GenericService --: unit
 
 == InteractionEvent.Rejected by user ==
 
 GenericService -> InteractionCollector ++: Post(InteractionEvent)
-    InteractionCollector ->> InteractionStream: InteractionEvent.Rejected.UserRejected
+    InteractionCollector ->> InteractionStream: UserRejected
 InteractionCollector --> GenericService --: unit
 
 == InteractionEvent.Rejected Foo ==
 
 GenericService -> InteractionCollector ++: Post(InteractionEvent)
-    InteractionCollector ->> InteractionStream: InteractionEvent.Rejected.UserRejected.Foo
+    InteractionCollector ->> InteractionStream: Foo
 InteractionCollector --> GenericService --: unit
 
 == InteractionEvent.Rejected - expired ==
 
 GenericService -> InteractionCollector ++: Post(InteractionEvent)
-    InteractionCollector ->> InteractionStream: InteractionEvent.Rejected.Expired
+    InteractionCollector ->> InteractionStream: Expired
 InteractionCollector --> GenericService --: unit
 
 deactivate GenericService

@@ -161,7 +161,7 @@ Results:
 ```puml
 @startuml service-method-call
 
-== Method call ==
+== Service Method Call ==
 
 actor "Main Service" as MainService <<My>>
 participant "Service" as Service <<My>>
@@ -244,10 +244,10 @@ collections "InteractionStream" as InteractionStream <<My>>
 
 activate MainService
 MainService ->> InteractionStream: InteractionEvent
-MainService ->> InteractionStream: InteractionEvent.Confirmed
-MainService ->> InteractionStream: InteractionEvent.Rejected
-MainService ->> InteractionStream: InteractionEvent.Rejected.Expired
-MainService ->> InteractionStream: InteractionEvent.Rejected.Rejected
+MainService ->> InteractionStream: Confirmed
+MainService ->> InteractionStream: Rejected
+MainService ->> InteractionStream: Expired
+MainService ->> InteractionStream: Rejected
 
 deactivate MainService
 
@@ -322,10 +322,10 @@ collections "InteractionStream" as InteractionStream <<My>>
 
 activate MainService
 InteractionStream ->> MainService: InteractionEvent
-InteractionStream ->> MainService: InteractionEvent.Confirmed
-InteractionStream ->> MainService: InteractionEvent.Rejected
-InteractionStream ->> MainService: InteractionEvent.Rejected.Expired
-InteractionStream ->> MainService: InteractionEvent.Rejected.Rejected
+InteractionStream ->> MainService: Confirmed
+InteractionStream ->> MainService: Rejected
+InteractionStream ->> MainService: Expired
+InteractionStream ->> MainService: Rejected
 
 deactivate MainService
 

@@ -162,24 +162,24 @@ module Generate =
                     yield methodReturns |> PumlPart.indent indentation
                 ]
 
-            | PostEvent { Caller = caller; Stream = stream; Event = { Original = event } } ->
+            | PostEvent { Caller = caller; Stream = stream; Event = event } ->
                 let postEvent =
                     sprintf "%s ->> %s: %s"
                         (caller |> ActiveParticipant.name)
                         (stream |> ActiveParticipant.name)
-                        event
+                        (event |> Event.lastInPath)
                     |> PumlPart
 
                 [
                     postEvent |> PumlPart.indent indentation
                 ]
 
-            | ReadEvent { Caller = caller; Stream = stream; Event = { Original = event } } ->
+            | ReadEvent { Caller = caller; Stream = stream; Event = event } ->
                 let readEvent =
                     sprintf "%s ->> %s: %s"
                         (stream |> ActiveParticipant.name)
                         (caller |> ActiveParticipant.name)
-                        event
+                        (event |> Event.lastInPath)
                     |> PumlPart
 
                 [
