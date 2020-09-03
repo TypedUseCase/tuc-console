@@ -31,7 +31,7 @@ actor "GenericService" as GenericService <<Tests>>
 collections "InputStream" as InputStream <<Tests>>
 
 alt the weather is nice
-    GenericService ->> InputStream: InputEvent.EventA
+    GenericService ->> InputStream: EventA
 end
 
 == Correct tuc 4 ==
@@ -42,13 +42,13 @@ participant "StreamListener" as StreamListener <<Tests>>
 
 InputStream ->> StreamListener: ReadEvent(InputEvent)
     activate StreamListener
-    InputStream ->> StreamListener: InputEvent.EventA
+    InputStream ->> StreamListener: EventA
     hnote over StreamListener
     do:
         something with EventA
         and create EventB out of it
     end hnote
-    StreamListener ->> InputStream: InputEvent.EventB
+    StreamListener ->> InputStream: EventB
     deactivate StreamListener
 
 deactivate GenericService

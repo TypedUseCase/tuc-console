@@ -33,6 +33,13 @@ module Event =
                 Path = event.Split "." |> List.ofSeq
             }
 
+    let private path { Path = path } = path
+
+    let lastInPath =
+        path
+        >> List.rev
+        >> List.head
+
 type Tuc = {
     Name: TucName
     Participants: Participant list

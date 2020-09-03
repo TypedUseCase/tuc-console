@@ -12,6 +12,7 @@
 - Change tuc comment back to `//` from `#`, so it won't conflict with `#colorHash` in notes, etc.
 - Transform *italic* in tuc files
 - Fix Read/Post event by FQ name for events with only one case
+- Show only last event in path in puml result.
 
 ## 0.2.0 - 2020-09-01
 - Parse left and right notes in tuc
