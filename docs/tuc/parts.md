@@ -225,7 +225,19 @@ Results:
 ![post-data.png](/tuc-console/tuc/examples/post-data.png)
 
 ```puml
+@startuml post-data
 
+== Post Data ==
+
+actor "Main Service" as MainService <<My>>
+database "InteractionDatabase" as InteractionDatabase <<My>>
+
+activate MainService
+MainService ->> InteractionDatabase: InteractionEntity
+
+deactivate MainService
+
+@enduml
 ```
 
 ## Read Data
@@ -275,7 +287,19 @@ Results:
 ![read-data.png](/tuc-console/tuc/examples/read-data.png)
 
 ```puml
+@startuml read-data
 
+== Read Data ==
+
+actor "Main Service" as MainService <<My>>
+database "InteractionDatabase" as InteractionDatabase <<My>>
+
+activate MainService
+InteractionDatabase ->> MainService: InteractionEntity
+
+deactivate MainService
+
+@enduml
 ```
 
 ## Post Event
