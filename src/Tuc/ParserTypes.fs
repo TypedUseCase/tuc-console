@@ -127,9 +127,13 @@ module private Errors =
         | EventError.Empty -> WrongEventName (n, p, c, "it has empty name")
         | EventError.WrongFormat -> WrongEventName (n, p, c, "it has a wrong format (it must not start/end with . and not contains any spaces)")
 
-    let wrongEvent indentation line eventName cases =
+    let wrongEvent indentation line cases =
         let n, p, c = line |> Line.error indentation
-        WrongEvent (n, p, c, eventName, cases)
+        WrongEvent (n, p, c, cases)
+
+    let wrongData indentation line data definedData =
+        let n, p, c = line |> Line.error indentation
+        WrongData (n, p, c, data, definedData)
 
     let undefinedParticipantInDomain indentation line domain =
         let n, p, c = line |> Line.error indentation

@@ -1,7 +1,11 @@
 // common types
 
+type Id = Id
+
 type Stream<'Event> = Stream of 'Event list
 type StreamHandler<'Event> = StreamHandler of ('Event -> unit)
+
+type Database<'Entity> = Database of 'Entity list
 
 // domain types
 
@@ -28,4 +32,11 @@ and RejectedEvent =
 
 type StreamListener = {
     OnInteractionEvent: StreamHandler<InteractionEvent>
+}
+
+type InteractionDatabase = InteractionDatabase of Database<InteractionEntity>
+
+and InteractionEntity = {
+    Id: Id
+    InteractionData: string
 }

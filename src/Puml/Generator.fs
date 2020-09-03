@@ -51,6 +51,9 @@ module Generate =
             | Service { Domain = domain; Context = context; Alias = alias } ->
                 [ PumlPart (sprintf "participant %A as %s <<%s>>" (alias |> Format.format) context (domain |> DomainName.value)) ]
 
+            | DataObject { Domain = domain; Context = context; Alias = alias } ->
+                [ PumlPart (sprintf "database %A as %s <<%s>>" (alias |> Format.format) context (domain |> DomainName.value)) ]
+
             | Stream { Domain = domain; Context = context; Alias = alias } ->
                 [ PumlPart (sprintf "collections %A as %s <<%s>>" (alias |> Format.format) context (domain |> DomainName.value)) ]
 
@@ -160,6 +163,30 @@ module Generate =
                     yield callMethod |> PumlPart.indent indentation
                     yield! execution |> List.collect (generate deeper)
                     yield methodReturns |> PumlPart.indent indentation
+                ]
+
+            | PostData { Caller = caller; DataObject = dataObject; Data = Data data } ->
+                let postData =
+                    sprintf "%s ->> %s: %s"
+                        (caller |> ActiveParticipant.name)
+                        (dataObject |> ActiveParticipant.name)
+                        data
+                    |> PumlPart
+
+                [
+                    postData |> PumlPart.indent indentation
+                ]
+
+            | ReadData { Caller = caller; DataObject = dataObject; Data = Data data } ->
+                let readData =
+                    sprintf "%s ->> %s: %s"
+                        (dataObject |> ActiveParticipant.name)
+                        (caller |> ActiveParticipant.name)
+                        data
+                    |> PumlPart
+
+                [
+                    readData |> PumlPart.indent indentation
                 ]
 
             | PostEvent { Caller = caller; Stream = stream; Event = event } ->

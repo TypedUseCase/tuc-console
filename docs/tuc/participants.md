@@ -162,8 +162,8 @@ Example of different data objects (_you can use whatever names you want_).
 // myDomain.fsx
 
 // Data object types
-type Database<'Entity> = Database of 'Entity
-type Cache<'CachedData> = Cache of 'CachedData
+type Database<'Entity> = Database of 'Entity list
+type Cache<'CachedData> = Cache of 'CachedData list
 
 // Domain specific data object service
 type InteractionDatabase = InteractionDatabase of Database<InteractionEntity>

@@ -20,6 +20,12 @@ module Dump =
                 (domain |> DomainName.value)
                 context
 
+        | ActiveParticipant.DataObject { Domain = domain; Context = context; Alias = alias } ->
+            sprintf "<c:magenta>[</c><c:cyan>%s</c>(<c:gray>%s.%s</c>)<c:magenta>]</c>"
+                alias
+                (domain |> DomainName.value)
+                context
+
         | ActiveParticipant.Stream { Domain = domain; Context = context; Alias = alias } ->
             sprintf "<c:purple>[</c><c:cyan>%s</c>(<c:gray>%s.%s</c>)<c:purple>]</c>"
                 alias
@@ -73,6 +79,18 @@ module Dump =
                 (execution |> List.formatLines (indent indentation) (formatPart (indentation + indentSize)))
                 (indent (indentation - 4))
                 (method.Function.Returns |> TypeDefinition.value)
+
+        | PostData { Caller = caller; DataObject = dataObject; Data = Data data } ->
+            sprintf "<c:gray>post:</c> <c:dark-yellow>%s</c> -> %s  <c:gray>// Called by</c> %s"
+                data
+                (dataObject |> formatActiveParticipant)
+                (caller |> formatActiveParticipant)
+
+        | ReadData { Caller = caller; DataObject = dataObject; Data = Data data } ->
+            sprintf "<c:gray>read:</c> <c:dark-yellow>%s</c> <- %s  <c:gray>// Called by</c> %s"
+                data
+                (dataObject |> formatActiveParticipant)
+                (caller |> formatActiveParticipant)
 
         | PostEvent { Caller = caller; Stream = stream; Event = { Original = event } } ->
             sprintf "<c:gray>post:</c> <c:yellow>%s</c> -> %s  <c:gray>// Called by</c> %s"

@@ -1,0 +1,13 @@
+@startuml post-data
+
+== Post Data ==
+
+actor "Main Service" as MainService <<My>>
+database "InteractionDatabase" as InteractionDatabase <<My>>
+
+activate MainService
+MainService ->> InteractionDatabase: InteractionEntity
+
+deactivate MainService
+
+@enduml

@@ -1,0 +1,7 @@
+tuc Post Data
+participants
+    MainService My as "Main Service"
+    [InteractionDatabase] My
+
+MainService                                     // MainService is the caller
+    InteractionEntity -> [InteractionDatabase]  // InteractionEntity is posted to the Database

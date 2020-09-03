@@ -11,6 +11,8 @@ There **must** be at lease one part of the use-case in the Tuc definition.
 - [Lifeline](#lifeline)
 - [Section](#section)
 - [Service Method Call](#service-method-call)
+- [Post Data](#post-data)
+- [Read Data](#read-data)
 - [Post Event](#post-event)
 - [Read Event](#read-event)
 - [Handle Event In Stream](#handle-event-in-stream)
@@ -176,6 +178,106 @@ deactivate MainService
 @enduml
 ```
 
+## Post Data
+> Data can be posted to the Data Object of its type.
+
+* It **must** be in the execution of another _caller_ (_lifeline, other method call, etc._)
+* It **can not** contain other use-case parts.
+* It validates you are sending a correct data type to the correct Data Object.
+
+### Syntax
+```tuc
+{DataType} -> [{DataObjectName}]
+```
+
+### Example
+```fs
+// myDomain.fsx
+
+// common types
+type Id = Id
+
+type Database<'Entity> = Database of 'Entity list
+
+// domain types
+type MainService = Initiator
+
+type InteractionDatabase = InteractionDatabase of Database<InteractionEntity>
+
+and InteractionEntity = {
+    Id: Id
+    InteractionData: string
+}
+```
+
+```tuc
+tuc Post Data
+participants
+    MainService My as "Main Service"
+    [InteractionDatabase] My
+
+MainService                                     // MainService is the caller
+    InteractionEntity -> [InteractionDatabase]  // InteractionEntity is posted to the Database
+```
+
+Results:
+
+![post-data.png](/tuc-console/tuc/examples/post-data.png)
+
+```puml
+
+```
+
+## Read Data
+> Data can be read from the Data object of its type.
+
+* It **must** be in the execution of another _caller_ (_lifeline, other method call, etc._)
+* It **can not** contain other use-case parts.
+* It validates you are reading a correct event type from the correct Stream.
+
+### Syntax
+```tuc
+[{DataObjectName}] -> {DataType}
+```
+
+### Example
+```fs
+// myDomain.fsx
+
+// common types
+type Id = Id
+
+type Database<'Entity> = Database of 'Entity list
+
+// domain types
+type MainService = Initiator
+
+type InteractionDatabase = InteractionDatabase of Database<InteractionEntity>
+
+and InteractionEntity = {
+    Id: Id
+    InteractionData: string
+}
+```
+
+```tuc
+tuc Read Data
+participants
+    MainService My as "Main Service"
+    [InteractionDatabase] My
+
+MainService                                     // MainService is the caller
+    [InteractionDatabase] -> InteractionEntity  // InteractionEntity is read from the Database
+```
+
+Results:
+
+![read-data.png](/tuc-console/tuc/examples/read-data.png)
+
+```puml
+
+```
+
 ## Post Event
 > Event can be posted to the Stream of its type.
 
@@ -222,7 +324,7 @@ participants
 MainService                                     // MainService is the caller
     InteractionEvent -> [InteractionStream]     // InteractionEvent is posted to the stream
 
-    // Event concrete events can be posted to the stream
+    // Even concrete events can be posted to the stream
     InteractionEvent.Confirmed -> [InteractionStream]
 
     InteractionEvent.Rejected -> [InteractionStream]

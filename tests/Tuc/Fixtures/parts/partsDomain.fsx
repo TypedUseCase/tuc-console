@@ -32,3 +32,5 @@ type Service = {
 and WorkResult =
     | Success
     | Error
+
+type IdCache = IdCache of Cache<Id>

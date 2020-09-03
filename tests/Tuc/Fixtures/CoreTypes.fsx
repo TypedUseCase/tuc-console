@@ -13,6 +13,9 @@ type YesNo =
 type Stream<'Event> = Stream of 'Event list
 type StreamHandler<'Event> = StreamHandler of ('Event -> unit)
 
+type Database<'Entity> = Database of 'Entity list
+type Cache<'CachedItem> = Cache of 'CachedItem list
+
 type CommandResult =
   | Accepted
   | Error
