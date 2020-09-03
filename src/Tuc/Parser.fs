@@ -88,6 +88,19 @@ module Parser =
                 }
             | _ -> Error <| Errors.undefinedParticipantInDomain indentation line serviceDomain
 
+        let private parseDataObject streamName dataObjectDomain alias indentation line domainTypes =
+            let dataObject = ActiveParticipant.DataObject >> Ok
+
+            match domainTypes with
+            | HasDomainType (Some dataObjectDomain) streamName (DomainType.DataObject dataObjectDomain componentType) ->
+                dataObject {
+                    Domain = dataObjectDomain
+                    Context = streamName
+                    Alias = alias
+                    DataObjectType = DomainType componentType
+                }
+            | _ -> Error <| Errors.undefinedParticipantInDomain indentation line dataObjectDomain
+
         let private parseStream streamName streamDomain alias indentation line domainTypes =
             let stream = ActiveParticipant.Stream >> Ok
 
@@ -105,17 +118,26 @@ module Parser =
             match line with
             | IndentedLine indentation line ->
                 match line |> Line.content with
+                // Service
                 | Regex @"^(\w+){1} (\w+){1}$" [ serviceName; serviceDomain ] ->
                     domainTypes |> parseService serviceName (DomainName.create serviceDomain) serviceName indentation line
 
                 | Regex @"^(\w+){1} (\w+){1} as ""(.+){1}""$" [ serviceName; serviceDomain; alias ] ->
                     domainTypes |> parseService serviceName (DomainName.create serviceDomain) alias indentation line
 
-                | Regex @"^\[(\w+){1}\] (\w+){1}$" [ streamName; streamDomain ] ->
+                // Stream
+                | Regex @"^\[(\w+Stream){1}\] (\w+){1}$" [ streamName; streamDomain ] ->
                     domainTypes |> parseStream streamName (DomainName.create streamDomain) streamName indentation line
 
-                | Regex @"^\[(\w+){1}\] (\w+){1} as ""(.+){1}""$" [ streamName; streamDomain; alias ] ->
+                | Regex @"^\[(\w+Stream){1}\] (\w+){1} as ""(.+){1}""$" [ streamName; streamDomain; alias ] ->
                     domainTypes |> parseStream streamName (DomainName.create streamDomain) alias indentation line
+
+                // Data Object
+                | Regex @"^\[(\w+){1}\] (\w+){1}$" [ dataObjectName; dataObjectDomain ] ->
+                    domainTypes |> parseDataObject dataObjectName (DomainName.create dataObjectDomain) dataObjectName indentation line
+
+                | Regex @"^\[(\w+){1}\] (\w+){1} as ""(.+){1}""$" [ streamName; streamDomain; alias ] ->
+                    domainTypes |> parseDataObject streamName (DomainName.create streamDomain) alias indentation line
 
                 | _ -> Error <| InvalidParticipant (line |> Line.error indentation)
 
@@ -143,21 +165,38 @@ module Parser =
                     domainTypes |> parseService serviceName componentDomain alias indentation line
 
                 // Stream
-                | Regex @"^\[(\w+){1}\]$" [ streamName ] ->
+                | Regex @"^\[(\w+Stream){1}\]$" [ streamName ] ->
                     domainTypes |> parseStream streamName componentDomain streamName indentation line
 
-                | Regex @"^\[(\w+){1}\] (\w+){1}$" [ streamName; streamDomain ] ->
+                | Regex @"^\[(\w+Stream){1}\] (\w+){1}$" [ streamName; streamDomain ] ->
                     if componentDomain |> DomainName.eq streamDomain
                     then domainTypes |> parseStream streamName componentDomain streamName indentation line
                     else Error <| Errors.wrongComponentParticipantDomain indentation line componentDomain
 
-                | Regex @"^\[(\w+){1}\] (\w+){1} as ""(.+){1}""$" [ streamName; streamDomain; alias ] ->
+                | Regex @"^\[(\w+Stream){1}\] (\w+){1} as ""(.+){1}""$" [ streamName; streamDomain; alias ] ->
                     if componentDomain |> DomainName.eq streamDomain
                     then domainTypes |> parseStream streamName componentDomain alias indentation line
                     else Error <| Errors.wrongComponentParticipantDomain indentation line componentDomain
 
-                | Regex @"^\[(\w+){1}\] as ""(.+){1}""$" [ streamName; alias ] ->
+                | Regex @"^\[(\w+Stream){1}\] as ""(.+){1}""$" [ streamName; alias ] ->
                     domainTypes |> parseStream streamName componentDomain alias indentation line
+
+                // Data Object
+                | Regex @"^\[(\w+){1}\]$" [ dataObjectName ] ->
+                    domainTypes |> parseDataObject dataObjectName componentDomain dataObjectName indentation line
+
+                | Regex @"^\[(\w+){1}\] (\w+){1}$" [ dataObjectName; dataObjectDomain ] ->
+                    if componentDomain |> DomainName.eq dataObjectDomain
+                    then domainTypes |> parseDataObject dataObjectName componentDomain dataObjectName indentation line
+                    else Error <| Errors.wrongComponentParticipantDomain indentation line componentDomain
+
+                | Regex @"^\[(\w+){1}\] (\w+){1} as ""(.+){1}""$" [ dataObjectName; dataObjectDomain; alias ] ->
+                    if componentDomain |> DomainName.eq dataObjectDomain
+                    then domainTypes |> parseDataObject dataObjectName componentDomain alias indentation line
+                    else Error <| Errors.wrongComponentParticipantDomain indentation line componentDomain
+
+                | Regex @"^\[(\w+){1}\] as ""(.+){1}""$" [ dataObjectName; alias ] ->
+                    domainTypes |> parseDataObject dataObjectName componentDomain alias indentation line
 
                 | _ -> Error <| InvalidParticipant (line |> Line.error indentation)
 
@@ -285,13 +324,23 @@ module Parser =
             | Regex @"^(\w+){1}\.(\w+){1}$" [ service; method ] -> Some (service, method)
             | _ -> None
 
+        let private (|IsPostData|_|) indentation: Line -> _ = function
+            | IndentedLine indentation { Tokens = [ data; "->"; dataObject ] } when dataObject.StartsWith "[" && dataObject.EndsWith "]" && not (dataObject.EndsWith "Stream]") ->
+                Some (data, dataObject.Trim('[').Trim(']'))
+            | _ -> None
+
+        let private (|IsReadData|_|) indentation: Line -> _ = function
+            | IndentedLine indentation { Tokens = [ dataObject; "->"; data ] } when dataObject.StartsWith "[" && dataObject.EndsWith "]" && not (dataObject.EndsWith "Stream]") ->
+                Some (dataObject.Trim('[').Trim(']'), data)
+            | _ -> None
+
         let private (|IsPostEvent|_|) indentation: Line -> _ = function
-            | IndentedLine indentation { Tokens = [ event; "->"; stream ] } when stream.StartsWith "[" && stream.EndsWith "]" ->
+            | IndentedLine indentation { Tokens = [ event; "->"; stream ] } when stream.StartsWith "[" && stream.EndsWith "Stream]" ->
                 Some (event, stream.Trim('[').Trim(']'))
             | _ -> None
 
         let private (|IsReadEvent|_|) indentation: Line -> _ = function
-            | IndentedLine indentation { Tokens = [ stream; "->"; event ] } when stream.StartsWith "[" && stream.EndsWith "]" ->
+            | IndentedLine indentation { Tokens = [ stream; "->"; event ] } when stream.StartsWith "[" && stream.EndsWith "Stream]" ->
                 Some (stream.Trim('[').Trim(']'), event)
             | _ -> None
 
@@ -623,16 +672,66 @@ module Parser =
                         return part, lines
                     }
 
+            | IsPostData indentation (dataName, dataObjectName) ->
+                match caller, dataObjectName with
+                | None, _ ->
+                    Error <| DataPostedWithoutACaller (line |> Line.error indentation)
+
+                | Some caller, IsParticipant participants (DataObject { DataObjectType = DomainType.DataObjectData expectedDataType } as dataObject) ->
+                    result {
+                        let! data =
+                            dataName
+                            |> Assert.data output indentation line expectedDataType
+
+                        let part = PostData {
+                            Caller = caller
+                            DataObject = dataObject
+                            Data = data
+                        }
+
+                        return part, lines
+                    }
+                | _ ->
+                    let participantIndentation =
+                        Indentation ((indentation |> Indentation.size) + " -> ".Length + dataName.Length)
+
+                    Error <| UndefinedParticipant (line |> Line.error participantIndentation)
+
+            | IsReadData indentation (dataObjectName, dataName) ->
+                match caller, dataObjectName with
+                | None, _ ->
+                    Error <| DataReadWithoutACaller (line |> Line.error indentation)
+
+                | Some caller, IsParticipant participants (DataObject { DataObjectType = DomainType.DataObjectData expectedDataType } as dataObject) ->
+                    result {
+                        let! data =
+                            dataName
+                            |> Assert.data output indentation line expectedDataType
+
+                        let part = ReadData {
+                            Caller = caller
+                            DataObject = dataObject
+                            Data = data
+                        }
+
+                        return part, lines
+                    }
+                | _ ->
+                    let participantIndentation =
+                        Indentation ((indentation |> Indentation.size) + " -> ".Length + dataName.Length)
+
+                    Error <| UndefinedParticipant (line |> Line.error participantIndentation)
+
             | IsPostEvent indentation (eventName, streamName) ->
                 match caller, streamName with
                 | None, _ ->
                     Error <| EventPostedWithoutACaller (line |> Line.error indentation)
 
-                | Some caller, IsParticipant participants (ActiveParticipant.Stream { StreamType = DomainType.StreamEvent (domain, eventTypeName) } as stream) ->
+                | Some caller, IsParticipant participants (ActiveParticipant.Stream { StreamType = DomainType.StreamEvent (domain, expectedEventTypeName) } as stream) ->
                     result {
                         let! event =
                             eventName
-                            |> Assert.event output indentation line domainTypes eventTypeName domain
+                            |> Assert.event output indentation line domainTypes expectedEventTypeName domain
 
                         let part = PostEvent {
                             Caller = caller

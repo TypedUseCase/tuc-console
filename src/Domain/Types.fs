@@ -246,6 +246,14 @@ module DomainType =
         | DomainType (Stream { Domain = streamDomain } as stream) when streamDomain = Some domain -> Some stream
         | _ -> None
 
+    let (|DataObjectData|_|) = function
+        | DomainType (SingleCaseUnion { ConstructorArgument = GenericType { Argument = Type (TypeName dataType) } }) -> Some dataType
+        | _ -> None
+
+    let (|DataObject|_|) domain = function
+        | DomainType (SingleCaseUnion { Domain = dataObjectDomain; ConstructorArgument = GenericType { Argument = Type _ } } as dataObject) when dataObjectDomain = Some domain -> Some dataObject
+        | _ -> None
+
     let (|Component|_|) domain = function
         | DomainType (Record { Fields = componentFields; Domain = recordDomain; Methods = Fields.Empty; Handlers = Fields.Empty }) when recordDomain = Some domain -> Some componentFields
         | _ -> None

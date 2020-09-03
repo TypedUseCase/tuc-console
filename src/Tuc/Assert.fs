@@ -70,7 +70,7 @@ module private Assert =
             cases
             |> List.tryFind (fst >> TypeName.value >> (=) eventName)
             |> Option.map snd
-            |> Result.ofOption (Errors.wrongEvent indentation line eventName (cases |> casesNames))
+            |> Result.ofOption (Errors.wrongEvent indentation line (cases |> casesNames))
 
         let debugChecking eventName =
             if isDebug then output.Message <| sprintf "\n<c:purple>Checking</c> <c:yellow>%s</c>" eventName
@@ -130,18 +130,25 @@ module private Assert =
 
         event.Path |> assertType [ eventType |> DomainType.name, eventType ] []
 
-    let event output indentation line domainTypes eventTypeName domain eventName = result {
+    let event (output: MF.ConsoleApplication.Output) indentation line domainTypes expectedEventTypeName domain eventName = result {
         let! event =
             eventName
             |> Event.ofString
             |> Result.mapError (Errors.wrongEventName indentation line)
 
-        let! eventType =
+        let eventType =
             match domainTypes with
-            | HasDomainType domain eventTypeName eventType -> Ok eventType
-            | _ -> Error <| UndefinedEventType (line |> Line.error indentation)
+            | HasDomainType domain expectedEventTypeName eventType -> eventType
+            | _ -> failwithf "[Assert] Undefined Event Type %A expected." expectedEventTypeName
 
         do! event |> assertIsOfEventType output indentation line domainTypes domain eventType
 
         return event
+    }
+
+    let data (output: MF.ConsoleApplication.Output) indentation line expectedDataTypeName dataName = result {
+        if expectedDataTypeName <> dataName then
+            return! Error <| Errors.wrongData indentation line dataName expectedDataTypeName
+
+        return Data dataName
     }

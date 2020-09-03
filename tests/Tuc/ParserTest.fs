@@ -115,6 +115,9 @@ module Parts =
 
             case "Handle event in stream" "handle-event-in-stream.tuc" (Ok "handle-event-in-stream.puml")
 
+            case "Read data from data object" "read-data.tuc" (Ok "read-data.puml")
+            case "Post data to data object" "post-data.tuc" (Ok "post-data.puml")
+
             case "Read event from stream" "read-event.tuc" (Ok "read-event.puml")
             case "Post event to stream" "post-event.tuc" (Ok "post-event.puml")
 
@@ -166,6 +169,8 @@ module ParseErrors =
             case "CalledUndefinedMethod" "CalledUndefinedMethod.tuc" (Error [ CalledUndefinedMethod (7, 4, "    Service.UndefinedMethod", "Service", ["DoSomeWork"]) ])
             case "CalledUndefinedHandler" "CalledUndefinedHandler.tuc" (Error [ CalledUndefinedHandler (7, 4, "    StreamListener.UndefinedHandler", "StreamListener", ["ReadEvent"]) ])
             case "MethodCalledWithoutACaller" "MethodCalledWithoutACaller.tuc" (Error [ MethodCalledWithoutACaller (5, 0, "Service.Method") ])
+            case "DataPostedWithoutACaller" "DataPostedWithoutACaller.tuc" (Error [ DataPostedWithoutACaller (5, 0, "Person -> [PersonDatabase]") ])
+            case "DataReadWithoutACaller" "DataReadWithoutACaller.tuc" (Error [ DataReadWithoutACaller (5, 0, "[PersonDatabase] -> Person") ])
             case "EventPostedWithoutACaller" "EventPostedWithoutACaller.tuc" (Error [ EventPostedWithoutACaller (5, 0, "InputEvent -> [InputStream]") ])
             case "EventReadWithoutACaller" "EventReadWithoutACaller.tuc" (Error [ EventReadWithoutACaller (5, 0, "[InputStream] -> InputEvent") ])
             case "MissingEventHandlerMethodCall" "MissingEventHandlerMethodCall.tuc" (Error [ MissingEventHandlerMethodCall (5, 0, "[InputStream]") ])
@@ -184,6 +189,14 @@ module ParseErrors =
             case "LoopMustHaveBody" "LoopMustHaveBody.tuc" (Error [ LoopMustHaveBody (5, 0, "loop always") ])
             case "NoteWithoutACaller" "NoteWithoutACaller.tuc" (Error [ NoteWithoutACaller (5, 0, "\"note without a caller\"") ])
             case "UnknownPart" "UnknownPart.tuc" (Error [ UnknownPart (5, 0, "basically whaterver here") ])
+
+            // others
+            case "WrongEventName - Post" "WrongEventName-post.tuc" (Error [ WrongEventName (7, 4, "    .InputEvent -> [InputStream]", "it has a wrong format (it must not start/end with . and not contains any spaces)") ])
+            case "WrongEventName - Read" "WrongEventName-read.tuc" (Error [ WrongEventName (7, 4, "    [InputStream] -> InputEvent.", "it has a wrong format (it must not start/end with . and not contains any spaces)") ])
+            case "WrongEvent - Post" "WrongEvent-post.tuc" (Error [ WrongEvent (7, 4, "    Wrong -> [InputStream]", ["InputEvent"]) ])
+            case "WrongEvent - Read" "WrongEvent-read.tuc" (Error [ WrongEvent (7, 4, "    [InputStream] -> Wrong", ["InputEvent"]) ])
+            case "WrongData - Post" "WrongData-post.tuc" (Error [ WrongData (7, 4, "    Wrong -> [PersonDatabase]", "Wrong", "Person") ])
+            case "WrongData - Read" "WrongData-read.tuc" (Error [ WrongData (7, 4, "    [PersonDatabase] -> Wrong", "Wrong", "Person") ])
         ]
 
 [<RequireQualifiedAccess>]
@@ -202,7 +215,6 @@ module Event =
                     10,
                     8,
                     "        InteractionEvents -> [InteractionStream]",
-                    "InteractionEvents",
                     ["InteractionEvent"]
                 )
             ])
@@ -212,7 +224,6 @@ module Event =
                     10,
                     24,
                     "        InteractionEvent.Confirmes -> [InteractionStream]",
-                    "Confirmes",
                     ["Confirmed"; "Rejected"; "Interaction"; "Other"]
                 )
             ])
@@ -222,7 +233,6 @@ module Event =
                     10,
                     48,
                     "        InteractionEvent.Interaction.Interaction.Interaction -> [InteractionStream]",
-                    "Interaction",
                     []
                 )
             ])
@@ -232,7 +242,6 @@ module Event =
                     10,
                     46,
                     "        InteractionEvent.Rejected.UserRejected.Boo -> [InteractionStream]",
-                    "Boo",
                     ["Foo"; "Bar"]
                 )
             ])

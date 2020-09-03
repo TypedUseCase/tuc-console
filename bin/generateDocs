@@ -6,6 +6,8 @@ docs=(
     "lifeline"
     "section"
     "service-method-call"
+    "post-data"
+    "read-data"
     "post-event"
     "read-event"
     "handle-event-in-stream"

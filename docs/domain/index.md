@@ -9,6 +9,16 @@ Domain
 
 It should only contain `Types` (_at least for now_).
 
+## Table of contents
+- [How does it work?](/tuc-console/domain/#how-does-it-work)
+- [Common Types](/tuc-console/domain/#common-types)
+    - [Initiator](/tuc-console/domain/#initiator)
+    - [Data Object](/tuc-console/domain/#data-object)
+    - [Stream](/tuc-console/domain/#stream)
+    - [Handler](/tuc-console/domain/#handler)
+- [Domain example](/tuc-console/domain/#domain-example)
+- [Share types between domains](/tuc-console/domain/#share-types-between-domains)
+
 ## How does it work?
 It uses a [Fsharp.Compiler.Service](https://github.com/fsharp/FSharp.Compiler.Service) under the hood.
 
@@ -46,6 +56,28 @@ type SomethingCreatedEvent = SomethingCreatedEvent of Event // this is correct
 
 ```fs
 type MyMainService = Initiator
+```
+
+### Data Object
+> Data object is defined as a list of Data.
+
+It allows you to [post data into the data object](/tuc-console/tuc/parts.html#post-data) and [read data from data object](/tuc-console/tuc/parts.html#read-data).
+
+```fs
+type DataObject<'Data> = DataObject of 'Data list
+```
+
+Data Objects are used as a type of your concrete data object.
+
+For example, when you have a database of Persons, it might be as following:
+```fs
+type Database<'Entity> = Database of 'Entity list
+
+type PersonDatabase = PersonDatabase of Database<Person>
+
+and Person = {
+    Name: string
+}
 ```
 
 ### Stream

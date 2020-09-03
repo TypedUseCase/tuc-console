@@ -1,0 +1,7 @@
+tuc parse error test
+participants
+    GenericService parts
+    [InputStream] parts
+
+GenericService
+    Wrong -> [InputStream]

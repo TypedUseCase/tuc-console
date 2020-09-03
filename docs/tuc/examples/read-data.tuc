@@ -1,0 +1,7 @@
+tuc Read Data
+participants
+    MainService My as "Main Service"
+    [InteractionDatabase] My
+
+MainService                                     // MainService is the caller
+    [InteractionDatabase] -> InteractionEntity  // InteractionEntity is read from the Database

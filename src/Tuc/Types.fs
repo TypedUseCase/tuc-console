@@ -13,6 +13,8 @@ type EventError =
     | Empty
     | WrongFormat
 
+type Data = Data of string
+
 type Event = {
     Original: string
     Path: string list
@@ -57,6 +59,7 @@ and ParticipantComponent = {
 
 and ActiveParticipant =
     | Service of ServiceParticipant
+    | DataObject of DataObjectParticipant
     | Stream of StreamParticipant
 
 and ServiceParticipant = {
@@ -64,6 +67,13 @@ and ServiceParticipant = {
     Context: string
     Alias: string
     ServiceType: DomainType
+}
+
+and DataObjectParticipant = {
+    Domain: DomainName
+    Context: string
+    Alias: string
+    DataObjectType: DomainType
 }
 
 and StreamParticipant = {
@@ -80,6 +90,8 @@ and TucPart =
     | Loop of Loop
     | Lifeline of Lifeline
     | ServiceMethodCall of ServiceMethodCall
+    | PostData of PostData
+    | ReadData of ReadData
     | PostEvent of PostEvent
     | ReadEvent of ReadEvent
     | HandleEventInStream of HandleEventInStream
@@ -118,6 +130,18 @@ and ServiceMethodCall = {
     Service: ActiveParticipant
     Method: MethodDefinition
     Execution: TucPart list
+}
+
+and PostData = {
+    Caller: ActiveParticipant
+    DataObject: ActiveParticipant
+    Data: Data
+}
+
+and ReadData = {
+    Caller: ActiveParticipant
+    DataObject: ActiveParticipant
+    Data: Data
 }
 
 and PostEvent = {
@@ -167,4 +191,5 @@ module Participant =
 module ActiveParticipant =
     let name = function
         | Service { ServiceType = t }
+        | DataObject { DataObjectType = t }
         | Stream { StreamType = t } -> t |> DomainType.nameValue

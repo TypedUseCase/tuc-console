@@ -1,0 +1,8 @@
+tuc test
+participants
+    GenericService parts
+    [IdCache] parts
+
+GenericService
+    // post Id
+    Id -> [IdCache]

@@ -1,0 +1,13 @@
+@startuml Read data from data object
+
+== test ==
+
+actor "GenericService" as GenericService <<Parts>>
+database "IdCache" as IdCache <<Parts>>
+
+activate GenericService
+IdCache ->> GenericService: Id
+
+deactivate GenericService
+
+@enduml

@@ -35,3 +35,9 @@ and WorkResult =
 type StreamComponent = {
     StreamListener: StreamListener
 }
+
+type Person = {
+    Name: string
+}
+
+type PersonDatabase = PersonDatabase of Database<Person>

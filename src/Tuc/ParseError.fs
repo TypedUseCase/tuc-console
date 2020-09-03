@@ -27,6 +27,8 @@ type ParseError =
     | CalledUndefinedMethod of lineNumber: int * position: int * line: string * service: string * definedMethods: string list
     | CalledUndefinedHandler of lineNumber: int * position: int * line: string * service: string * definedHandlerNames: string list
     | MethodCalledWithoutACaller of lineNumber: int * position: int * line: string
+    | DataPostedWithoutACaller of lineNumber: int * position: int * line: string
+    | DataReadWithoutACaller of lineNumber: int * position: int * line: string
     | EventPostedWithoutACaller of lineNumber: int * position: int * line: string
     | EventReadWithoutACaller of lineNumber: int * position: int * line: string
     | MissingEventHandlerMethodCall of lineNumber: int * position: int * line: string
@@ -48,8 +50,8 @@ type ParseError =
 
     // Others
     | WrongEventName of lineNumber: int * position: int * line: string * message: string
-    | UndefinedEventType of lineNumber: int * position: int * line: string
-    | WrongEvent of lineNumber: int * position: int * line: string * eventName: string * definedCases: string list
+    | WrongEvent of lineNumber: int * position: int * line: string * definedCases: string list
+    | WrongData of lineNumber: int * position: int * line: string * dataName: string * definedData: string
 
 [<RequireQualifiedAccess>]
 module ParseError =
@@ -166,6 +168,16 @@ module ParseError =
 
         | MethodCalledWithoutACaller (lineNumber, position, line) ->
             "Method can be called only in the lifeline of a caller."
+            |> red
+            |> formatLineWithError lineNumber position line
+
+        | DataPostedWithoutACaller (lineNumber, position, line) ->
+            "Data can be posted only in the lifeline of a caller."
+            |> red
+            |> formatLineWithError lineNumber position line
+
+        | DataReadWithoutACaller (lineNumber, position, line) ->
+            "Data can be read only in the lifeline of a caller."
             |> red
             |> formatLineWithError lineNumber position line
 
@@ -304,27 +316,27 @@ module ParseError =
             |> red
             |> formatLineWithError lineNumber position line
 
-        | UndefinedEventType (lineNumber, position, line) ->
-            "There is an undefined event."
-            |> red
-            |> formatLineWithError lineNumber position line
-
-        | WrongEvent (lineNumber, position, line, eventName, cases) ->
+        | WrongEvent (lineNumber, position, line, cases) ->
             let error =
-                eventName
-                |> sprintf "There is no such a case for an event %s."
+                "There is no such a case for an event."
                 |> red
                 |> formatLineWithError lineNumber position line
 
             let defineCases =
                 match cases with
-                | [] -> sprintf "Event %s does not have defined any more cases." eventName
+                | [] -> "Event does not have defined any more cases."
                 | cases ->
-                    sprintf "Event %s has defined cases:%s"
-                        eventName
+                    sprintf "Event has defined cases:%s"
                         (cases |> List.formatLines "  - " id)
 
             sprintf "%s\n\n<c:red>%s</c>" error defineCases
+
+        | WrongData (lineNumber, position, line, dataName, definedData) ->
+            sprintf "Wrong data type of the Data Object. Data Object is of type %A but %A was given."
+                definedData
+                dataName
+            |> red
+            |> formatLineWithError lineNumber position line
 
     let errorName = function
         // Tuc file
@@ -351,6 +363,8 @@ module ParseError =
         | CalledUndefinedMethod _ -> "Called Undefined Method"
         | CalledUndefinedHandler _ -> "Called Undefined Handler"
         | MethodCalledWithoutACaller _ -> "Method Called Without A Caller"
+        | DataPostedWithoutACaller _ -> "Data Posted Without A Caller"
+        | DataReadWithoutACaller _ -> "Data Read Without A Caller"
         | EventPostedWithoutACaller _ -> "Event Posted Without A Caller"
         | EventReadWithoutACaller _ -> "Event Read Without A Caller"
         | MissingEventHandlerMethodCall _ -> "Missing Event Handler Method Call"
@@ -372,5 +386,5 @@ module ParseError =
 
         // Others
         | WrongEventName _ -> "Wrong Event Name"
-        | UndefinedEventType _ -> "Undefined Event Type"
         | WrongEvent _ -> "Wrong Event"
+        | WrongData _ -> "Wrong Data"
