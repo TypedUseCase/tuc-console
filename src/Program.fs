@@ -56,6 +56,7 @@ let main argv =
                 Option.optional "image" (Some "i") "Path to an output image file for generated PlantUML. (It must be a .png)" None
                 Option.optional "tuc" (Some "t") "Tuc name, which should only be generated (from multi-tuc file)." None
                 Option.noValue "watch" (Some "w") "Whether to watch a tuc file, to change an output file on the fly."
+                Option.optional "style" (Some "s") "Path to a file containing a styles for resulting .puml (in .puml notation)." None
             ]
             Initialize = None
             Interact = None

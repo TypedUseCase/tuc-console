@@ -298,24 +298,35 @@ module Generate =
             tucs
             |> generate output activatedMainInitiators (acc @ parts)
 
-    let private createPuml pumlName = function
+    let private createPuml style pumlName = function
         | [] -> Error NoTucProvided
         | parts ->
-            parts
-            |> PumlPart.combine
-            |> PumlPart.value
-            |> sprintf "@startuml %s\n\n%s\n\n@enduml\n" pumlName
+            [
+                yield sprintf "@startuml %s" pumlName
+                yield ""
+
+                match style with
+                | Some style -> yield style
+                | _ -> ()
+
+                yield parts |> PumlPart.combine |> PumlPart.value
+
+                yield ""
+                yield "@enduml"
+                yield ""
+            ]
+            |> String.concat "\n"
             |> Puml
             |> Ok
 
-    let puml (output: MF.ConsoleApplication.Output) pumlName (tucs: Tuc list) =
+    let puml (output: MF.ConsoleApplication.Output) style pumlName (tucs: Tuc list) =
         let activatedMainInitiators, parts =
             tucs
             |> generate output Map.empty []
 
         parts
         @ (activatedMainInitiators |> Map.toList |> List.map (snd >> Participant.deactivate))
-        |> createPuml pumlName
+        |> createPuml style pumlName
 
     open PlantUml.Net
 

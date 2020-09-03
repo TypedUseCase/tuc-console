@@ -94,6 +94,7 @@ module Tuc =
     let generate: ExecuteCommand = fun (input, output) ->
         let domain = (input, output) |> Input.getDomain
         let tucFile = (input, output) |> Input.getTuc
+        let style = (input, output) |> Input.getStyle
 
         let baseIndentation =
             if output.IsVerbose() then "[yyyy-mm-dd HH:MM:SS]    ".Length else 0
@@ -161,7 +162,7 @@ module Tuc =
 
                 let! puml =
                     tucs
-                    |> Generate.puml output pumlName
+                    |> Generate.puml output style pumlName
                     |> Result.mapError PumlError.format
                     |> Validation.ofResult
 
