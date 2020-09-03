@@ -2,6 +2,7 @@
 
 <!-- There is always Unreleased section on the top. Subsections (Add, Changed, Fix, Removed) should be Add as needed. -->
 ## Unreleased
+- Fix `style` option of `tuc:generate` command
 
 ## 0.3.0 - 2020-09-03
 - Add `DomainName` to the domain types

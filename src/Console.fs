@@ -80,8 +80,10 @@ module Console =
             |> tee (FileOrDir.debug output "Tuc")
 
         let getStyle ((input, output): IO) =
-            match input |> Input.getOptionValueAsString "style" with
-            | Some styleFile ->
+            match input with
+            | Input.HasOption "style" styleFile ->
+                let styleFile = styleFile |> OptionValue.value "style"
+
                 if styleFile |> File.Exists |> not
                     then failwithf "Style file does not exist at path %s" styleFile
 
