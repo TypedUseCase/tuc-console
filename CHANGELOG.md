@@ -2,6 +2,8 @@
 
 <!-- There is always Unreleased section on the top. Subsections (Add, Changed, Fix, Removed) should be Add as needed. -->
 ## Unreleased
+
+## 0.3.0 - 2020-09-03
 - Add `DomainName` to the domain types
     - `Record`
     - `SingleCaseUnion`
