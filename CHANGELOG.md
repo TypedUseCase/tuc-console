@@ -14,6 +14,7 @@
 - Fix Read/Post event by FQ name for events with only one case
 - Show only last event in path in puml result.
 - Allow to style puml
+- Remove internal cache in Domain Resolver
 
 ## 0.2.0 - 2020-09-01
 - Parse left and right notes in tuc
