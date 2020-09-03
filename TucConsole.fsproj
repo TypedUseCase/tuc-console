@@ -18,8 +18,6 @@
     <!-- Internal libraries -->
     <Compile Include="src/ErrorHandling/Result.fs" />
     <Compile Include="src/ErrorHandling/Option.fs" />
-
-    <Compile Include="src/Cache.fs" />
   </ItemGroup>
 
   <ItemGroup>

@@ -1,34 +1,24 @@
 namespace MF.Domain
 
 open FSharp.Compiler.SourceCodeServices
-open FSharp.Compiler.Text
 open MF.TucConsole
 
 [<RequireQualifiedAccess>]
 module Resolver =
-    open MF.TucConsole.ConcurrentCache
     open MF.TucConsole.Option.Operators
     open TypeResolvers
 
-    let private resolvedTypes: Cache<DomainName option * TypeName, ResolvedType> = Cache.empty()
+    type private ResolvedTypes = Map<DomainName option * TypeName, ResolvedType>
 
     type private Collect<'In, 'Out> = MF.ConsoleApplication.Output -> 'In list -> 'Out
     type private CollectMany<'In, 'Out> = MF.ConsoleApplication.Output -> 'In list -> 'Out list
+    type private CollectResolvedTypes = MF.ConsoleApplication.Output -> FSharpEntity option -> ResolvedTypes -> FSharpEntity list -> ResolvedTypes
 
-    let private cacheResolvedTypes =
-        List.iter (fun parsedType ->
-            resolvedTypes
-            |> Cache.set
-                ((parsedType |> ResolvedType.domain, parsedType |> ResolvedType.name) |> Key)
-                parsedType
-        )
-
-    /// Cast IList or other Enumerable to list and pass to a function, which parse types and then cache resolved result
+    /// Cast IList or other Enumerable to list and pass to a function
     let inline private (|>>) input f =
         input
         |> Seq.toList
         |> f
-        |> tee cacheResolvedTypes
 
     let rec private resolveTypeDefinition: FSharpType -> TypeDefinition = function
         | IsScalarType scalar -> Type (TypeName scalar.TypeDefinition.DisplayName)
@@ -201,26 +191,40 @@ module Resolver =
                 }
             ]
 
-    let rec private collectEntities (parent: FSharpEntity option): CollectMany<FSharpEntity, ResolvedType> = fun output entities ->
+    let private addResolvedTypes (resolvedTypes: ResolvedTypes) newResolvedTypes: ResolvedTypes =
+        newResolvedTypes
+        |> List.fold (fun resolvedTypes parsedType ->
+            resolvedTypes
+            |> Map.add
+                ((parsedType |> ResolvedType.domain, parsedType |> ResolvedType.name))
+                parsedType
+        ) resolvedTypes
+
+    let rec private collectEntities: CollectResolvedTypes = fun output parent acc entities ->
         if output.IsVerbose() then
             let parent = parent |> Option.map (fun p -> p.DisplayName) |> Option.defaultValue ""
             entities |> Seq.length |> sprintf "%s.Entities [%d]" parent |> output.Section
 
-        entities
-        |> List.collect (function
-            | globalEntity when globalEntity.AccessPath = "global" ->
-                globalEntity.NestedEntities
-                |>> collectEntities (Some globalEntity) output
+        let collectEntities = collectEntities output
 
-            | record when record.IsFSharpRecord ->
-                let domainName = record.AccessPath |> DomainName.parse
-                let typeName = TypeName record.DisplayName
+        match entities with
+        | [] -> acc
 
-                if record.NestedEntities |> Seq.isEmpty |> not then
-                    failwithf "[ResolveError][Entity] Record nested entities: %A" record.NestedEntities
+        | globalEntity :: entities when globalEntity.AccessPath = "global" ->
+            globalEntity.NestedEntities
+            |>> (@) entities
+            |> collectEntities (Some globalEntity) acc
 
-                let fields = record.FSharpFields |> Seq.toList
+        | record :: entities when record.IsFSharpRecord ->
+            let domainName = record.AccessPath |> DomainName.parse
+            let typeName = TypeName record.DisplayName
 
+            if record.NestedEntities |> Seq.isEmpty |> not then
+                failwithf "[ResolveError][Entity] Record nested entities: %A" record.NestedEntities
+
+            let fields = record.FSharpFields |> Seq.toList
+
+            let acc =
                 [
                     Record {
                         Domain = domainName
@@ -239,52 +243,46 @@ module Resolver =
                             |> Map.ofList
                     }
                 ]
+                |> addResolvedTypes acc
 
-            | unionCase when unionCase.IsFSharpUnion ->
-                let domainName = unionCase.AccessPath |> DomainName.parse
-                let typeName = TypeName unionCase.DisplayName
+            entities |> collectEntities parent acc
 
-                if unionCase.NestedEntities |> Seq.isEmpty |> not then
-                    failwithf "[ResolveError][Entity] UnionCase nested entities: %A" unionCase.NestedEntities
+        | unionCase :: entities when unionCase.IsFSharpUnion ->
+            let domainName = unionCase.AccessPath |> DomainName.parse
+            let typeName = TypeName unionCase.DisplayName
 
+            if unionCase.NestedEntities |> Seq.isEmpty |> not then
+                failwithf "[ResolveError][Entity] UnionCase nested entities: %A" unionCase.NestedEntities
+
+            let acc =
                 unionCase.UnionCases
                 |>> collectUnionCases domainName typeName output
+                |> addResolvedTypes acc
 
-            | e ->
-                e.DisplayName
-                |> sprintf " <c:yellow>/?\\ type %A has nested entities, but is not a Record or UnionCase</c>"
-                |> output.Message
+            entities |> collectEntities parent acc
 
-                if e.MembersFunctionsAndValues |> Seq.isEmpty |> not then
-                    failwithf "[ResolveError][Entity] Unexpected Entity members, functions and values: %A" e.MembersFunctionsAndValues
+        | e :: entities ->
+            e.DisplayName
+            |> sprintf " <c:yellow>/?\\ type %A has nested entities, but is not a Record or UnionCase</c>"
+            |> output.Message
 
-                if e.FSharpFields |> Seq.isEmpty |> not then
-                    failwithf "[ResolveError][Entity] Unexpected Entity FSharpFields: %A" e.FSharpFields
+            if e.MembersFunctionsAndValues |> Seq.isEmpty |> not then
+                failwithf "[ResolveError][Entity] Unexpected Entity members, functions and values: %A" e.MembersFunctionsAndValues
 
-                if e.UnionCases |> Seq.isEmpty |> not then
-                    failwithf "[ResolveError][Entity] Unexpected Entity UnionCases: %A" e.UnionCases
+            if e.FSharpFields |> Seq.isEmpty |> not then
+                failwithf "[ResolveError][Entity] Unexpected Entity FSharpFields: %A" e.FSharpFields
 
-                e.NestedEntities
-                |>> collectEntities (Some e) output
-        )
+            if e.UnionCases |> Seq.isEmpty |> not then
+                failwithf "[ResolveError][Entity] Unexpected Entity UnionCases: %A" e.UnionCases
 
-    let resolve output (parsedDomains: ParsedDomain list): Result<ResolvedType list, _> =
-        resolvedTypes |> Cache.clear
+            e.NestedEntities
+            |>> (@) entities
+            |> collectEntities (Some e) acc
 
-        // resolve all scalar types in advance
-        ScalarType.all |>> List.map ScalarType |> ignore
-
-        parsedDomains
-        |> List.iter (fun (ParsedDomain parsedResult) ->
-            parsedResult.AssemblySignature.Entities
-            |>> collectEntities None output
-            |> ignore
-        )
-
+    let private debugResolvedTypes (output: MF.ConsoleApplication.Output) resolvedTypes =
         if output.IsVerbose() then
             resolvedTypes
-            |> Cache.items
-            |> List.map (fun (Key (domain, typeName), t) ->
+            |> List.map (fun ((domain, typeName), t) ->
                 [
                     typeName |> TypeName.value
                     domain |> Option.map DomainName.value |> Option.defaultValue "-"
@@ -299,9 +297,29 @@ module Resolver =
                     :: resolvedTypes
                     |> output.Options (sprintf "Resolved (or scalar) types [%d]:" (resolvedTypes |> List.length))
 
+    let resolve output (parsedDomains: ParsedDomain list): Result<ResolvedType list, _> =
+        let emptyResolvedTypes: ResolvedTypes = Map.empty
+
+        // resolve all scalar types in advance
+        let resolvedTypesWithScalars =
+            ScalarType.all
+            |> List.map ScalarType
+            |> addResolvedTypes emptyResolvedTypes
+
+        // resolve all entites of the parsed domains
+        let allResolvedTypes =
+            parsedDomains
+            |> List.collect (fun (ParsedDomain parsedResult) ->
+                parsedResult.AssemblySignature.Entities
+                |>> id
+            )
+            |> collectEntities output None resolvedTypesWithScalars
+
         let resolvedTypes =
-            resolvedTypes
-            |> Cache.values
+            allResolvedTypes
+            |> Map.toList
+            |> tee (debugResolvedTypes output)
+            |> List.map snd
 
         match resolvedTypes |> List.filter (function Unresolved _ -> true | _ -> false) with
         | [] ->
