@@ -3,8 +3,17 @@ TUC console
 
 [![Build Status](https://dev.azure.com/MortalFlesh/TucConsole/_apis/build/status/MortalFlesh.tuc-console?branchName=master)](https://dev.azure.com/MortalFlesh/TucConsole/_build/latest?definitionId=11&branchName=master)
 [![Build Status](https://api.travis-ci.com/MortalFlesh/tuc-console.svg?branch=master)](https://travis-ci.com/MortalFlesh/tuc-console)
+[![Version](https://vsmarketplacebadge.apphb.com/version/MortalFlesh.tuc.svg)](https://marketplace.visualstudio.com/items?itemName=MortalFlesh.tuc)
+[![tuc-docs](https://img.shields.io/badge/documentation-tuc-orange.svg)](https://mortalflesh.github.io/tuc-console/)
 
-> Console application for .tuc commands.
+> Console application for managing `.tuc` files.
+
+## TUC
+> **T**yped **U**se-**C**ase
+
+![tuc-logo](https://raw.githubusercontent.com/MortalFlesh/tuc-console/master/docs/assets/tuc-logo.png)
+
+It is basically a use case definition, for which this console application can generate [PlantUML](https://plantuml.com/) diagram, where all services are domain specific type safe.
 
 ## Motivation
 We have a DDD based micro service architecture, where most of the services have an asynchronous communication between them (mostly through event streams) with a domain specific ubiquitous language.
@@ -12,11 +21,6 @@ We have a DDD based micro service architecture, where most of the services have 
 And we need to document the use-cases done by those services.
 
 For now, we use a [PlantUML](https://plantuml.com/) directly, but it is **a lot** of work, so we decided to create a *language* to help us with that - **TUC**.
-
-## TUC
-> **T**yped **U**se-**C**ase
-
-It is basically a use case definition, for which this console application can generate [PlantUML](https://plantuml.com/) diagram, where all services are domain specific type safe.
 
 ## Example
 
