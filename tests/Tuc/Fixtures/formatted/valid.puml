@@ -2,11 +2,11 @@
 
 == Formatted ==
 
-actor "**Generic** //Service//" as GenericService <<Tests>>
+actor "**Generic** //Service// [[https://www.some.link]]" as GenericService <<Tests>>
 
 activate GenericService
 group Note
-    note over GenericService: //italics// and **bold** together in _one_ note
+    note over GenericService: //italics// and **bold** together in _one_ note [[https://www.some.link]]
     note over GenericService
     This is **bold**
     This is //italics//
@@ -16,6 +16,7 @@ group Note
     This is ~~waved~~
     This is <back:cadetblue><size:18>formatted</size></back>
     <u:red>This</u> is <color #118888>displayed</color> **<color purple>on a </color> <s:red>Main</strike> Service**.
+    [[https://www.some.link {this is link}]]
     end note
 end
 group Left note
@@ -29,6 +30,7 @@ group Left note
     This is ~~waved~~
     This is <back:cadetblue><size:18>formatted</size></back>
     <u:red>This</u> is <color #118888>displayed</color> **<color purple>on a </color> <s:red>Main</strike> Service**.
+    [[https://www.some.link {this is link}]]
     end note
 end
 group Right note
@@ -42,6 +44,7 @@ group Right note
     This is ~~waved~~
     This is <back:cadetblue><size:18>formatted</size></back>
     <u:red>This</u> is <color #118888>displayed</color> **<color purple>on a </color> <s:red>Main</strike> Service**.
+    [[https://www.some.link {this is link}]]
     end note
 end
 group Do
