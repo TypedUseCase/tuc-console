@@ -262,18 +262,19 @@ module Resolver =
             entities |> collectEntities parent acc
 
         | e :: entities ->
-            e.DisplayName
-            |> sprintf " <c:yellow>/?\\ type %A has nested entities, but is not a Record or UnionCase</c>"
-            |> output.Message
+            if output.IsVerbose() then
+                e.DisplayName
+                |> sprintf " <c:yellow>/?\\ type %A has nested entities, but is not a Record or UnionCase</c>"
+                |> output.Message
 
-            if e.MembersFunctionsAndValues |> Seq.isEmpty |> not then
-                failwithf "[ResolveError][Entity] Unexpected Entity members, functions and values: %A" e.MembersFunctionsAndValues
+                if e.MembersFunctionsAndValues |> Seq.isEmpty |> not then
+                    output.Message <| sprintf "[ResolveWarning][Entity] Unexpected Entity members, functions and values: %A" e.MembersFunctionsAndValues
 
-            if e.FSharpFields |> Seq.isEmpty |> not then
-                failwithf "[ResolveError][Entity] Unexpected Entity FSharpFields: %A" e.FSharpFields
+                if e.FSharpFields |> Seq.isEmpty |> not then
+                    output.Message <| sprintf "[ResolveWarning][Entity] Unexpected Entity FSharpFields: %A" e.FSharpFields
 
-            if e.UnionCases |> Seq.isEmpty |> not then
-                failwithf "[ResolveError][Entity] Unexpected Entity UnionCases: %A" e.UnionCases
+                if e.UnionCases |> Seq.isEmpty |> not then
+                    output.Message <| sprintf "[ResolveWarning][Entity] Unexpected Entity UnionCases: %A" e.UnionCases
 
             e.NestedEntities
             |>> (@) entities

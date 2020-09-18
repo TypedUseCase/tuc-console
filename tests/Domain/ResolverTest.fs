@@ -255,6 +255,8 @@ module Domain =
                 SingleCaseUnion { Domain = None; Name = TypeName "Input"; ConstructorName = "Input"; ConstructorArgument = string }
                 SingleCaseUnion { Domain = None; Name = TypeName "Output"; ConstructorName = "Output"; ConstructorArgument = string }
             ])
+
+            case "With modules and functions" "with-modules-and-functions.fsx" (Ok recordTypes)
         ]
 
     let test output { Domain = domain; Expected = expected; Description = description } =

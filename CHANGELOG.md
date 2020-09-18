@@ -2,6 +2,7 @@
 
 <!-- There is always Unreleased section on the top. Subsections (Add, Changed, Fix, Removed) should be Add as needed. -->
 ## Unreleased
+- Allow Modules, Functions, etc in Domain files.
 
 ## 1.0.0 - 2020-09-03
 - Fix `style` option of `tuc:generate` command
