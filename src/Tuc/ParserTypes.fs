@@ -44,9 +44,27 @@ type private RawLine = {
 
 [<RequireQualifiedAccess>]
 module private RawLine =
-    let parse index line =
+    let parse index (line: string) =
         let content, comment =
             match line with
+            | lineWithLink when lineWithLink.Contains "://" ->
+                // todo<later>  - it will have a problem with in-word comment, but it would have to be on the same line as a link, so it is a minor problem (probably)
+                //              - ... https://www.some.link and//comment is in not at the start of the "word" after splitting by a space
+
+                let rec parse (contentParts, comment) = function
+                    | [] ->
+                        contentParts |> List.rev |> String.concat " ", comment
+
+                    | (commentStart: string) :: commentParts when commentStart.StartsWith "//" ->
+                        [] |> parse (contentParts, Some (commentStart :: commentParts |> String.concat " "))
+
+                    | contentPart :: parts ->
+                        parts |> parse (contentPart :: contentParts, comment)
+
+                lineWithLink.Split " "
+                |> Seq.toList
+                |> parse ([], None)
+
             | Regex @"^(.*?)?(\/\/.*){1}$" [ content; comment ] -> content, Some comment
             | content -> content, None
 
