@@ -357,12 +357,61 @@ module Generate =
 
     open PlantUml.Net
 
-    let image (Puml puml) = asyncResult {
+    type ImageFormat =
+        | Png
+        | Svg
+        | Eps
+        | Pdf
+        | Vdx
+        | Xmi
+        | Scxml
+        | Html
+        | Ascii
+        | AsciiUnicode
+        | LaTeX
+
+    [<RequireQualifiedAccess>]
+    module ImageFormat =
+        let formats =
+            [ "Png"; "Svg"; "Eps"; "Pdf"; "Vdx"; "Xmi"; "Scxml"; "Html"; "Ascii"; "AsciiUnicode"; "LaTeX" ]
+
+        let parseExtension format =
+            match format |> String.trimStart '.' |> String.toLower |> String.replaceAll ["-"; "_"] "" with
+            | "png" -> Png
+            | "svg" -> Svg
+            | "eps" -> Eps
+            | "pdf" -> Pdf
+            | "vdx" -> Vdx
+            | "xmi" -> Xmi
+            | "scxml" -> Scxml
+            | "html" -> Html
+            | "ascii" -> Ascii
+            | "asciiunicode" -> AsciiUnicode
+            | "latex" -> LaTeX
+            | _ ->
+                failwithf "Unknown image format %A. Available formats are:\n  - %s"
+                    format
+                    (formats |> String.concat "\n  - ")
+
+        let outputFormat = function
+            | Png -> OutputFormat.Png
+            | Svg -> OutputFormat.Svg
+            | Eps -> OutputFormat.Eps
+            | Pdf -> OutputFormat.Pdf
+            | Vdx -> OutputFormat.Vdx
+            | Xmi -> OutputFormat.Xmi
+            | Scxml -> OutputFormat.Scxml
+            | Html -> OutputFormat.Html
+            | Ascii -> OutputFormat.Ascii
+            | AsciiUnicode -> OutputFormat.Ascii_Unicode
+            | LaTeX -> OutputFormat.LaTeX
+
+    let image imageFormat (Puml puml) = asyncResult {
         let factory = RendererFactory()
         let renderer = factory.CreateRenderer(PlantUmlSettings())
 
         let! image =
-            renderer.RenderAsync(puml, OutputFormat.Png)
+            renderer.RenderAsync(puml, imageFormat |> ImageFormat.outputFormat)
             |> AsyncResult.ofTaskCatch (fun e -> e.Message)
 
         return PumlImage image

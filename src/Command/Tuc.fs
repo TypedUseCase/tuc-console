@@ -1,5 +1,6 @@
 namespace MF.TucConsole.Command
 
+open System
 open MF.ConsoleApplication
 open MF.TucConsole
 open MF.TucConsole.Console
@@ -116,16 +117,17 @@ module Tuc =
         let outputImage =
             match input with
             | Input.OptionValue "image" image ->
-                if image.EndsWith ".png"
-                    then Some image
-                    else failwithf "Output image file must be a .png file."
+                let extension = image |> IO.Path.GetExtension
+                let imageFormat = extension |> Generate.ImageFormat.parseExtension
+
+                Some (image, imageFormat)
             | _ -> None
 
         output.Table [ "Tuc"; "Output"; "Image" ] [
             [
                 specificTuc |> Option.defaultValue "*"
                 outputFile |> Option.defaultValue "stdout"
-                outputImage |> Option.defaultValue "-"
+                outputImage |> Option.map fst |> Option.defaultValue "-"
             ]
         ]
 
@@ -158,7 +160,7 @@ module Tuc =
                     | _ -> Ok tucs
 
                 if output.IsVerbose() then output.Section "Generating Puml ..."
-                let pumlName = tucFile |> System.IO.Path.GetFileNameWithoutExtension
+                let pumlName = tucFile |> IO.Path.GetFileNameWithoutExtension
 
                 let! puml =
                     tucs
@@ -168,14 +170,14 @@ module Tuc =
 
                 match outputFile with
                 | Some outputFile ->
-                    System.IO.File.WriteAllText (outputFile, puml |> Puml.value)
+                    IO.File.WriteAllText (outputFile, puml |> Puml.value)
                 | _ ->
                     output.Message <| sprintf "\n<c:gray>%s</c>\n" ("-" |> String.replicate 100)
                     puml|> Puml.value |> output.Message
                     output.Message <| sprintf "<c:gray>%s</c>\n" ("-" |> String.replicate 100)
 
                 outputImage
-                |> Option.iter (fun imagePath ->
+                |> Option.iter (fun (imagePath, outputFormat) ->
                     let run =
                         match generate with
                         | GeneratePuml.InWatch -> Async.Start
@@ -183,12 +185,12 @@ module Tuc =
 
                     async {
                         output.Message "<c:gray>[Image]</c> Generating ..."
-                        let! image = puml |> Generate.image
+                        let! image = puml |> Generate.image outputFormat
 
                         return
                             match image with
                             | Ok (PumlImage image) ->
-                                System.IO.File.WriteAllBytes(imagePath, image);
+                                IO.File.WriteAllBytes(imagePath, image);
                                 output.Message "<c:gray>[Image]</c> Created."
                             | Error error ->
                                 sprintf "[Image] Not created due error: %s" error
