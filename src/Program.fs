@@ -49,7 +49,7 @@ let main argv =
             Help = None
             Arguments = [
                 Argument.domain
-                Argument.tucFile
+                Argument.tucFileOrDir
             ]
             Options = [
                 let imageOutputFormats =
