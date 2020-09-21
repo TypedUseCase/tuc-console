@@ -4,6 +4,7 @@
 ## Unreleased
 - Allow Modules, Functions, etc in Domain files.
 - Do not track `://` in links as `//` comments
+- Allow all supported image output formats
 
 ## 1.0.0 - 2020-09-03
 - Fix `style` option of `tuc:generate` command
