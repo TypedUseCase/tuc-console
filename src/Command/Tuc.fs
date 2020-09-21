@@ -94,20 +94,22 @@ module Tuc =
 
     let generate: ExecuteCommand = fun (input, output) ->
         let domain = (input, output) |> Input.getDomain
-        let tucFile = (input, output) |> Input.getTuc
+        let tucFileOrDir = (input, output) |> Input.getTucFileOrDir
         let style = (input, output) |> Input.getStyle
 
         let baseIndentation =
             if output.IsVerbose() then "[yyyy-mm-dd HH:MM:SS]    ".Length else 0
 
         let specificTuc =
-            match input with
-            | Input.OptionValue "tuc" tuc -> Some tuc
+            match tucFileOrDir, input with
+            | Dir _, Input.OptionValue "tuc" _ -> failwithf "Specific tuc can be generated only for a single file, not a directory."
+            | File _, Input.OptionValue "tuc" tuc -> Some tuc
             | _ -> None
 
         let outputFile =
-            match input with
-            | Input.OptionValue "output" output ->
+            match tucFileOrDir, input with
+            | Dir _, Input.OptionValue "output" _ -> failwithf "Output can be explicitelly defined only for a single file, not a directory."
+            | File _, Input.OptionValue "output" output ->
                 if output.EndsWith ".puml"
                     then Some output
                     else failwithf "Output file must be a .puml file."
@@ -115,109 +117,145 @@ module Tuc =
                 None
 
         let outputImage =
-            match input with
-            | Input.OptionValue "image" image ->
-                let extension = image |> IO.Path.GetExtension
-                let imageFormat = extension |> Generate.ImageFormat.parseExtension
+            match tucFileOrDir, input with
+            | Dir _, Input.OptionValue "output" _ -> failwithf "Image can be explicitelly defined only for a single file, not a directory."
+            | File _, Input.OptionValue "image" image ->
+                let imageFormat =
+                    image
+                    |> IO.Path.GetExtension
+                    |> Generate.ImageFormat.parseExtension
 
                 Some (image, imageFormat)
             | _ -> None
 
-        output.Table [ "Tuc"; "Output"; "Image" ] [
-            [
-                specificTuc |> Option.defaultValue "*"
-                outputFile |> Option.defaultValue "stdout"
-                outputImage |> Option.map fst |> Option.defaultValue "-"
+        match tucFileOrDir with
+        | File _ ->
+            output.Table [ "Tuc"; "Output"; "Image" ] [
+                [
+                    specificTuc |> Option.defaultValue "*"
+                    outputFile |> Option.defaultValue "stdout"
+                    outputImage |> Option.map fst |> Option.defaultValue "-"
+                ]
             ]
-        ]
+        | _ -> ()
+
+        let generatePumlForTuc generate domainTypes specificTuc outputFile outputImage tucFile = result {
+            let! tucs =
+                tucFile
+                |> Parser.parse output domainTypes
+                |> Result.mapError (List.map (ParseError.format baseIndentation))
+
+            let! tucs =
+                match specificTuc with
+                | Some specific ->
+                    tucs
+                    |> List.tryFind (Tuc.name >> (=) (TucName specific))
+                    |> Result.ofOption [ sprintf "<c:red>Specific tuc %A is not parsed.</c>" specificTuc ]
+                    |> Result.map List.singleton
+                | _ -> Ok tucs
+
+            if output.IsVerbose() then output.Section "Generating Puml ..."
+            let pumlName = tucFile |> IO.Path.GetFileNameWithoutExtension
+
+            let! puml =
+                tucs
+                |> Generate.puml output style pumlName
+                |> Result.mapError PumlError.format
+                |> Validation.ofResult
+
+            match outputFile with
+            | Some outputFile ->
+                IO.File.WriteAllText (outputFile, puml |> Puml.value)
+            | _ ->
+                output.Message <| sprintf "\n<c:gray>%s</c>\n" ("-" |> String.replicate 100)
+                puml|> Puml.value |> output.Message
+                output.Message <| sprintf "<c:gray>%s</c>\n" ("-" |> String.replicate 100)
+
+            outputImage
+            |> Option.iter (fun (imagePath, imageFormat) ->
+                let run =
+                    match generate with
+                    | GeneratePuml.InWatch -> Async.Start
+                    | GeneratePuml.Immediately _ -> Async.RunSynchronously
+
+                async {
+                    output.Message "<c:gray>[Image]</c> Generating ..."
+                    let! image = puml |> Generate.image imageFormat
+
+                    return
+                        match image with
+                        | Ok (PumlImage image) ->
+                            IO.File.WriteAllBytes(imagePath, image);
+                            output.Message "<c:gray>[Image]</c> Created."
+                        | Error error ->
+                            sprintf "[Image] Not created due error: %s" error
+                            |> output.Error
+                        |> output.NewLine
+                }
+                |> run
+            )
+
+            return "Done"
+        }
 
         let execute generate =
-            result {
-                let domain =
-                    match generate with
-                    | GeneratePuml.InWatch -> None
-                    | GeneratePuml.Immediately domain -> Some domain
+            let domain =
+                match generate with
+                | GeneratePuml.InWatch -> None
+                | GeneratePuml.Immediately domain -> Some domain
 
-                if output.IsVerbose() then output.Section "Parsing Domain ..."
-                let domainTypes =
-                    domain
-                    |> checkDomain (input, output)
-                    |> Result.orFail
+            if output.IsVerbose() then output.Section "Parsing Domain ..."
+            let domainTypes =
+                domain
+                |> checkDomain (input, output)
+                |> Result.orFail
 
-                if output.IsVerbose() then output.Section "Parsing Tuc ..."
-                let! tucs =
+            if output.IsVerbose() then output.Section "Parsing Tuc ..."
+
+            match tucFileOrDir with
+            | File tucFile ->
+                tucFile
+                |> generatePumlForTuc generate domainTypes specificTuc outputFile outputImage
+                |> function
+                    | Ok message ->
+                        output.Success message
+                        ExitCode.Success
+                    | Error messages ->
+                        messages
+                        |> List.iter (output.Message >> output.NewLine)
+                        ExitCode.Error
+
+            | Dir (_, tucFiles) ->
+                let mutable exitCode = ExitCode.Success
+
+                tucFiles
+                |> List.map (fun tucFile ->
+                    let tucFilePath = tucFile |> IO.Path.GetDirectoryName
+                    let tucFileName = tucFile |> IO.Path.GetFileNameWithoutExtension
+                    let outputTucName = IO.Path.Combine (tucFilePath, tucFileName)
+
                     tucFile
-                    |> Parser.parse output domainTypes
-                    |> Result.mapError (List.map (ParseError.format baseIndentation))
-
-                let! tucs =
-                    match specificTuc with
-                    | Some specific ->
-                        tucs
-                        |> List.tryFind (Tuc.name >> (=) (TucName specific))
-                        |> Result.ofOption [ sprintf "<c:red>Specific tuc %A is not parsed.</c>" specificTuc ]
-                        |> Result.map List.singleton
-                    | _ -> Ok tucs
-
-                if output.IsVerbose() then output.Section "Generating Puml ..."
-                let pumlName = tucFile |> IO.Path.GetFileNameWithoutExtension
-
-                let! puml =
-                    tucs
-                    |> Generate.puml output style pumlName
-                    |> Result.mapError PumlError.format
-                    |> Validation.ofResult
-
-                match outputFile with
-                | Some outputFile ->
-                    IO.File.WriteAllText (outputFile, puml |> Puml.value)
-                | _ ->
-                    output.Message <| sprintf "\n<c:gray>%s</c>\n" ("-" |> String.replicate 100)
-                    puml|> Puml.value |> output.Message
-                    output.Message <| sprintf "<c:gray>%s</c>\n" ("-" |> String.replicate 100)
-
-                outputImage
-                |> Option.iter (fun (imagePath, outputFormat) ->
-                    let run =
-                        match generate with
-                        | GeneratePuml.InWatch -> Async.Start
-                        | GeneratePuml.Immediately _ -> Async.RunSynchronously
-
-                    async {
-                        output.Message "<c:gray>[Image]</c> Generating ..."
-                        let! image = puml |> Generate.image outputFormat
-
-                        return
-                            match image with
-                            | Ok (PumlImage image) ->
-                                IO.File.WriteAllBytes(imagePath, image);
-                                output.Message "<c:gray>[Image]</c> Created."
-                            | Error error ->
-                                sprintf "[Image] Not created due error: %s" error
-                                |> output.Error
-                            |> output.NewLine
-                    }
-                    |> run
+                    |> generatePumlForTuc generate domainTypes None
+                        (Some (outputTucName + ".puml"))
+                        (Some (outputTucName + ".svg", Generate.ImageFormat.Svg))
+                    |> function
+                        | Ok message -> [ tucFile; ""; message; "" ]
+                        | Error errors ->
+                            exitCode <- ExitCode.Error
+                            [ tucFile; "Error"; errors |> List.distinct |> String.concat ", " ]
                 )
+                |> output.Table [ "Tuc file"; "Status"; "Detail" ]
 
-                return "Done"
-            }
-            |> function
-                | Ok message ->
-                    output.Success message
-                    ExitCode.Success
-                | Error messages ->
-                    messages
-                    |> List.iter (output.Message >> output.NewLine)
-                    ExitCode.Error
+                exitCode
 
         match input with
         | Input.HasOption "watch" _ ->
             let domainPath, watchDomainSubdirs = domain |> FileOrDir.watch
+            let tucPath, watchTucSubdirs = tucFileOrDir |> FileOrDir.watch
 
             [
-                (tucFile, "*.tuc")
-                |> watch output WatchSubdirs.No (fun _ -> execute GeneratePuml.InWatch |> ignore)
+                (tucPath, "*.tuc")
+                |> watch output watchTucSubdirs (fun _ -> execute GeneratePuml.InWatch |> ignore)
 
                 (domainPath, "*.fsx")
                 |> watch output watchDomainSubdirs (fun _ -> execute GeneratePuml.InWatch |> ignore)

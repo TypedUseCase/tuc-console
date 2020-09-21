@@ -56,7 +56,7 @@ MainService
 
 Results:
 
-![lifeline.png](/tuc-console/tuc/examples/lifeline.png)
+![lifeline.svg](/tuc-console/tuc/examples/lifeline.svg)
 
 ```puml
 @startuml lifeline
@@ -95,7 +95,7 @@ section There is just a section
 
 Results:
 
-![section.png](/tuc-console/tuc/examples/section.png)
+![section.svg](/tuc-console/tuc/examples/section.svg)
 
 ```puml
 @startuml section
@@ -158,7 +158,7 @@ MainService                             // MainService is the caller
 
 Results:
 
-![service-method-call.png](/tuc-console/tuc/examples/service-method-call.png)
+![service-method-call.svg](/tuc-console/tuc/examples/service-method-call.svg)
 
 ```puml
 @startuml service-method-call
@@ -222,7 +222,7 @@ MainService                                     // MainService is the caller
 
 Results:
 
-![post-data.png](/tuc-console/tuc/examples/post-data.png)
+![post-data.svg](/tuc-console/tuc/examples/post-data.svg)
 
 ```puml
 @startuml post-data
@@ -284,7 +284,7 @@ MainService                                     // MainService is the caller
 
 Results:
 
-![read-data.png](/tuc-console/tuc/examples/read-data.png)
+![read-data.svg](/tuc-console/tuc/examples/read-data.svg)
 
 ```puml
 @startuml read-data
@@ -358,7 +358,7 @@ MainService                                     // MainService is the caller
 
 Results:
 
-![post-event.png](/tuc-console/tuc/examples/post-event.png)
+![post-event.svg](/tuc-console/tuc/examples/post-event.svg)
 
 ```puml
 @startuml post-event
@@ -436,7 +436,7 @@ MainService                                     // MainService is the caller
 
 Results:
 
-![read-event.png](/tuc-console/tuc/examples/read-event.png)
+![read-event.svg](/tuc-console/tuc/examples/read-event.svg)
 
 ```puml
 @startuml read-event
@@ -515,7 +515,7 @@ participants
 
 Results:
 
-![handle-event-in-stream.png](/tuc-console/tuc/examples/handle-event-in-stream.png)
+![handle-event-in-stream.svg](/tuc-console/tuc/examples/handle-event-in-stream.svg)
 
 ```puml
 @startuml handle-event-in-stream
@@ -563,7 +563,7 @@ group Grouped together
 
 Results:
 
-![group.png](/tuc-console/tuc/examples/group.png)
+![group.svg](/tuc-console/tuc/examples/group.svg)
 
 ```puml
 @startuml group
@@ -643,7 +643,7 @@ else
 
 Results:
 
-![if-else.png](/tuc-console/tuc/examples/if-else.png)
+![if-else.svg](/tuc-console/tuc/examples/if-else.svg)
 
 ```puml
 @startuml if-else
@@ -704,7 +704,7 @@ loop until it's done
 
 Results:
 
-![loop.png](/tuc-console/tuc/examples/loop.png)
+![loop.svg](/tuc-console/tuc/examples/loop.svg)
 
 ```puml
 @startuml loop
@@ -771,7 +771,7 @@ MainService
 
 Results:
 
-![note.png](/tuc-console/tuc/examples/note.png)
+![note.svg](/tuc-console/tuc/examples/note.svg)
 
 ```puml
 @startuml note
@@ -846,7 +846,7 @@ MainService
 
 Results:
 
-![left-note.png](/tuc-console/tuc/examples/left-note.png)
+![left-note.svg](/tuc-console/tuc/examples/left-note.svg)
 
 ```puml
 @startuml left-note
@@ -924,7 +924,7 @@ MainService
 
 Results:
 
-![right-note.png](/tuc-console/tuc/examples/right-note.png)
+![right-note.svg](/tuc-console/tuc/examples/right-note.svg)
 
 ```puml
 @startuml right-note
@@ -996,7 +996,7 @@ MainService
 
 Results:
 
-![do.png](/tuc-console/tuc/examples/do.png)
+![do.svg](/tuc-console/tuc/examples/do.svg)
 
 ```puml
 @startuml do
