@@ -1,0 +1,4 @@
+#!/bin/bash
+
+bin/console t:g example example/definition.tuc -i example/graph.png -o example/result.puml
+bin/console t:g example example/definition.tuc -i example/graph.svg
