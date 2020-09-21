@@ -171,4 +171,4 @@ deactivate GenericService
 @enduml
 ```
 
-![Example PlantUML result](https://raw.githubusercontent.com/MortalFlesh/tuc-console/master/example/graph.png)
+![Example PlantUML result](https://raw.githubusercontent.com/MortalFlesh/tuc-console/master/example/graph.svg)

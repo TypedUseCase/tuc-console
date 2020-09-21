@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?><svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" contentScriptType="application/ecmascript" contentStyleType="text/css" height="333px" preserveAspectRatio="none" style="width:236px;height:333px;" version="1.1" viewBox="0 0 236 333" width="236px" zoomAndPan="magnify"><defs><filter height="300%" id="fz8uv82v7k0x4" width="300%" x="-1" y="-1"><feGaussianBlur result="blurOut" stdDeviation="2.0"/><feColorMatrix in="blurOut" result="blurOut2" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 .4 0"/><feOffset dx="4.0" dy="4.0" in="blurOut2" result="blurOut3"/><feBlend in="SourceGraphic" in2="blurOut3" mode="normal"/></filter></defs><g><rect fill="#FFFFFF" filter="url(#fz8uv82v7k0x4)" height="107.3984" style="stroke: #A80036; stroke-width: 1.0;" width="10" x="76" y="112.5938"/><rect fill="#FFFFFF" filter="url(#fz8uv82v7k0x4)" height="50.2656" style="stroke: #000000; stroke-width: 2.0;" width="201" x="12" y="162.7266"/><line style="stroke: #A80036; stroke-width: 1.0; stroke-dasharray: 5.0,5.0;" x1="81" x2="81" y1="102.5938" y2="229.9922"/><text fill="#000000" font-family="sans-serif" font-size="14" font-style="italic" lengthAdjust="spacingAndGlyphs" textLength="38" x="59" y="82.9951">«My»</text><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacingAndGlyphs" textLength="90" x="33" y="99.292">Main Service</text><ellipse cx="81" cy="13" fill="#FEFECE" filter="url(#fz8uv82v7k0x4)" rx="8" ry="8" style="stroke: #A80036; stroke-width: 2.0;"/><path d="M81,21 L81,48 M68,29 L94,29 M81,48 L68,63 M81,48 L94,63 " fill="none" filter="url(#fz8uv82v7k0x4)" style="stroke: #A80036; stroke-width: 2.0;"/><text fill="#000000" font-family="sans-serif" font-size="14" font-style="italic" lengthAdjust="spacingAndGlyphs" textLength="38" x="59" y="241.9873">«My»</text><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacingAndGlyphs" textLength="90" x="33" y="258.2842">Main Service</text><ellipse cx="81" cy="271.5859" fill="#FEFECE" filter="url(#fz8uv82v7k0x4)" rx="8" ry="8" style="stroke: #A80036; stroke-width: 2.0;"/><path d="M81,279.5859 L81,306.5859 M68,287.5859 L94,287.5859 M81,306.5859 L68,321.5859 M81,306.5859 L94,321.5859 " fill="none" filter="url(#fz8uv82v7k0x4)" style="stroke: #A80036; stroke-width: 2.0;"/><rect fill="#FFFFFF" filter="url(#fz8uv82v7k0x4)" height="107.3984" style="stroke: #A80036; stroke-width: 1.0;" width="10" x="76" y="112.5938"/><rect fill="#EEEEEE" filter="url(#fz8uv82v7k0x4)" height="3" style="stroke: #EEEEEE; stroke-width: 1.0;" width="221" x="3" y="133.1602"/><line style="stroke: #000000; stroke-width: 1.0;" x1="3" x2="224" y1="133.1602" y2="133.1602"/><line style="stroke: #000000; stroke-width: 1.0;" x1="3" x2="224" y1="136.1602" y2="136.1602"/><rect fill="#EEEEEE" filter="url(#fz8uv82v7k0x4)" height="23.1328" style="stroke: #000000; stroke-width: 2.0;" width="56" x="85.5" y="122.5938"/><text fill="#000000" font-family="sans-serif" font-size="13" font-weight="bold" lengthAdjust="spacingAndGlyphs" textLength="37" x="91.5" y="138.6606">Loop</text><path d="M12,162.7266 L90,162.7266 L90,169.7266 L80,179.7266 L12,179.7266 L12,162.7266 " fill="#EEEEEE" style="stroke: #000000; stroke-width: 1.0;"/><rect fill="none" height="50.2656" style="stroke: #000000; stroke-width: 2.0;" width="201" x="12" y="162.7266"/><text fill="#000000" font-family="sans-serif" font-size="13" font-weight="bold" lengthAdjust="spacingAndGlyphs" textLength="33" x="27" y="175.7935">loop</text><text fill="#000000" font-family="sans-serif" font-size="11" font-weight="bold" lengthAdjust="spacingAndGlyphs" textLength="103" x="105" y="174.937">[until it's done]</text><polygon fill="#FBFB77" filter="url(#fz8uv82v7k0x4)" points="32,184.8594,129,184.8594,139,195.8594,129,207.8594,32,207.8594,22,195.8594,32,184.8594" style="stroke: #A80036; stroke-width: 1.0;"/><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacingAndGlyphs" textLength="93" x="34" y="200.9263">do: something</text><!--MD5=[204bacefabe29ba2c75695d7e09e9a78]
+@startuml
+
+
+== Loop ==
+
+actor "Main Service" as MainService <<My>>
+
+activate MainService
+loop until it's done
+    hnote over MainService
+    do: something
+    end hnote
+end
+
+deactivate MainService
+@enduml
+
+PlantUML version 1.2020.17(Sat Sep 19 12:30:11 UTC 2020)
+(GPL source distribution)
+Java Runtime: Java(TM) SE Runtime Environment
+JVM: Java HotSpot(TM) 64-Bit Server VM
+Default Encoding: UTF-8
+Language: en
+Country: US
+--></g></svg>
