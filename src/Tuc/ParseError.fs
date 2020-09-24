@@ -14,6 +14,7 @@ type ParseError =
     // Participants
     | WrongParticipantIndentation of lineNumber: int * position: int * line: string
     | ComponentWithoutParticipants of lineNumber: int * position: int * line: string
+    | UndefinedComponentParticipantInDomain of lineNumber: int * position: int * line: string * domain: string
     | UndefinedComponentParticipant of lineNumber: int * position: int * line: string * componentName: string * definedFields: string list * wantedService: string
     | WrongComponentParticipantDomain of lineNumber: int * position: int * line: string * componentDomain: string
     | InvalidParticipant of lineNumber: int * position: int * line: string
@@ -129,6 +130,12 @@ module ParseError =
                 error
                 componentName
                 formattedFields
+
+        | UndefinedComponentParticipantInDomain (lineNumber, position, line, domain) ->
+            domain
+            |> sprintf "There is an undefined component participant in the %s domain. (It is not defined in the given Domain types, or it is not defined as a Record.)"
+            |> red
+            |> formatLineWithError lineNumber position line
 
         | WrongComponentParticipantDomain (lineNumber, position, line, componentDomain) ->
             sprintf "This participant is not defined in the component's domain %s, or it has other domain defined." componentDomain
@@ -351,6 +358,7 @@ module ParseError =
         | WrongParticipantIndentation _ -> "Wrong Participant Indentation"
         | ComponentWithoutParticipants _ -> "Component Without Participants"
         | UndefinedComponentParticipant _ -> "Undefined Component Participant"
+        | UndefinedComponentParticipantInDomain _ -> "Undefined Component Participant In Domain"
         | WrongComponentParticipantDomain _ -> "Wrong Component Participant Domain"
         | InvalidParticipant _ -> "Invalid Participant"
         | UndefinedParticipantInDomain _ -> "Undefined Participant In Domain"

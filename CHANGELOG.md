@@ -2,6 +2,7 @@
 
 <!-- There is always Unreleased section on the top. Subsections (Add, Changed, Fix, Removed) should be Add as needed. -->
 ## Unreleased
+- Fix wrong error occurrence when there is undefined participant in component.
 
 ## 1.1.0 - 2020-09-21
 - Allow Modules, Functions, etc in Domain files.

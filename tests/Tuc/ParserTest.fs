@@ -156,8 +156,8 @@ module ParseErrors =
                 UndefinedComponentParticipant (4, 8, "        GenericService parts", "StreamComponent", ["StreamListener"], "GenericService")
                 UndefinedComponentParticipant (5, 8, "        Service parts", "StreamComponent", ["StreamListener"], "Service")
             ])
-            case "UndefinedComponentParticipant - only one" "UndefinedComponentParticipant-one.tuc" (Error [
-                UndefinedComponentParticipant (5, 8, "        [ActivityStream] as \"Activity Stream\"", "StreamComponent", ["StreamListener"], "Service")
+            case "UndefinedComponentParticipant - only one" "UndefinedComponentParticipantInDomain.tuc" (Error [
+                UndefinedComponentParticipantInDomain (5, 8, "        [ActivityStream] as \"Activity Stream\"", "Parts")
             ])
             case "WrongComponentParticipantDomain" "WrongComponentParticipantDomain.tuc" (Error [ WrongComponentParticipantDomain (5, 8, "        Service wrongDomain", "Parts") ])
             case "InvalidParticipant" "InvalidParticipant.tuc" (Error [ InvalidParticipant (3, 4, "    GenericService domain foo bar") ])
