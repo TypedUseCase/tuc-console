@@ -1,0 +1,5 @@
+tuc parse error test
+participants
+    StreamComponent parts
+        StreamListener as "Stream Listener"
+        [ActivityStream] as "Activity Stream"

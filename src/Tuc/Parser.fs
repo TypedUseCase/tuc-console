@@ -201,6 +201,10 @@ module Parser =
                 | _ -> Error <| InvalidParticipant (line |> Line.error indentation)
 
             | _ -> Error <| WrongParticipantIndentation (line |> Line.error indentation)
+            |> Result.mapError (function
+                | UndefinedParticipantInDomain (lineNumber, position, line, domain) -> UndefinedComponentParticipantInDomain (lineNumber, position, line, domain)
+                | error -> error
+            )
 
         let private parseParticipant (domainTypes: DomainTypes) indentationLevel lines line: Result<Participant * Line list, ParseError list> =
             let participantIndentation = indentationLevel |> IndentationLevel.indentation
