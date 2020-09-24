@@ -3,6 +3,8 @@
 <!-- There is always Unreleased section on the top. Subsections (Add, Changed, Fix, Removed) should be Add as needed. -->
 ## Unreleased
 - Fix wrong error occurrence when there is undefined participant in component.
+- Allow to generate a dir with all sub tucs of a multi-tuc file.
+- Enhance an output for generating tuc
 
 ## 1.1.0 - 2020-09-21
 - Allow Modules, Functions, etc in Domain files.

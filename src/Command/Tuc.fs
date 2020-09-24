@@ -97,13 +97,21 @@ module Tuc =
         let tucFileOrDir = (input, output) |> Input.getTucFileOrDir
         let style = (input, output) |> Input.getStyle
 
+        let generateAll =
+            match input with
+            | Input.HasOption "all" _ -> true
+            | _ -> false
+
         let baseIndentation =
             if output.IsVerbose() then "[yyyy-mm-dd HH:MM:SS]    ".Length else 0
 
         let specificTuc =
             match tucFileOrDir, input with
             | Dir _, Input.OptionValue "tuc" _ -> failwithf "Specific tuc can be generated only for a single file, not a directory."
-            | File _, Input.OptionValue "tuc" tuc -> Some tuc
+            | File _, Input.OptionValue "tuc" tuc ->
+                if generateAll
+                    then failwithf "You can not mix --all and --tuc option. Use either of them."
+                    else Some tuc
             | _ -> None
 
         let outputFile =
@@ -140,60 +148,101 @@ module Tuc =
         | _ -> ()
 
         let generatePumlForTuc generate domainTypes specificTuc outputFile outputImage tucFile = result {
+            let tucFileName = tucFile |> Path.fileNameWithoutExtension
+
             let! tucs =
                 tucFile
                 |> Parser.parse output domainTypes
                 |> Result.mapError (List.map (ParseError.format baseIndentation))
 
-            let! tucs =
-                match specificTuc with
-                | Some specific ->
+            let generateTucs prefix specificTuc outputFile outputImage tucs = result {
+                let! tucs =
+                    match specificTuc with
+                    | Some specific ->
+                        tucs
+                        |> List.tryFind (Tuc.name >> (=) (TucName specific))
+                        |> Result.ofOption [ sprintf "<c:red>Specific tuc %A is not parsed.</c>" specificTuc ]
+                        |> Result.map List.singleton
+                    | _ -> Ok tucs
+
+                if output.IsVerbose() then output.Section <| sprintf "%sGenerating Puml ..." prefix
+
+                let! puml =
                     tucs
-                    |> List.tryFind (Tuc.name >> (=) (TucName specific))
-                    |> Result.ofOption [ sprintf "<c:red>Specific tuc %A is not parsed.</c>" specificTuc ]
-                    |> Result.map List.singleton
-                | _ -> Ok tucs
+                    |> Generate.puml output style tucFileName
+                    |> Result.mapError PumlError.format
+                    |> Validation.ofResult
 
-            if output.IsVerbose() then output.Section "Generating Puml ..."
-            let pumlName = tucFile |> IO.Path.GetFileNameWithoutExtension
+                match outputFile with
+                | Some outputFile ->
+                    IO.File.WriteAllText (outputFile, puml |> Puml.value)
+                | _ ->
+                    output.Message <| sprintf "\n<c:gray>%s</c>\n" ("-" |> String.replicate 100)
+                    puml|> Puml.value |> output.Message
+                    output.Message <| sprintf "<c:gray>%s</c>\n" ("-" |> String.replicate 100)
 
-            let! puml =
-                tucs
-                |> Generate.puml output style pumlName
-                |> Result.mapError PumlError.format
-                |> Validation.ofResult
+                outputImage
+                |> Option.iter (fun (imagePath, imageFormat) ->
+                    let run =
+                        match generate with
+                        | GeneratePuml.InWatch -> Async.Start
+                        | GeneratePuml.Immediately _ -> Async.RunSynchronously
 
-            match outputFile with
-            | Some outputFile ->
-                IO.File.WriteAllText (outputFile, puml |> Puml.value)
-            | _ ->
-                output.Message <| sprintf "\n<c:gray>%s</c>\n" ("-" |> String.replicate 100)
-                puml|> Puml.value |> output.Message
-                output.Message <| sprintf "<c:gray>%s</c>\n" ("-" |> String.replicate 100)
+                    async {
+                        let imageName = imagePath |> Path.fileNameWithoutExtension
 
-            outputImage
-            |> Option.iter (fun (imagePath, imageFormat) ->
-                let run =
-                    match generate with
-                    | GeneratePuml.InWatch -> Async.Start
-                    | GeneratePuml.Immediately _ -> Async.RunSynchronously
+                        output.Message <| sprintf "%s<c:gray>[Image]</c> <c:yellow>Generating</c> <c:cyan>%s.%s</c> ..." prefix imageName (imageFormat |> Generate.ImageFormat.extension)
+                        let! image = puml |> Generate.image imageFormat
 
-                async {
-                    output.Message "<c:gray>[Image]</c> Generating ..."
-                    let! image = puml |> Generate.image imageFormat
+                        return
+                            match image with
+                            | Ok (PumlImage image) ->
+                                IO.File.WriteAllBytes(imagePath, image);
+                                output.Message <| sprintf "%s<c:gray>[Image]</c> <c:green>Created ✅ </c>" prefix
+                            | Error error ->
+                                sprintf "%s[Image] Not created due error: %s" prefix error
+                                |> output.Error
+                            |> output.NewLine
+                    }
+                    |> run
+                )
+            }
 
-                    return
-                        match image with
-                        | Ok (PumlImage image) ->
-                            IO.File.WriteAllBytes(imagePath, image);
-                            output.Message "<c:gray>[Image]</c> Created."
-                        | Error error ->
-                            sprintf "[Image] Not created due error: %s" error
-                            |> output.Error
-                        |> output.NewLine
-                }
-                |> run
-            )
+            do! tucs |> generateTucs "" specificTuc outputFile outputImage
+
+            if generateAll && tucs |> List.length > 1 then
+                let inline (/) a b = IO.Path.Combine(a, b)
+
+                let tucFileDir = tucFile |> IO.Path.GetDirectoryName
+                let subTucDirPath = tucFileDir / tucFileName
+
+                output.Message <| sprintf "<c:gray>[All]</c> <c:yellow>Generate all sub-tucs</c> [<c:magenta>%d</c>] <c:yellow>for</c> <c:cyan>%s</c>.\n" (tucs |> List.length) tucFileName
+
+                let fileName extension (TucName name) =
+                    sprintf "%s.%s" (name.Replace(" ", "-")) extension
+
+                let outputFile name =
+                    subTucDirPath / (name |> fileName "puml")
+                    |> Some
+
+                let imageFormat =
+                    match outputImage with
+                    | Some (_, imageFormat) -> imageFormat
+                    | _ -> Generate.ImageFormat.Svg
+
+                let imagePath name =
+                    subTucDirPath / (name |> fileName (imageFormat |> Generate.ImageFormat.extension))
+
+                do!
+                    tucs
+                    |> List.map (fun tuc ->
+                        [ tuc ]
+                        |> generateTucs "<c:gray>[Sub]</c>" None (outputFile tuc.Name) (Some (imagePath tuc.Name, imageFormat))
+                    )
+                    |> Validation.ofResults
+                    |> Validation.toResult
+                    |> Result.map ignore
+                    |> Result.mapError List.concat
 
             return "Done"
         }
@@ -231,7 +280,7 @@ module Tuc =
                 tucFiles
                 |> List.map (fun tucFile ->
                     let tucFilePath = tucFile |> IO.Path.GetDirectoryName
-                    let tucFileName = tucFile |> IO.Path.GetFileNameWithoutExtension
+                    let tucFileName = tucFile |> Path.fileNameWithoutExtension
                     let outputTucName = IO.Path.Combine (tucFilePath, tucFileName)
 
                     tucFile
@@ -239,10 +288,10 @@ module Tuc =
                         (Some (outputTucName + ".puml"))
                         (Some (outputTucName + ".svg", Generate.ImageFormat.Svg))
                     |> function
-                        | Ok message -> [ tucFile; ""; message; "" ]
+                        | Ok message -> [ tucFile; message |> sprintf "<c:green>%s</c>"; "" ]
                         | Error errors ->
                             exitCode <- ExitCode.Error
-                            [ tucFile; "Error"; errors |> List.distinct |> String.concat ", " ]
+                            [ tucFile; "<c:red>Error</c>"; errors |> List.distinct |> String.concat ", " ]
                 )
                 |> output.Table [ "Tuc file"; "Status"; "Detail" ]
 
