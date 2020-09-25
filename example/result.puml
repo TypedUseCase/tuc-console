@@ -11,7 +11,7 @@ participant "PID" as PersonIdentificationEngine <<Consents>>
 participant "PersonAggregate" as PersonAggregate <<Consents>>
 
 activate GenericService
-GenericService -> InteractionCollector ++: PostInteraction(\n  PersonId, \n  InteractionEvent\n)
+GenericService -> InteractionCollector ++: PostInteraction(InteractionEvent)
     hnote over InteractionCollector
     do: create an interaction event based on interaction
     end hnote

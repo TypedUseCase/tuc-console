@@ -9,7 +9,7 @@ activate GenericService
 
 == Adding Roles ==
 
-GenericService ->> WorkGroupFactStream: WorkGroupEvent
+GenericService ->> WorkGroupFactStream: [[{WorkGroupFactEvent.WorkGroupEvent}WorkGroupEvent]]
 
 deactivate GenericService
 

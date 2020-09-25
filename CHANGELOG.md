@@ -6,6 +6,7 @@
 - Allow to generate a dir with all sub tucs of a multi-tuc file.
 - Enhance an output for generating tuc
 - Generate method arguments of service-method-call as multiline, when there are more than one
+- Add tooltip for post/read events with longer path
 
 ## 1.1.0 - 2020-09-21
 - Allow Modules, Functions, etc in Domain files.
