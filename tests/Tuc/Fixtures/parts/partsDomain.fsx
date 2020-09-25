@@ -1,6 +1,8 @@
 #load "../CoreTypes.fsx"
 open CoreTypes
 
+type Id = Id of Id
+
 type GenericService = Initiator
 
 type InputStream = InputStream of Stream<InputEvent>
@@ -34,3 +36,13 @@ and WorkResult =
     | Error
 
 type IdCache = IdCache of Cache<Id>
+type KeyCache = KeyCache of Cache<Key>
+
+and Key =
+    | Id of Id
+    | Random
+    | Scalar of Scalar
+
+and Scalar =
+    | String of string
+    | Int of string

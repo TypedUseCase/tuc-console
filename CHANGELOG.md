@@ -7,6 +7,7 @@
 - Enhance an output for generating tuc
 - Generate method arguments of service-method-call as multiline, when there are more than one
 - Add tooltip for post/read events with longer path
+- Allow to use FQ name for data and use deeper data name in read/post data
 
 ## 1.1.0 - 2020-09-21
 - Allow Modules, Functions, etc in Domain files.

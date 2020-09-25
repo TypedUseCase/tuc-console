@@ -221,9 +221,17 @@ tuc Post Data
 participants
     MainService My as "Main Service"
     [InteractionDatabase] My
+    [InteractionCache] My
 
 MainService                                     // MainService is the caller
     InteractionEntity -> [InteractionDatabase]  // InteractionEntity is posted to the Database
+
+    // Even concrete data can be posted to the Data object
+    InteractionEvent.Confirmed -> [InteractionCache]
+
+    InteractionEvent.Rejected -> [InteractionCache]
+    InteractionEvent.Rejected.Expired -> [InteractionCache]
+    InteractionEvent.Rejected.Rejected -> [InteractionCache]
 ```
 
 Results:
@@ -237,9 +245,14 @@ Results:
 
 actor "Main Service" as MainService <<My>>
 database "InteractionDatabase" as InteractionDatabase <<My>>
+database "InteractionCache" as InteractionCache <<My>>
 
 activate MainService
 MainService ->> InteractionDatabase: InteractionEntity
+MainService ->> InteractionCache: [[{InteractionEvent.Confirmed}Confirmed]]
+MainService ->> InteractionCache: [[{InteractionEvent.Rejected}Rejected]]
+MainService ->> InteractionCache: [[{InteractionEvent.Rejected.Expired}Expired]]
+MainService ->> InteractionCache: [[{InteractionEvent.Rejected.Rejected}Rejected]]
 
 deactivate MainService
 
@@ -283,9 +296,17 @@ tuc Read Data
 participants
     MainService My as "Main Service"
     [InteractionDatabase] My
+    [InteractionCache] My
 
 MainService                                     // MainService is the caller
     [InteractionDatabase] -> InteractionEntity  // InteractionEntity is read from the Database
+
+    // Even concrete data can be read from the Data object
+    [InteractionCache] -> InteractionEvent.Confirmed
+
+    [InteractionCache] -> InteractionEvent.Rejected
+    [InteractionCache] -> InteractionEvent.Rejected.Expired
+    [InteractionCache] -> InteractionEvent.Rejected.Rejected
 ```
 
 Results:
@@ -299,9 +320,14 @@ Results:
 
 actor "Main Service" as MainService <<My>>
 database "InteractionDatabase" as InteractionDatabase <<My>>
+database "InteractionCache" as InteractionCache <<My>>
 
 activate MainService
 InteractionDatabase ->> MainService: InteractionEntity
+InteractionCache ->> MainService: [[{InteractionEvent.Confirmed}Confirmed]]
+InteractionCache ->> MainService: [[{InteractionEvent.Rejected}Rejected]]
+InteractionCache ->> MainService: [[{InteractionEvent.Rejected.Expired}Expired]]
+InteractionCache ->> MainService: [[{InteractionEvent.Rejected.Rejected}Rejected]]
 
 deactivate MainService
 

@@ -51,8 +51,9 @@ type ParseError =
 
     // Others
     | WrongEventName of lineNumber: int * position: int * line: string * message: string
+    | WrongDataName of lineNumber: int * position: int * line: string * message: string
     | WrongEvent of lineNumber: int * position: int * line: string * definedCases: string list
-    | WrongData of lineNumber: int * position: int * line: string * dataName: string * definedData: string
+    | WrongData of lineNumber: int * position: int * line: string * definedCases: string list
 
 [<RequireQualifiedAccess>]
 module ParseError =
@@ -323,6 +324,11 @@ module ParseError =
             |> red
             |> formatLineWithError lineNumber position line
 
+        | WrongDataName (lineNumber, position, line, message) ->
+            sprintf "There is a wrong data - %s." message
+            |> red
+            |> formatLineWithError lineNumber position line
+
         | WrongEvent (lineNumber, position, line, cases) ->
             let error =
                 "There is no such a case for an event."
@@ -338,12 +344,20 @@ module ParseError =
 
             sprintf "%s\n\n<c:red>%s</c>" error defineCases
 
-        | WrongData (lineNumber, position, line, dataName, definedData) ->
-            sprintf "Wrong data type of the Data Object. Data Object is of type %A but %A was given."
-                definedData
-                dataName
-            |> red
-            |> formatLineWithError lineNumber position line
+        | WrongData (lineNumber, position, line, cases) ->
+            let error =
+                "There is no such a case for a data."
+                |> red
+                |> formatLineWithError lineNumber position line
+
+            let defineCases =
+                match cases with
+                | [] -> "Data does not have defined any more cases."
+                | cases ->
+                    sprintf "Data has defined cases:%s"
+                        (cases |> List.formatLines "  - " id)
+
+            sprintf "%s\n\n<c:red>%s</c>" error defineCases
 
     let errorName = function
         // Tuc file
@@ -394,5 +408,6 @@ module ParseError =
 
         // Others
         | WrongEventName _ -> "Wrong Event Name"
+        | WrongDataName _ -> "Wrong Data Name"
         | WrongEvent _ -> "Wrong Event"
         | WrongData _ -> "Wrong Data"

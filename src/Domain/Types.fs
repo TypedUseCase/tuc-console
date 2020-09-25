@@ -247,7 +247,7 @@ module DomainType =
         | _ -> None
 
     let (|DataObjectData|_|) = function
-        | DomainType (SingleCaseUnion { ConstructorArgument = GenericType { Argument = Type (TypeName dataType) } }) -> Some dataType
+        | DomainType (SingleCaseUnion { Domain = domain; ConstructorArgument = GenericType { Argument = Type (TypeName dataType) } }) -> Some (domain, dataType)
         | _ -> None
 
     let (|DataObject|_|) domain = function

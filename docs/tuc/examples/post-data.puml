@@ -4,9 +4,14 @@
 
 actor "Main Service" as MainService <<My>>
 database "InteractionDatabase" as InteractionDatabase <<My>>
+database "InteractionCache" as InteractionCache <<My>>
 
 activate MainService
 MainService ->> InteractionDatabase: InteractionEntity
+MainService ->> InteractionCache: [[{InteractionEvent.Confirmed}Confirmed]]
+MainService ->> InteractionCache: [[{InteractionEvent.Rejected}Rejected]]
+MainService ->> InteractionCache: [[{InteractionEvent.Rejected.Expired}Expired]]
+MainService ->> InteractionCache: [[{InteractionEvent.Rejected.Rejected}Rejected]]
 
 deactivate MainService
 
