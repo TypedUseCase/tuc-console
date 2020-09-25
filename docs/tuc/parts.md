@@ -154,6 +154,9 @@ participants
 MainService                             // MainService is the caller
     Service.Method                      // Method `Method` is called on the `Service`
         "this is part of execution"     // This is part of the Method execution
+
+    Service.MethodWithMoreArgs          // Method `MethodWithMoreArgs` is called on the `Service`
+        "this is part of execution"     // This is part of the Method execution
 ```
 
 Results:
@@ -170,6 +173,9 @@ participant "Service" as Service <<My>>
 
 activate MainService
 MainService -> Service ++: Method(Input)
+    note over Service: this is part of execution
+Service --> MainService --: Output
+MainService -> Service ++: MethodWithMoreArgs(\n  Id, \n  int * string, \n  Input\n)
     note over Service: this is part of execution
 Service --> MainService --: Output
 
