@@ -7,10 +7,10 @@ collections "InteractionStream" as InteractionStream <<My>>
 
 activate MainService
 InteractionStream ->> MainService: InteractionEvent
-InteractionStream ->> MainService: Confirmed
-InteractionStream ->> MainService: Rejected
-InteractionStream ->> MainService: Expired
-InteractionStream ->> MainService: Rejected
+InteractionStream ->> MainService: [[{InteractionEvent.Confirmed}Confirmed]]
+InteractionStream ->> MainService: [[{InteractionEvent.Rejected}Rejected]]
+InteractionStream ->> MainService: [[{InteractionEvent.Rejected.Expired}Expired]]
+InteractionStream ->> MainService: [[{InteractionEvent.Rejected.Rejected}Rejected]]
 
 deactivate MainService
 

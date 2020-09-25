@@ -200,7 +200,7 @@ module Generate =
                     sprintf "%s ->> %s: %s"
                         (caller |> ActiveParticipant.name)
                         (stream |> ActiveParticipant.name)
-                        (event |> Event.lastInPath)
+                        (event |> Event.link)
                     |> PumlPart
 
                 [
@@ -212,7 +212,7 @@ module Generate =
                     sprintf "%s ->> %s: %s"
                         (stream |> ActiveParticipant.name)
                         (caller |> ActiveParticipant.name)
-                        (event |> Event.lastInPath)
+                        (event |> Event.link)
                     |> PumlPart
 
                 [

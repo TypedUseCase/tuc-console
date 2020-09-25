@@ -7,8 +7,8 @@ collections "InputStream" as InputStream <<Parts>>
 
 activate GenericService
 GenericService ->> InputStream: InputEvent
-GenericService ->> InputStream: EventA
-GenericService ->> InputStream: C2
+GenericService ->> InputStream: [[{InputEvent.EventA}EventA]]
+GenericService ->> InputStream: [[{InputEvent.EventC.C2}C2]]
 
 deactivate GenericService
 

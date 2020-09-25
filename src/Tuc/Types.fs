@@ -42,6 +42,13 @@ module Event =
         >> List.rev
         >> List.head
 
+    let value = path >> String.concat "."
+
+    // @see https://plantuml.com/link
+    let link = function
+        | { Path = [ single ] } -> single
+        | { Path = _ } as event -> sprintf "[[{%s}%s]]" (event |> value) (event |> lastInPath)
+
 type Tuc = {
     Name: TucName
     Participants: Participant list

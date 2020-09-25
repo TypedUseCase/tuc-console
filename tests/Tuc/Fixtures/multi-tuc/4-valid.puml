@@ -25,16 +25,16 @@ InputStream ->> StreamListener: ReadEvent(InputEvent)
     end hnote
     deactivate StreamListener
 
-== Correct tuc 3 ==
+== Correct 3 ==
 
 actor "GenericService" as GenericService <<Tests>>
 collections "InputStream" as InputStream <<Tests>>
 
 alt the weather is nice
-    GenericService ->> InputStream: EventA
+    GenericService ->> InputStream: [[{InputEvent.EventA}EventA]]
 end
 
-== Correct tuc 4 ==
+== Correct 4 ==
 
 actor "GenericService" as GenericService <<Tests>>
 collections "InputStream" as InputStream <<Tests>>
@@ -42,13 +42,13 @@ participant "StreamListener" as StreamListener <<Tests>>
 
 InputStream ->> StreamListener: ReadEvent(InputEvent)
     activate StreamListener
-    InputStream ->> StreamListener: EventA
+    InputStream ->> StreamListener: [[{InputEvent.EventA}EventA]]
     hnote over StreamListener
     do:
         something with EventA
         and create EventB out of it
     end hnote
-    StreamListener ->> InputStream: EventB
+    StreamListener ->> InputStream: [[{InputEvent.EventB}EventB]]
     deactivate StreamListener
 
 deactivate GenericService

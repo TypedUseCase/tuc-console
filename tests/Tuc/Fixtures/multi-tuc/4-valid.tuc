@@ -18,7 +18,7 @@ participants
     StreamListener.ReadEvent
         do something on event
 
-tuc Correct tuc 3
+tuc Correct 3
 participants
     GenericService tests
     [InputStream] tests
@@ -27,7 +27,7 @@ GenericService
     if the weather is nice
         InputEvent.EventA -> [InputStream]
 
-tuc Correct tuc 4
+tuc Correct 4
 participants
     GenericService tests
     [InputStream] tests
