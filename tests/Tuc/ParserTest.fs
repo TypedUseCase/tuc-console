@@ -196,10 +196,12 @@ module ParseErrors =
             // others
             case "WrongEventName - Post" "WrongEventName-post.tuc" (Error [ WrongEventName (7, 4, "    .InputEvent -> [InputStream]", "it has a wrong format (it must not start/end with . and not contains any spaces)") ])
             case "WrongEventName - Read" "WrongEventName-read.tuc" (Error [ WrongEventName (7, 4, "    [InputStream] -> InputEvent.", "it has a wrong format (it must not start/end with . and not contains any spaces)") ])
+            case "WrongDataName - Post" "WrongDataName-post.tuc" (Error [ WrongDataName (7, 4, "    .Foo -> [PersonDatabase]", "it has a wrong format (it must not start/end with . and not contains any spaces)") ])
+            case "WrongDataName - Read" "WrongDataName-read.tuc" (Error [ WrongDataName (7, 4, "    [PersonDatabase] -> InputEvent.", "it has a wrong format (it must not start/end with . and not contains any spaces)") ])
             case "WrongEvent - Post" "WrongEvent-post.tuc" (Error [ WrongEvent (7, 4, "    Wrong -> [InputStream]", ["InputEvent"]) ])
             case "WrongEvent - Read" "WrongEvent-read.tuc" (Error [ WrongEvent (7, 4, "    [InputStream] -> Wrong", ["InputEvent"]) ])
-            case "WrongData - Post" "WrongData-post.tuc" (Error [ WrongData (7, 4, "    Wrong -> [PersonDatabase]", "Wrong", "Person") ])
-            case "WrongData - Read" "WrongData-read.tuc" (Error [ WrongData (7, 4, "    [PersonDatabase] -> Wrong", "Wrong", "Person") ])
+            case "WrongData - Post" "WrongData-post.tuc" (Error [ WrongData (7, 4, "    Wrong -> [PersonDatabase]", ["Person"]) ])
+            case "WrongData - Read" "WrongData-read.tuc" (Error [ WrongData (7, 4, "    [PersonDatabase] -> Wrong", ["Person"]) ])
         ]
 
 [<RequireQualifiedAccess>]

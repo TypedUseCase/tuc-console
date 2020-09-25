@@ -681,11 +681,11 @@ module Parser =
                 | None, _ ->
                     Error <| DataPostedWithoutACaller (line |> Line.error indentation)
 
-                | Some caller, IsParticipant participants (DataObject { DataObjectType = DomainType.DataObjectData expectedDataType } as dataObject) ->
+                | Some caller, IsParticipant participants (DataObject { DataObjectType = DomainType.DataObjectData (domain, expectedDataType) } as dataObject) ->
                     result {
                         let! data =
                             dataName
-                            |> Assert.data output indentation line expectedDataType
+                            |> Assert.data output indentation line domainTypes expectedDataType domain
 
                         let part = PostData {
                             Caller = caller
@@ -706,11 +706,11 @@ module Parser =
                 | None, _ ->
                     Error <| DataReadWithoutACaller (line |> Line.error indentation)
 
-                | Some caller, IsParticipant participants (DataObject { DataObjectType = DomainType.DataObjectData expectedDataType } as dataObject) ->
+                | Some caller, IsParticipant participants (DataObject { DataObjectType = DomainType.DataObjectData (domain, expectedDataType) } as dataObject) ->
                     result {
                         let! data =
                             dataName
-                            |> Assert.data output indentation line expectedDataType
+                            |> Assert.data output indentation line domainTypes expectedDataType domain
 
                         let part = ReadData {
                             Caller = caller

@@ -9,33 +9,36 @@ module TucName =
     let value (TucName name) = name
 
 [<RequireQualifiedAccess>]
+type DataError =
+    | Empty
+    | WrongFormat
+
+[<RequireQualifiedAccess>]
 type EventError =
     | Empty
     | WrongFormat
 
-type Data = Data of string
-
-type Event = {
+type Data = {
     Original: string
     Path: string list
 }
 
 [<RequireQualifiedAccess>]
-module Event =
+module Data =
     open MF.TucConsole
 
     let ofString = function
         | String.IsEmpty ->
-            Error EventError.Empty
+            Error DataError.Empty
         | wrongFormat when wrongFormat.Contains " " || wrongFormat.StartsWith "." || wrongFormat.EndsWith "." ->
-            Error EventError.WrongFormat
+            Error DataError.WrongFormat
         | event ->
             Ok {
                 Original = event
                 Path = event.Split "." |> List.ofSeq
             }
 
-    let private path { Path = path } = path
+    let path { Path = path } = path
 
     let lastInPath =
         path
@@ -48,6 +51,23 @@ module Event =
     let link = function
         | { Path = [ single ] } -> single
         | { Path = _ } as event -> sprintf "[[{%s}%s]]" (event |> value) (event |> lastInPath)
+
+type Event = Event of Data
+
+[<RequireQualifiedAccess>]
+module Event =
+    open ErrorHandling.Result.Operators
+
+    let data (Event data) = data
+
+    let ofString = Data.ofString >!> Event >@> (function
+        | DataError.Empty -> EventError.Empty
+        | DataError.WrongFormat -> EventError.WrongFormat
+    )
+    let path = data >> Data.path
+    let lastInPath = data >> Data.lastInPath
+    let value = data >> Data.value
+    let link = data >> Data.link
 
 type Tuc = {
     Name: TucName

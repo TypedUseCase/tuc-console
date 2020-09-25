@@ -80,25 +80,25 @@ module Dump =
                 (indent (indentation - 4))
                 (method.Function.Returns |> TypeDefinition.value)
 
-        | PostData { Caller = caller; DataObject = dataObject; Data = Data data } ->
+        | PostData { Caller = caller; DataObject = dataObject; Data = { Original = data } } ->
             sprintf "<c:gray>post:</c> <c:dark-yellow>%s</c> -> %s  <c:gray>// Called by</c> %s"
                 data
                 (dataObject |> formatActiveParticipant)
                 (caller |> formatActiveParticipant)
 
-        | ReadData { Caller = caller; DataObject = dataObject; Data = Data data } ->
+        | ReadData { Caller = caller; DataObject = dataObject; Data = { Original = data } } ->
             sprintf "<c:gray>read:</c> <c:dark-yellow>%s</c> <- %s  <c:gray>// Called by</c> %s"
                 data
                 (dataObject |> formatActiveParticipant)
                 (caller |> formatActiveParticipant)
 
-        | PostEvent { Caller = caller; Stream = stream; Event = { Original = event } } ->
+        | PostEvent { Caller = caller; Stream = stream; Event = (Event { Original = event }) } ->
             sprintf "<c:gray>post:</c> <c:yellow>%s</c> -> %s  <c:gray>// Called by</c> %s"
                 event
                 (stream |> formatActiveParticipant)
                 (caller |> formatActiveParticipant)
 
-        | ReadEvent { Caller = caller; Stream = stream; Event = { Original = event } } ->
+        | ReadEvent { Caller = caller; Stream = stream; Event = (Event { Original = event }) } ->
             sprintf "<c:gray>read:</c> <c:yellow>%s</c> <- %s  <c:gray>// Called by</c> %s"
                 event
                 (stream |> formatActiveParticipant)

@@ -51,11 +51,11 @@ module private Assert =
             return ()
         }
 
-    let rec private assertIsOfEventType (output: MF.ConsoleApplication.Output) indentation line (DomainTypes domainTypes) domain eventType (event: Event) =
+    let rec private assertIsOfType (output: MF.ConsoleApplication.Output) title errorEmptyName errorWrongEvent indentation line (DomainTypes domainTypes) domain dataType data =
         let isDebug = output.IsDebug()
         if isDebug then
             output.Message (String.replicate 60 "." |> sprintf "<c:yellow>%s</c>")
-            output.Message <| sprintf "Event: %A" event
+            output.Message <| sprintf "%s: %A" title data
 
         let currentPosition currentPath =
             (indentation |> Indentation.size)
@@ -70,29 +70,29 @@ module private Assert =
             cases
             |> List.tryFind (fst >> TypeName.value >> (=) eventName)
             |> Option.map snd
-            |> Result.ofOption (Errors.wrongEvent indentation line (cases |> casesNames))
+            |> Result.ofOption (errorWrongEvent indentation line (cases |> casesNames))
 
         let debugChecking eventName =
             if isDebug then output.Message <| sprintf "\n<c:purple>Checking</c> <c:yellow>%s</c>" eventName
 
         let rec assertType cases currentPath = function
-            | [] -> Error <| Errors.wrongEventName indentation line EventError.Empty
+            | [] -> Error <| errorEmptyName indentation line
 
-            | [ eventName ] ->
+            | [ name ] ->
                 if isDebug then output.Message "<c:gray>// the end of path</c>"
 
-                eventName
+                name
                 |> tee debugChecking
                 |> caseTypeByName (currentPosition currentPath) cases
                 |> Result.map ignore
 
-            | eventName :: path ->
+            | name :: path ->
                 result {
-                    eventName |> debugChecking
-                    let currentPath = eventName :: currentPath
+                    name |> debugChecking
+                    let currentPath = name :: currentPath
 
                     let! case =
-                        eventName
+                        name
                         |> caseTypeByName (currentPosition currentPath) cases
 
                     let cases =
@@ -128,27 +128,49 @@ module private Assert =
                     return! path |> assertType cases currentPath
                 }
 
-        event.Path |> assertType [ eventType |> DomainType.name, eventType ] []
+        data |> Data.path |> assertType [ dataType |> DomainType.name, dataType ] []
 
     let event (output: MF.ConsoleApplication.Output) indentation line domainTypes expectedEventTypeName domain eventName = result {
         let! event =
             eventName
             |> Event.ofString
-            |> Result.mapError (Errors.wrongEventName indentation line)
+            |> Result.mapError (fun e -> Errors.wrongEventName e indentation line)
 
         let eventType =
             match domainTypes with
             | HasDomainType domain expectedEventTypeName eventType -> eventType
             | _ -> failwithf "[Assert] Undefined Event Type %A expected." expectedEventTypeName
 
-        do! event |> assertIsOfEventType output indentation line domainTypes domain eventType
+        do!
+            event
+            |> Event.data
+            |> assertIsOfType output "Event"
+                (Errors.wrongEventName EventError.Empty)
+                Errors.wrongEvent
+                indentation line domainTypes domain
+                eventType
 
         return event
     }
 
-    let data (output: MF.ConsoleApplication.Output) indentation line expectedDataTypeName dataName = result {
-        if expectedDataTypeName <> dataName then
-            return! Error <| Errors.wrongData indentation line dataName expectedDataTypeName
+    let data (output: MF.ConsoleApplication.Output) indentation line domainTypes expectedDataTypeName domain dataName = result {
+        let! data =
+            dataName
+            |> Data.ofString
+            |> Result.mapError (fun e -> Errors.wrongDataName e indentation line)
 
-        return Data dataName
+        let dataType =
+            match domainTypes with
+            | HasDomainType domain expectedDataTypeName dataType -> dataType
+            | _ -> failwithf "[Assert] Undefined Data Type %A expected." expectedDataTypeName
+
+        do!
+            data
+            |> assertIsOfType output "Data"
+                (Errors.wrongDataName DataError.Empty)
+                Errors.wrongData
+                indentation line domainTypes domain
+                dataType
+
+        return data
     }

@@ -2,6 +2,14 @@ tuc Post Data
 participants
     MainService My as "Main Service"
     [InteractionDatabase] My
+    [InteractionCache] My
 
 MainService                                     // MainService is the caller
     InteractionEntity -> [InteractionDatabase]  // InteractionEntity is posted to the Database
+
+    // Even concrete data can be posted to the Data object
+    InteractionEvent.Confirmed -> [InteractionCache]
+
+    InteractionEvent.Rejected -> [InteractionCache]
+    InteractionEvent.Rejected.Expired -> [InteractionCache]
+    InteractionEvent.Rejected.Rejected -> [InteractionCache]

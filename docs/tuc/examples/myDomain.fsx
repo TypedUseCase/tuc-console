@@ -6,6 +6,7 @@ type Stream<'Event> = Stream of 'Event list
 type StreamHandler<'Event> = StreamHandler of ('Event -> unit)
 
 type Database<'Entity> = Database of 'Entity list
+type Cache<'CachedData> = Cache of 'CachedData list
 
 // domain types
 
@@ -41,3 +42,5 @@ and InteractionEntity = {
     Id: Id
     InteractionData: string
 }
+
+type InteractionCache = InteractionCache of Cache<InteractionEvent>

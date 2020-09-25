@@ -4,9 +4,13 @@
 
 actor "GenericService" as GenericService <<Parts>>
 database "IdCache" as IdCache <<Parts>>
+database "KeyCache" as KeyCache <<Parts>>
 
 activate GenericService
 IdCache ->> GenericService: Id
+KeyCache ->> GenericService: Key
+KeyCache ->> GenericService: [[{Key.Random}Random]]
+KeyCache ->> GenericService: [[{Key.Scalar.String}String]]
 
 deactivate GenericService
 

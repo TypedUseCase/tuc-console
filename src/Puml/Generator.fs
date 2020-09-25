@@ -171,24 +171,24 @@ module Generate =
                     yield methodReturns |> PumlPart.indent indentation
                 ]
 
-            | PostData { Caller = caller; DataObject = dataObject; Data = Data data } ->
+            | PostData { Caller = caller; DataObject = dataObject; Data = data } ->
                 let postData =
                     sprintf "%s ->> %s: %s"
                         (caller |> ActiveParticipant.name)
                         (dataObject |> ActiveParticipant.name)
-                        data
+                        (data |> Data.link)
                     |> PumlPart
 
                 [
                     postData |> PumlPart.indent indentation
                 ]
 
-            | ReadData { Caller = caller; DataObject = dataObject; Data = Data data } ->
+            | ReadData { Caller = caller; DataObject = dataObject; Data = data } ->
                 let readData =
                     sprintf "%s ->> %s: %s"
                         (dataObject |> ActiveParticipant.name)
                         (caller |> ActiveParticipant.name)
-                        data
+                        (data |> Data.link)
                     |> PumlPart
 
                 [

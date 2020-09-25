@@ -2,7 +2,12 @@ tuc test
 participants
     GenericService parts
     [IdCache] parts
+    [KeyCache] parts
 
 GenericService
     // post Id
     Id -> [IdCache]
+
+    Key -> [KeyCache]
+    Key.Random -> [KeyCache]
+    Key.Scalar.String -> [KeyCache]
