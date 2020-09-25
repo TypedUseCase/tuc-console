@@ -58,9 +58,10 @@ let main argv =
 
                 Option.optional "output" (Some "o") "Path to an output file for generated PlantUML. (It must be a .puml)" None
                 Option.optional "image" (Some "i") (sprintf "Path to an output image file for generated PlantUML. (It must be one of [ %s ])" imageOutputFormats) None
-                Option.optional "tuc" (Some "t") "Tuc name, which should only be generated (from multi-tuc file)." None
-                Option.noValue "watch" (Some "w") "Whether to watch a domain and tuc file/dir, to change an output file on the fly."
                 Option.optional "style" (Some "s") "Path to a file containing a styles for resulting .puml (in .puml notation)." None
+                Option.noValue "watch" (Some "w") "Whether to watch a domain and tuc file/dir, to change an output file on the fly."
+                Option.optional "tuc" (Some "t") "Tuc name, which should only be generated (from multi-tuc file)." None
+                Option.noValue "all" None "Whether to generate a dir with all multi-tucs (from multi-tuc file)."
             ]
             Initialize = None
             Interact = None

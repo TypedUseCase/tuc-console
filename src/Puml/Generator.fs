@@ -406,6 +406,19 @@ module Generate =
             | AsciiUnicode -> OutputFormat.Ascii_Unicode
             | LaTeX -> OutputFormat.LaTeX
 
+        let extension = function
+            | Png -> "png"
+            | Svg -> "svg"
+            | Eps -> "eps"
+            | Pdf -> "pdf"
+            | Vdx -> "vdx"
+            | Xmi -> "xmi"
+            | Scxml -> "scxml"
+            | Html -> "html"
+            | Ascii -> "ascii"
+            | AsciiUnicode -> "ascii_Unicode"
+            | LaTeX -> "laTeX"
+
     let image imageFormat (Puml puml) = asyncResult {
         let factory = RendererFactory()
         let renderer = factory.CreateRenderer(PlantUmlSettings())

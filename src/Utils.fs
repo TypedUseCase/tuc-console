@@ -101,6 +101,8 @@ module Path =
 
     let fileName = String.split "/" >> List.rev >> List.head
 
+    let fileNameWithoutExtension: string -> string = Path.GetFileNameWithoutExtension
+
     let dirName path =
         let file = path |> fileName
         path.Substring(0, path.Length - file.Length)
