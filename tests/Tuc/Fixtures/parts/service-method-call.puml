@@ -15,7 +15,7 @@ GenericService -> Service ++: DoSomeWork(Id)
         the id
         and returns a result
     end hnote
-    Service -> Service ++: MethodWithMoreArgs(Id, string, InputEvent)
+    Service -> Service ++: MethodWithMoreArgs(\n  Id, \n  string, \n  InputEvent\n)
     Service --> Service --: WorkResult
 Service --> GenericService --: WorkResult
 

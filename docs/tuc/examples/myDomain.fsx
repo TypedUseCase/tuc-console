@@ -13,6 +13,7 @@ type MainService = Initiator
 
 type Service = {
     Method: Input -> Output
+    MethodWithMoreArgs: Id -> int * string -> Input -> Output
 }
 
 and Input = Input

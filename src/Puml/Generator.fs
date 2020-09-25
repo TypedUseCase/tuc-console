@@ -145,11 +145,17 @@ module Generate =
                     |> FunctionDefinition.fold
 
                 let callMethod =
+                    let arguments =
+                        match arguments with
+                        | [] -> ""
+                        | [ single ] -> single |> TypeDefinition.value
+                        | many -> many |> List.map TypeDefinition.value |> String.concat ", \\n  " |> sprintf "\\n  %s\\n"
+
                     sprintf "%s -> %s ++: %s(%s)"
                         (caller |> ActiveParticipant.name)
                         (service |> ActiveParticipant.name)
                         (method.Name |> FieldName.value)
-                        (arguments |> List.map TypeDefinition.value |> String.concat ", ")
+                        arguments
                     |> PumlPart
 
                 let methodReturns =

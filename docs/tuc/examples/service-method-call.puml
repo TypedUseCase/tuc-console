@@ -9,6 +9,9 @@ activate MainService
 MainService -> Service ++: Method(Input)
     note over Service: this is part of execution
 Service --> MainService --: Output
+MainService -> Service ++: MethodWithMoreArgs(\n  Id, \n  int * string, \n  Input\n)
+    note over Service: this is part of execution
+Service --> MainService --: Output
 
 deactivate MainService
 

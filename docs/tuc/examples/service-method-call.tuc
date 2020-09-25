@@ -6,3 +6,6 @@ participants
 MainService                             // MainService is the caller
     Service.Method                      // Method `Method` is called on the `Service`
         "this is part of execution"     // This is part of the Method execution
+
+    Service.MethodWithMoreArgs          // Method `MethodWithMoreArgs` is called on the `Service`
+        "this is part of execution"     // This is part of the Method execution
