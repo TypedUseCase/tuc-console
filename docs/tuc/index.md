@@ -102,6 +102,8 @@ There is currently 13 available parts:
 * [Lifeline](/tuc-console/tuc/parts.html#lifeline)
 * [Section](/tuc-console/tuc/parts.html#section)
 * [Service Method Call](/tuc-console/tuc/parts.html#service-method-call)
+* [Post Data](/tuc-console/tuc/parts.html#post-data)
+* [Read Data](/tuc-console/tuc/parts.html#read-data)
 * [Post Event](/tuc-console/tuc/parts.html#post-event)
 * [Read Event](/tuc-console/tuc/parts.html#read-event)
 * [Handle Event In Stream](/tuc-console/tuc/parts.html#handle-event-in-stream)
