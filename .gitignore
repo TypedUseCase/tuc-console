@@ -29,3 +29,6 @@ paket-files/
 # application
 output
 .neo4j.json
+
+docs
+dist
