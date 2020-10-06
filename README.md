@@ -1,17 +1,17 @@
 TUC console
 ===========
 
-[![Build Status](https://dev.azure.com/MortalFlesh/TucConsole/_apis/build/status/MortalFlesh.tuc-console?branchName=master)](https://dev.azure.com/MortalFlesh/TucConsole/_build/latest?definitionId=11&branchName=master)
-[![Build Status](https://api.travis-ci.com/MortalFlesh/tuc-console.svg?branch=master)](https://travis-ci.com/MortalFlesh/tuc-console)
-[![Version](https://vsmarketplacebadge.apphb.com/version/MortalFlesh.tuc.svg)](https://marketplace.visualstudio.com/items?itemName=MortalFlesh.tuc)
-[![tuc-docs](https://img.shields.io/badge/documentation-tuc-orange.svg)](https://mortalflesh.github.io/tuc-console/)
+[![Build Status](https://dev.azure.com/TypedUseCase/tuc-console/_apis/build/status/TypedUseCase.tuc-console?branchName=master)](https://dev.azure.com/TypedUseCase/tuc-console/_build/latest?definitionId=11&branchName=master)
+[![Build Status](https://travis-ci.com/TypedUseCase/tuc-console.svg?branch=master)](https://travis-ci.com/TypedUseCase/tuc-console)
+[![Version](https://vsmarketplacebadge.apphb.com/version/TypedUseCase.tuc.svg)](https://marketplace.visualstudio.com/items?itemName=TypedUseCase.tuc)
+[![tuc-docs](https://img.shields.io/badge/documentation-tuc-orange.svg)](https://typedusecase.github.io/)
 
 > Console application for managing `.tuc` files.
 
 ## TUC
 > **T**yped **U**se-**C**ase
 
-![tuc-logo](https://raw.githubusercontent.com/MortalFlesh/tuc-console/master/docs/assets/tuc-logo.png)
+![tuc-logo](https://github.com/TypedUseCase/TypedUseCase.github.io/raw/master/assets/tuc-logo.png)
 
 It is basically a use case definition, for which this console application can generate [PlantUML](https://plantuml.com/) diagram, where all services are domain specific type safe.
 
@@ -31,7 +31,7 @@ Interaction collector service identify a person and accepts an interaction.
 
 *It is just a simplified real-life process.*
 
-*Note: All files are in the [example](https://github.com/MortalFlesh/tuc-console/tree/master/example) dir.*
+*Note: All files are in the [example](https://github.com/TypedUseCase/tuc-console/tree/master/example) dir.*
 
 ### consentsDomain.fsx
 ```fs
@@ -195,7 +195,7 @@ deactivate GenericService
 @enduml
 ```
 
-![Example PlantUML result](https://raw.githubusercontent.com/MortalFlesh/tuc-console/master/example/graph.svg)
+![Example PlantUML result](https://raw.githubusercontent.com/TypedUseCase/tuc-console/master/example/graph.svg)
 
 ## Run statically
 
