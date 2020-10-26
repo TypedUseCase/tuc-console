@@ -19,6 +19,12 @@ steps:
     version: '3.1.x'
     packageType: sdk
 
+- task: UseDotNet@2
+  displayName: ".NET Core 5.0.x"
+  inputs:
+    version: '5.0.100-rc.2.20479.15'
+    packageType: sdk
+
 - script:
-    ./fake.sh build target tests no-clean
+    ./build.sh tests no-clean
   displayName: 'Run tests'
