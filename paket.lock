@@ -1,5 +1,5 @@
 STORAGE: NONE
-RESTRICTION: == netcoreapp3.1
+RESTRICTION: == net5.0
 NUGET
   remote: https://api.nuget.org/v3/index.json
     Colorful.Console (1.2.11)
@@ -32,7 +32,7 @@ NUGET
       System.Reflection.Metadata (>= 1.6)
       System.Reflection.TypeExtensions (>= 4.3)
       System.Runtime.Loader (>= 4.0)
-    FSharp.Core (4.7.2)
+    FSharp.Core (5.0)
     FSharp.Data (3.3.3)
       FSharp.Core (>= 4.3.4)
     MF.ConsoleApplication (2.0)
