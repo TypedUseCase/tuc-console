@@ -1,14 +1,14 @@
-module MF.TucConsole.Test.Tuc.Parser
+module Tuc.Console.Test.Tuc.Parser
 
 open Expecto
 open System.IO
 
-open MF.Tuc
+open Tuc
 
 [<AutoOpen>]
 module Common =
-    open MF.Tuc.Parser
-    open MF.Puml
+    open Tuc.Parser
+    open Tuc.Puml
 
     let (</>) a b = Path.Combine(a, b)
 

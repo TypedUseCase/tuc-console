@@ -1,8 +1,8 @@
-namespace MF.Puml
+namespace Tuc.Puml
 
-open MF.TucConsole
+open Tuc.Console
 open Tuc.Domain
-open MF.Tuc
+open Tuc
 open ErrorHandling
 
 type PumlError =

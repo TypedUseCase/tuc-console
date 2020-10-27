@@ -1,4 +1,4 @@
-module MF.TucConsole.Test.Tuc.Parser
+module Tuc.Console.Test.Tuc.Parser
 
 open Expecto
 open System.IO

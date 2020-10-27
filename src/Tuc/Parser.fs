@@ -1,7 +1,7 @@
-namespace MF.Tuc.Parser
+namespace Tuc.Parser
 
-open MF.TucConsole
-open MF.Tuc
+open Tuc
+open Tuc.Console
 open Tuc.Domain
 
 [<RequireQualifiedAccess>]

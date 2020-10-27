@@ -1,7 +1,4 @@
-namespace MF.Puml
-
-open Tuc.Domain
-open MF.Tuc
+namespace Tuc.Puml
 
 type Puml = Puml of string
 type PumlImage = PumlImage of byte []

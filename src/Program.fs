@@ -1,8 +1,8 @@
 open System
 open System.IO
 open MF.ConsoleApplication
-open MF.TucConsole
-open MF.TucConsole.Console
+open Tuc.Console
+open Tuc.Console.Console
 open Tuc.Domain
 open ErrorHandling
 
@@ -53,7 +53,7 @@ let main argv =
             ]
             Options = [
                 let imageOutputFormats =
-                    MF.Puml.Generate.ImageFormat.formats
+                    Tuc.Puml.Generate.ImageFormat.formats
                     |> String.concat ", "
 
                 Option.optional "output" (Some "o") "Path to an output file for generated PlantUML. (It must be a .puml)" None

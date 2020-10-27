@@ -1,4 +1,4 @@
-namespace MF.TucConsole
+namespace Tuc.Console
 
 module Console =
     open System.IO

@@ -1,6 +1,6 @@
-namespace MF.Tuc
+namespace Tuc
 
-open MF.TucConsole
+open Tuc.Console
 open Tuc.Domain
 
 [<RequireQualifiedAccess>]

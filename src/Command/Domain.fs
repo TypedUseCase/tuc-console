@@ -1,8 +1,8 @@
-namespace MF.TucConsole.Command
+namespace Tuc.Console.Command
 
 open MF.ConsoleApplication
-open MF.TucConsole
-open MF.TucConsole.Console
+open Tuc.Console
+open Tuc.Console.Console
 
 [<RequireQualifiedAccess>]
 module Domain =
