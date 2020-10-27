@@ -2,7 +2,7 @@ TUC console
 ===========
 
 [![Build Status](https://dev.azure.com/TypedUseCase/tuc-console/_apis/build/status/TypedUseCase.tuc-console?branchName=master)](https://dev.azure.com/TypedUseCase/tuc-console/_build/latest?definitionId=11&branchName=master)
-[![Build Status](https://travis-ci.com/TypedUseCase/tuc-console.svg?branch=master)](https://travis-ci.com/TypedUseCase/tuc-console)
+![Check](https://github.com/TypedUseCase/tuc-console/workflows/Check/badge.svg)
 [![Version](https://vsmarketplacebadge.apphb.com/version/TypedUseCase.tuc.svg)](https://marketplace.visualstudio.com/items?itemName=TypedUseCase.tuc)
 [![tuc-docs](https://img.shields.io/badge/documentation-tuc-orange.svg)](https://typedusecase.github.io/)
 
