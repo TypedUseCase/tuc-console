@@ -1,6 +1,6 @@
 namespace MF.Puml
 
-open MF.Domain
+open Tuc.Domain
 open MF.Tuc
 
 type Puml = Puml of string

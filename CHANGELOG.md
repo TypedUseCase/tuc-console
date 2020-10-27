@@ -2,6 +2,7 @@
 
 <!-- There is always Unreleased section on the top. Subsections (Add, Changed, Fix, Removed) should be Add as needed. -->
 ## Unreleased
+- Use `Tuc.DomainResolver` as a external library
 
 ## 1.2.0 - 2020-09-25
 - Fix wrong error occurrence when there is undefined participant in component.

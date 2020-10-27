@@ -1,7 +1,7 @@
 namespace MF.Puml
 
 open MF.TucConsole
-open MF.Domain
+open Tuc.Domain
 open MF.Tuc
 open ErrorHandling
 

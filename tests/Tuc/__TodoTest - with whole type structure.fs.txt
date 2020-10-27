@@ -15,7 +15,7 @@ let expectResult expected actual description =
     | Ok _, Error error -> failtestf "Success was expected, but it results in error.\n%A" error
 
 module Domain =
-    open MF.Domain
+    open Tuc.Domain
     open ErrorHandling
 
     let private orFail formatError = function
@@ -38,7 +38,7 @@ module Domain =
 
 [<RequireQualifiedAccess>]
 module Event =
-    open MF.Domain
+    open Tuc.Domain
 
     type Case = {
         Description: string

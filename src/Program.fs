@@ -3,7 +3,7 @@ open System.IO
 open MF.ConsoleApplication
 open MF.TucConsole
 open MF.TucConsole.Console
-open MF.Domain
+open Tuc.Domain
 open ErrorHandling
 
 [<EntryPoint>]

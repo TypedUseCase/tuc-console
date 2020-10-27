@@ -1,6 +1,6 @@
 namespace MF.Tuc
 
-open MF.Domain
+open Tuc.Domain
 
 type TucName = TucName of string
 

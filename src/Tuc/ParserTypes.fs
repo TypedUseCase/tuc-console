@@ -3,7 +3,7 @@ namespace MF.Tuc.Parser
 open System
 open MF.TucConsole
 open MF.Tuc
-open MF.Domain
+open Tuc.Domain
 
 type private DomainTypes = DomainTypes of Map<DomainName option * TypeName, ResolvedType>
 

@@ -2,7 +2,7 @@ namespace MF.Tuc.Parser
 
 open MF.TucConsole
 open MF.Tuc
-open MF.Domain
+open Tuc.Domain
 
 [<RequireQualifiedAccess>]
 module Parser =

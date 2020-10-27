@@ -72,7 +72,7 @@ module Common =
         | Ok _, Error error -> failtestf "%s - Success was expected, but it results in error.\n%A" description error
 
 module Domain =
-    open MF.Domain
+    open Tuc.Domain
     open ErrorHandling
 
     let private parseDomain output domain =

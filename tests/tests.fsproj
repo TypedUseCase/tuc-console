@@ -17,7 +17,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Compile Include="Domain/ResolverTest.fs" />
     <Compile Include="Tuc/ParserTest.fs" />
   </ItemGroup>
 
