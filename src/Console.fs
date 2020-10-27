@@ -1,4 +1,4 @@
-namespace MF.TucConsole
+namespace Tuc.Console
 
 module Console =
     open System.IO
@@ -165,7 +165,7 @@ module Console =
         do! runForever
     }
 
-    open MF.Domain
+    open Tuc.Domain
     open ErrorHandling
 
     let parseDomain (input, output) domain =

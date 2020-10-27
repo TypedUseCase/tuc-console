@@ -1,6 +1,6 @@
-namespace MF.Tuc
+namespace Tuc
 
-open MF.Domain
+open Tuc.Domain
 
 type TucName = TucName of string
 
@@ -25,7 +25,7 @@ type Data = {
 
 [<RequireQualifiedAccess>]
 module Data =
-    open MF.TucConsole
+    open Tuc.Console
 
     let ofString = function
         | String.IsEmpty ->

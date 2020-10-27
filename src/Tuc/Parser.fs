@@ -1,8 +1,8 @@
-namespace MF.Tuc.Parser
+namespace Tuc.Parser
 
-open MF.TucConsole
-open MF.Tuc
-open MF.Domain
+open Tuc
+open Tuc.Console
+open Tuc.Domain
 
 [<RequireQualifiedAccess>]
 module Parser =

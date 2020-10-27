@@ -1,6 +1,6 @@
-namespace MF.Puml
+namespace Tuc.Puml
 
-open MF.TucConsole
+open Tuc.Console
 
 [<RequireQualifiedAccess>]
 module Format =

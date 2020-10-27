@@ -4,7 +4,7 @@
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFramework>netcoreapp3.1</TargetFramework>
-    <PackageId>MF.TucConsole</PackageId>
+    <PackageId>Tuc.Console</PackageId>
     <Version>1.2.0</Version>
   </PropertyGroup>
 
@@ -18,15 +18,6 @@
     <!-- Internal libraries -->
     <Compile Include="src/ErrorHandling/Result.fs" />
     <Compile Include="src/ErrorHandling/Option.fs" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Compile Include="src/Domain/Types.fs" />
-    <Compile Include="src/Domain/TypeResolver.fs" />
-    <Compile Include="src/Domain/Parser.fs" />
-    <Compile Include="src/Domain/Dumper.fs" />
-    <Compile Include="src/Domain/Resolver.fs" />
-    <Compile Include="src/Domain/Checker.fs" />
   </ItemGroup>
 
   <ItemGroup>

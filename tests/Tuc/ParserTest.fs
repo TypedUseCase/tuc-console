@@ -1,14 +1,14 @@
-module MF.TucConsole.Test.Tuc.Parser
+module Tuc.Console.Test.Tuc.Parser
 
 open Expecto
 open System.IO
 
-open MF.Tuc
+open Tuc
 
 [<AutoOpen>]
 module Common =
-    open MF.Tuc.Parser
-    open MF.Puml
+    open Tuc.Parser
+    open Tuc.Puml
 
     let (</>) a b = Path.Combine(a, b)
 
@@ -72,7 +72,7 @@ module Common =
         | Ok _, Error error -> failtestf "%s - Success was expected, but it results in error.\n%A" description error
 
 module Domain =
-    open MF.Domain
+    open Tuc.Domain
     open ErrorHandling
 
     let private parseDomain output domain =

@@ -413,6 +413,11 @@ NUGET
     System.Threading.Tasks.Dataflow (4.11.1)
     System.Windows.Extensions (4.7)
       System.Drawing.Common (>= 4.7)
+    Tuc.DomainResolver (1.0)
+      FSharp.Compiler.Service (>= 37.0)
+      FSharp.Core (>= 4.7.2)
+      FSharp.Data (>= 3.3.3)
+      MF.ConsoleApplication (>= 2.0)
 
 GROUP Build
 STORAGE: NONE

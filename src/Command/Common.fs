@@ -1,4 +1,4 @@
-namespace MF.TucConsole.Command
+namespace Tuc.Console.Command
 
 open MF.ConsoleApplication
 

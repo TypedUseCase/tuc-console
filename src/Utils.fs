@@ -1,4 +1,4 @@
-namespace MF.TucConsole
+namespace Tuc.Console
 
 [<RequireQualifiedAccess>]
 module FileSystem =

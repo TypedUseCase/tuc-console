@@ -1,14 +1,14 @@
-namespace MF.TucConsole.Command
+namespace Tuc.Console.Command
 
 open System
 open MF.ConsoleApplication
-open MF.TucConsole
-open MF.TucConsole.Console
+open Tuc.Console
+open Tuc.Console.Console
 
 [<RequireQualifiedAccess>]
 module Tuc =
-    open MF.Tuc
-    open MF.Tuc.Parser
+    open Tuc
+    open Tuc.Parser
     open ErrorHandling
 
     let check: ExecuteCommand = fun (input, output) ->
@@ -85,7 +85,7 @@ module Tuc =
         | _ ->
             execute (Some domain)
 
-    open MF.Puml
+    open Tuc.Puml
 
     [<RequireQualifiedAccess>]
     type private GeneratePuml =

@@ -1,12 +1,12 @@
-namespace MF.TucConsole.Command
+namespace Tuc.Console.Command
 
 open MF.ConsoleApplication
-open MF.TucConsole
-open MF.TucConsole.Console
+open Tuc.Console
+open Tuc.Console.Console
 
 [<RequireQualifiedAccess>]
 module Domain =
-    open MF.Domain
+    open Tuc.Domain
 
     let check: ExecuteCommand = fun (input, output) ->
         let domain = (input, output) |> Input.getDomain

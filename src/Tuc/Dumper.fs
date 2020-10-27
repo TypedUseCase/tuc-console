@@ -1,7 +1,7 @@
-namespace MF.Tuc
+namespace Tuc
 
-open MF.TucConsole
-open MF.Domain
+open Tuc.Console
+open Tuc.Domain
 
 [<RequireQualifiedAccess>]
 module Dump =
