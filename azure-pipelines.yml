@@ -20,5 +20,5 @@ steps:
     packageType: sdk
 
 - script:
-    ./fake.sh build target tests no-clean
+    ./build.sh tests no-clean
   displayName: 'Run tests'
