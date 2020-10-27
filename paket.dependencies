@@ -2,10 +2,10 @@ framework: netcoreapp3.1
 storage: none
 
 source https://api.nuget.org/v3/index.json
-nuget FSharp.Core
-nuget FSharp.Data
-nuget FSharp.Compiler.Service
-nuget PlantUml.Net
+nuget FSharp.Core ~> 4.7
+nuget FSharp.Data ~> 3.3
+nuget FSharp.Compiler.Service ~> 37.0
+nuget PlantUml.Net ~> 1.2
 nuget MF.ConsoleApplication ~> 2.0
 
 group Tests
