@@ -33,12 +33,12 @@ module Dump =
                 context
 
     let private formatParticipant indentation: Format<Participant> = function
-        | Component { Name = name; Participants = participants } ->
+        | Participant.Component { Name = name; Participants = participants } ->
             sprintf "<c:purple>%s</c>:%s"
                 name
                 (participants |> List.formatLines (indent indentation) formatActiveParticipant)
 
-        | Participant participant -> participant |> formatActiveParticipant
+        | Participant.Participant participant -> participant |> formatActiveParticipant
 
     let rec private formatPart indentation: Format<TucPart> = function
         | Section { Value = section } -> sprintf "\nSection <c:purple>%s</c>\n" section
@@ -119,17 +119,70 @@ module Dump =
         | Note { Lines = lines } -> sprintf "Note:<c:gray>%s</c>" (lines |> List.formatLines (indent indentation) id)
         | RightNote { Lines = lines } -> sprintf "Right note:<c:gray>%s</c>" (lines |> List.formatLines (indent indentation) id)
 
-    let parsedTuc (output: MF.ConsoleApplication.Output) (tuc: Tuc) =
+    let parsedTuc (output: MF.ConsoleApplication.Output) (tuc: ParsedTuc) =
         tuc.Name
+        |> Parsed.value
         |> TucName.value
         |> sprintf "Tuc: %s"
         |> output.Section
 
         tuc.Participants
-        |> List.iter (formatParticipant indentSize >> output.Message)
+        |> List.iter (Parsed.value >> ParsedParticipant.participant >> formatParticipant indentSize >> output.Message)
         |> output.NewLine
 
         tuc.Parts
-        |> List.iter (formatPart indentSize >> output.Message)
+        |> List.iter (Parsed.value >> formatPart indentSize >> output.Message)
         |> output.NewLine
 
+    let private formatParsedValue formatValue parsed =
+        let value = parsed |> Parsed.value |> formatValue
+
+        let positions =
+            let formatLocation parsed value uri range =
+                sprintf "<c:gray>%s</c>: <c:cyan>%s</c> from <c:magenta>%d</c> to <c:magenta>%d</c> at <c:yellow>%s</c> in <c:dark-yellow>%s</c>"
+                    parsed
+                    value
+                    (range |> Range.startPosition |> Position.character)
+                    (range |> Range.endPosition |> Position.character)
+                    (range |> Range.lineString)
+                    uri
+
+            match parsed with
+            | Parsed.KeyWord k ->
+                [
+                    formatLocation "KeyWord" (k.KeyWord |> string) k.ValueLocation.Uri k.KeyWordRange
+                    formatLocation "Value" value k.ValueLocation.Uri k.ValueLocation.Range
+                ]
+            | Parsed.Participant p ->
+                [
+                    yield formatLocation "Value" value p.ValueLocation.Uri p.ValueLocation.Range
+
+                    match p.DomainRange with
+                    | Some domainRange -> yield formatLocation "Domain" "..." p.ValueLocation.Uri domainRange
+                    | _ -> ()
+
+                    match p.AliasRange with
+                    | Some aliasRange -> yield formatLocation "Alias" "..." p.ValueLocation.Uri aliasRange
+                    | _ -> ()
+                ]
+            | Parsed.Value v ->
+                [
+                    formatLocation "Value" value v.Location.Uri v.Location.Range
+                ]
+
+        sprintf "%s\n" (positions |> List.formatLines " - " id)
+
+    let detailedParsedTuc (output: MF.ConsoleApplication.Output) (tuc: ParsedTuc) =
+        tuc.Name
+        |> formatParsedValue TucName.value
+        |> output.Message
+        |> output.NewLine
+
+        tuc.Participants
+        |> List.iter (formatParsedValue (ParsedParticipant.participant >> formatParticipant indentSize) >> output.Message)
+        |> output.NewLine
+
+        // todo:
+        tuc.Parts
+        |> List.iter (Parsed.value >> formatPart indentSize >> output.Message)
+        |> output.NewLine

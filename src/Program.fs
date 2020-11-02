@@ -37,6 +37,7 @@ let main argv =
                 Argument.tucFileOrDir
             ]
             Options = [
+                Option.noValue "detail" (Some "d") "Whether to show detailed information about parsed Tuc file."
                 Option.noValue "watch" (Some "w") "Whether to watch domain file(s) and tuc file for changes."
             ]
             Initialize = None

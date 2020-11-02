@@ -4,6 +4,7 @@ open System
 open Tuc.Console
 open Tuc
 open Tuc.Domain
+open ErrorHandling
 
 type private DomainTypes = DomainTypes of Map<DomainName option * TypeName, ResolvedType>
 
@@ -38,6 +39,7 @@ type private RawLine = {
     Number: int
     Original: string
     Indentation: Indentation
+    /// Line content without heading and trailing spaces
     Content: string
     Comment: string option
 }
@@ -93,6 +95,7 @@ type private Line = {
     Original: string
     Depth: Depth
     Indentation: Indentation
+    /// Line content without heading and trailing spaces
     Content: string
     Tokens: string list
     Comment: string option
@@ -127,6 +130,28 @@ module private Line =
     let isIndentedOrMore indentation ({ Indentation = lineIndentation }: Line) = lineIndentation >= indentation
 
     let error (Indentation position) ({ Number = number; Original = line }: Line) = number, position, line
+
+    let tryFindRangeForWord (word: string) (line: Line) =
+        let start = line.Original.IndexOf(word)
+
+        if start < 0 then None
+        else Some {
+            Start = { Line = line.Number - 1; Character = start }
+            End = { Line = line.Number - 1; Character = start + word.Length }
+        }
+
+    let findRangeForWord word line =
+        match line |> tryFindRangeForWord word with
+        | None -> failwithf "Word %A is not found on the line:\n%s" word (line |> valuei)
+        | Some range -> range
+
+    let tryFindRangeForWordAfter offset word line = maybe {
+        let! range = line |> tryFindRangeForWord word
+
+        if range |> Range.startPosition |> Position.character < offset
+            then return! None
+            else return range
+    }
 
 [<RequireQualifiedAccess>]
 module private Errors =

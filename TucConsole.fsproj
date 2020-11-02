@@ -22,6 +22,7 @@
 
   <ItemGroup>
     <Compile Include="src/Tuc/Types.fs" />
+    <Compile Include="src/Tuc/ParsedTypes.fs" />
     <Compile Include="src/Tuc/ParseError.fs" />
 
     <!-- Parser -->

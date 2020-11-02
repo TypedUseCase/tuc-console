@@ -33,8 +33,13 @@ module Tuc =
                 | Ok tucs ->
                     output.Message <| sprintf "\n<c:gray>%s</c>\n" ("-" |> String.replicate 100)
 
+                    let dump =
+                        match input with
+                        | Input.HasOption "detail" _ -> Dump.detailedParsedTuc
+                        | _ -> Dump.parsedTuc
+
                     tucs
-                    |> List.iter (Dump.parsedTuc output)
+                    |> List.iter (dump output)
 
                     ExitCode.Success
                 | Error errors ->
@@ -208,7 +213,10 @@ module Tuc =
                 )
             }
 
-            do! tucs |> generateTucs "" specificTuc outputFile outputImage
+            do!
+                tucs
+                |> List.map ParsedTuc.tuc
+                |> generateTucs "" specificTuc outputFile outputImage
 
             if generateAll && tucs |> List.length > 1 then
                 let inline (/) a b = IO.Path.Combine(a, b)
@@ -235,7 +243,7 @@ module Tuc =
 
                 do!
                     tucs
-                    |> List.map (fun tuc ->
+                    |> List.map (ParsedTuc.tuc >> fun tuc ->
                         [ tuc ]
                         |> generateTucs "<c:gray>[Sub]</c>" None (outputFile tuc.Name) (Some (imagePath tuc.Name, imageFormat))
                     )

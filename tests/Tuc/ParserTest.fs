@@ -61,6 +61,7 @@ module Common =
         | Ok expected, Ok actual ->
             let puml =
                 actual
+                |> List.map ParsedTuc.tuc
                 |> Generate.puml output None description
                 |> orFail PumlError.format
                 |> Puml.value

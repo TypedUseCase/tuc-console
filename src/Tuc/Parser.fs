@@ -19,9 +19,13 @@ module Parser =
     type private ParseLines<'TucItem> = MF.ConsoleApplication.Output -> IndentationLevel -> Line list -> Result<ParseResult<'TucItem>, ParseError list>
 
     [<RequireQualifiedAccess>]
-    module private KeyWord =
+    module private KeyWords =
         let (|Tuc|_|): Line -> _ = function
-            | { Tokens = "tuc" :: name; Depth = Depth 0 } -> Some (name |> String.concat " ")
+            | { Tokens = "tuc" :: name; Depth = Depth 0 } as line ->
+                Some (
+                    name |> String.concat " ",
+                    Range.singleLine (line.Number - 1) (0, "tuc".Length)
+                )
             | _ -> None
 
         let (|Participants|_|): Line -> _ = function
@@ -66,10 +70,39 @@ module Parser =
 
     [<RequireQualifiedAccess>]
     module private Participants =
-        type private ParseParticipants = MF.ConsoleApplication.Output -> DomainTypes -> IndentationLevel -> Line list -> Result<Participant list, ParseError list>
+        type private ParseParticipants = MF.ConsoleApplication.Output -> DomainTypes -> IndentationLevel -> Line list -> Result<Parsed<ParsedParticipant> list, ParseError list>
 
-        let private parseService serviceName serviceDomain alias indentation line domainTypes =
-            let service = Service >> Ok
+        [<RequireQualifiedAccess>]
+        module private Participants =
+            let (|Component|_|): Line -> _ = function
+                | { Content = Regex @"^(\w+){1} (\w+){1}$" [ componentName; domainName ] } as line ->
+                    let componentNameRange = line |> Line.findRangeForWord componentName
+                    let domainNameRange = componentNameRange |> Range.fromEnd 1 (domainName.Length)
+
+                    Some ((componentName, componentNameRange), (domainName, domainNameRange))
+                | _ -> None
+
+        let private findParticipantRanges context domainName alias line =
+            let serviceRange = line |> Line.findRangeForWord context
+            let domainRange = line |> Line.tryFindRangeForWordAfter (serviceRange |> Range.endPosition |> Position.character) (domainName |> DomainName.value)
+            let aliasRange =
+                match domainRange with
+                | Some domainRange -> line |> Line.tryFindRangeForWordAfter (domainRange |> Range.endPosition |> Position.character) alias
+                | _ -> line |> Line.tryFindRangeForWordAfter (serviceRange |> Range.endPosition |> Position.character) alias
+
+            serviceRange, domainRange, aliasRange
+
+        let private parseService location serviceName serviceDomain alias indentation line domainTypes =
+            let service (service: ServiceParticipant) =
+                let serviceRange, domainRange, aliasRange =
+                    line |> findParticipantRanges service.Context service.Domain service.Alias
+
+                Ok (Parsed.Participant {
+                    Value = Service service
+                    ValueLocation = location serviceRange
+                    DomainRange = domainRange
+                    AliasRange = aliasRange
+                })
 
             match domainTypes with
             | HasDomainType (Some serviceDomain) serviceName (DomainType.ServiceInDomain serviceDomain componentType) ->
@@ -88,8 +121,17 @@ module Parser =
                 }
             | _ -> Error <| Errors.undefinedParticipantInDomain indentation line serviceDomain
 
-        let private parseDataObject streamName dataObjectDomain alias indentation line domainTypes =
-            let dataObject = ActiveParticipant.DataObject >> Ok
+        let private parseDataObject location streamName dataObjectDomain alias indentation line domainTypes =
+            let dataObject (dataObject: DataObjectParticipant) =
+                let serviceRange, domainRange, aliasRange =
+                    line |> findParticipantRanges dataObject.Context dataObject.Domain dataObject.Alias
+
+                Ok (Parsed.Participant {
+                    Value = DataObject dataObject
+                    ValueLocation = location serviceRange
+                    DomainRange = domainRange
+                    AliasRange = aliasRange
+                })
 
             match domainTypes with
             | HasDomainType (Some dataObjectDomain) streamName (DomainType.DataObject dataObjectDomain componentType) ->
@@ -101,8 +143,17 @@ module Parser =
                 }
             | _ -> Error <| Errors.undefinedParticipantInDomain indentation line dataObjectDomain
 
-        let private parseStream streamName streamDomain alias indentation line domainTypes =
-            let stream = ActiveParticipant.Stream >> Ok
+        let private parseStream location streamName streamDomain alias indentation line domainTypes =
+            let stream (stream: StreamParticipant) =
+                let serviceRange, domainRange, aliasRange =
+                    line |> findParticipantRanges stream.Context stream.Domain stream.Alias
+
+                Ok (Parsed.Participant {
+                    Value = ActiveParticipant.Stream stream
+                    ValueLocation = location serviceRange
+                    DomainRange = domainRange
+                    AliasRange = aliasRange
+                })
 
             match domainTypes with
             | HasDomainType (Some streamDomain) streamName (DomainType.Stream streamDomain componentType) ->
@@ -114,89 +165,89 @@ module Parser =
                 }
             | _ -> Error <| Errors.undefinedParticipantInDomain indentation line streamDomain
 
-        let private parseActiveParticipant (domainTypes: DomainTypes) indentation line =
+        let private parseActiveParticipant location (domainTypes: DomainTypes) indentation line =
             match line with
             | IndentedLine indentation line ->
                 match line |> Line.content with
                 // Service
                 | Regex @"^(\w+){1} (\w+){1}$" [ serviceName; serviceDomain ] ->
-                    domainTypes |> parseService serviceName (DomainName.create serviceDomain) serviceName indentation line
+                    domainTypes |> parseService location serviceName (DomainName.create serviceDomain) serviceName indentation line
 
                 | Regex @"^(\w+){1} (\w+){1} as ""(.+){1}""$" [ serviceName; serviceDomain; alias ] ->
-                    domainTypes |> parseService serviceName (DomainName.create serviceDomain) alias indentation line
+                    domainTypes |> parseService location serviceName (DomainName.create serviceDomain) alias indentation line
 
                 // Stream
                 | Regex @"^\[(\w+Stream){1}\] (\w+){1}$" [ streamName; streamDomain ] ->
-                    domainTypes |> parseStream streamName (DomainName.create streamDomain) streamName indentation line
+                    domainTypes |> parseStream location streamName (DomainName.create streamDomain) streamName indentation line
 
                 | Regex @"^\[(\w+Stream){1}\] (\w+){1} as ""(.+){1}""$" [ streamName; streamDomain; alias ] ->
-                    domainTypes |> parseStream streamName (DomainName.create streamDomain) alias indentation line
+                    domainTypes |> parseStream location streamName (DomainName.create streamDomain) alias indentation line
 
                 // Data Object
                 | Regex @"^\[(\w+){1}\] (\w+){1}$" [ dataObjectName; dataObjectDomain ] ->
-                    domainTypes |> parseDataObject dataObjectName (DomainName.create dataObjectDomain) dataObjectName indentation line
+                    domainTypes |> parseDataObject location dataObjectName (DomainName.create dataObjectDomain) dataObjectName indentation line
 
                 | Regex @"^\[(\w+){1}\] (\w+){1} as ""(.+){1}""$" [ streamName; streamDomain; alias ] ->
-                    domainTypes |> parseDataObject streamName (DomainName.create streamDomain) alias indentation line
+                    domainTypes |> parseDataObject location streamName (DomainName.create streamDomain) alias indentation line
 
                 | _ -> Error <| InvalidParticipant (line |> Line.error indentation)
 
             | _ -> Error <| WrongParticipantIndentation (line |> Line.error indentation)
 
-        let private parseComponentActiveParticipant (domainTypes: DomainTypes) indentation componentDomain line =
+        let private parseComponentActiveParticipant location (domainTypes: DomainTypes) indentation componentDomain line =
             match line with
             | IndentedLine indentation line ->
                 match line |> Line.content with
                 // Service
                 | Regex @"^(\w+){1}$" [ serviceName ] ->
-                    domainTypes |> parseService serviceName componentDomain serviceName indentation line
+                    domainTypes |> parseService location serviceName componentDomain serviceName indentation line
 
                 | Regex @"^(\w+){1} (\w+){1}$" [ serviceName; serviceDomain ] ->
                     if componentDomain |> DomainName.eq serviceDomain
-                    then domainTypes |> parseService serviceName componentDomain serviceName indentation line
+                    then domainTypes |> parseService location serviceName componentDomain serviceName indentation line
                     else Error <| Errors.wrongComponentParticipantDomain indentation line componentDomain
 
                 | Regex @"^(\w+){1} (\w+){1} as ""(.+){1}""$" [ serviceName; serviceDomain; alias ] ->
                     if componentDomain |> DomainName.eq serviceDomain
-                    then domainTypes |> parseService serviceName componentDomain alias indentation line
+                    then domainTypes |> parseService location serviceName componentDomain alias indentation line
                     else Error <| Errors.wrongComponentParticipantDomain indentation line componentDomain
 
                 | Regex @"^(\w+){1} as ""(.+){1}""$" [ serviceName; alias ] ->
-                    domainTypes |> parseService serviceName componentDomain alias indentation line
+                    domainTypes |> parseService location serviceName componentDomain alias indentation line
 
                 // Stream
                 | Regex @"^\[(\w+Stream){1}\]$" [ streamName ] ->
-                    domainTypes |> parseStream streamName componentDomain streamName indentation line
+                    domainTypes |> parseStream location streamName componentDomain streamName indentation line
 
                 | Regex @"^\[(\w+Stream){1}\] (\w+){1}$" [ streamName; streamDomain ] ->
                     if componentDomain |> DomainName.eq streamDomain
-                    then domainTypes |> parseStream streamName componentDomain streamName indentation line
+                    then domainTypes |> parseStream location streamName componentDomain streamName indentation line
                     else Error <| Errors.wrongComponentParticipantDomain indentation line componentDomain
 
                 | Regex @"^\[(\w+Stream){1}\] (\w+){1} as ""(.+){1}""$" [ streamName; streamDomain; alias ] ->
                     if componentDomain |> DomainName.eq streamDomain
-                    then domainTypes |> parseStream streamName componentDomain alias indentation line
+                    then domainTypes |> parseStream location streamName componentDomain alias indentation line
                     else Error <| Errors.wrongComponentParticipantDomain indentation line componentDomain
 
                 | Regex @"^\[(\w+Stream){1}\] as ""(.+){1}""$" [ streamName; alias ] ->
-                    domainTypes |> parseStream streamName componentDomain alias indentation line
+                    domainTypes |> parseStream location streamName componentDomain alias indentation line
 
                 // Data Object
                 | Regex @"^\[(\w+){1}\]$" [ dataObjectName ] ->
-                    domainTypes |> parseDataObject dataObjectName componentDomain dataObjectName indentation line
+                    domainTypes |> parseDataObject location dataObjectName componentDomain dataObjectName indentation line
 
                 | Regex @"^\[(\w+){1}\] (\w+){1}$" [ dataObjectName; dataObjectDomain ] ->
                     if componentDomain |> DomainName.eq dataObjectDomain
-                    then domainTypes |> parseDataObject dataObjectName componentDomain dataObjectName indentation line
+                    then domainTypes |> parseDataObject location dataObjectName componentDomain dataObjectName indentation line
                     else Error <| Errors.wrongComponentParticipantDomain indentation line componentDomain
 
                 | Regex @"^\[(\w+){1}\] (\w+){1} as ""(.+){1}""$" [ dataObjectName; dataObjectDomain; alias ] ->
                     if componentDomain |> DomainName.eq dataObjectDomain
-                    then domainTypes |> parseDataObject dataObjectName componentDomain alias indentation line
+                    then domainTypes |> parseDataObject location dataObjectName componentDomain alias indentation line
                     else Error <| Errors.wrongComponentParticipantDomain indentation line componentDomain
 
                 | Regex @"^\[(\w+){1}\] as ""(.+){1}""$" [ dataObjectName; alias ] ->
-                    domainTypes |> parseDataObject dataObjectName componentDomain alias indentation line
+                    domainTypes |> parseDataObject location dataObjectName componentDomain alias indentation line
 
                 | _ -> Error <| InvalidParticipant (line |> Line.error indentation)
 
@@ -206,14 +257,14 @@ module Parser =
                 | error -> error
             )
 
-        let private parseParticipant (domainTypes: DomainTypes) indentationLevel lines line: Result<Participant * Line list, ParseError list> =
+        let private parseParticipant location (domainTypes: DomainTypes) indentationLevel lines line: Result<Parsed<ParsedParticipant> * Line list, ParseError list> =
             let participantIndentation = indentationLevel |> IndentationLevel.indentation
 
-            match line |> Line.content with
-            | Regex @"^(\w+){1} (\w+){1}$" [ componentName; domainName ] ->
+            match line with
+            | Participants.Component ((componentName, componentRange), (domainName, domainRange)) ->
                 let domainName = DomainName.create domainName
 
-                let parsedComponent =
+                let parsedComponentResult =
                     match domainTypes with
                     | HasDomainType (Some domainName) componentName (DomainType.Component domainName componentFields) ->
                         result {
@@ -225,19 +276,27 @@ module Parser =
 
                             let! componentParticipants =
                                 componentParticipantLines
-                                |> List.map (parseComponentActiveParticipant domainTypes componentParticipantIndentation domainName)
+                                |> List.map (parseComponentActiveParticipant location domainTypes componentParticipantIndentation domainName)
                                 |> Validation.ofResults
                                 |> Validation.toResult
 
                             do!
                                 componentParticipants
+                                |> List.map Parsed.value
                                 |> Assert.definedComponentParticipants indentationLevel line
                                     componentName
                                     componentParticipantIndentation
                                     componentParticipantLines
                                     componentFields
 
-                            return Component { Name = componentName; Participants = componentParticipants }, lines
+                            return
+                                Parsed.Participant {
+                                    Value = Component { Name = componentName; Participants = componentParticipants }
+                                    ValueLocation = location componentRange
+                                    DomainRange = Some domainRange
+                                    AliasRange = None
+                                },
+                                lines
                         }
 
                     | _ ->
@@ -245,7 +304,7 @@ module Parser =
                             Errors.undefinedParticipantInDomain (indentationLevel |> IndentationLevel.indentation) line domainName
                         ]
 
-                match parsedComponent with
+                match parsedComponentResult with
                 | Ok parsedComponent -> Ok parsedComponent
 
                 | Error ([ UndefinedParticipantInDomain _ ]) ->
@@ -254,10 +313,10 @@ module Parser =
                     result {
                         let! activeParticipant =
                             line
-                            |> parseActiveParticipant domainTypes participantIndentation
+                            |> parseActiveParticipant location domainTypes participantIndentation
                             |> Validation.ofResult
 
-                        return Participant activeParticipant, lines
+                        return activeParticipant |> Parsed.map Participant, lines
                     }
 
                 | Error componentError -> Error componentError
@@ -266,13 +325,13 @@ module Parser =
                 result {
                     let! activeParticipant =
                         line
-                        |> parseActiveParticipant domainTypes participantIndentation
+                        |> parseActiveParticipant location domainTypes participantIndentation
                         |> Validation.ofResult
 
-                    return Participant activeParticipant, lines
+                    return activeParticipant |> Parsed.map Participant, lines
                 }
 
-        let rec private parseParticipants participants: ParseParticipants = fun output domainTypes indentationLevel -> function
+        let rec private parseParticipants location participants: ParseParticipants = fun output domainTypes indentationLevel -> function
             | [] ->
                 match participants with
                 | [] -> Error [ MissingParticipants ]
@@ -282,11 +341,11 @@ module Parser =
                 result {
                     let! participant, lines =
                         line
-                        |> parseParticipant domainTypes indentationLevel lines
+                        |> parseParticipant location domainTypes indentationLevel lines
 
                     return!
                         lines
-                        |> parseParticipants (participant :: participants) output domainTypes indentationLevel
+                        |> parseParticipants location (participant :: participants) output domainTypes indentationLevel
                 }
 
             | line :: _ ->
@@ -294,10 +353,10 @@ module Parser =
                     WrongParticipantIndentation (line |> Line.error (indentationLevel |> IndentationLevel.indentation))
                 ]
 
-        let parse domainTypes: ParseLines<Participant list> = fun output indentationLevel -> function
+        let parse location domainTypes: ParseLines<Parsed<ParsedParticipant> list> = fun output indentationLevel -> function
             | [] -> Error [ MissingParticipants ]
 
-            | KeyWord.Participants :: lines ->
+            | KeyWords.Participants :: lines ->
                 result {
                     let participantLines, lines =
                         lines
@@ -305,7 +364,7 @@ module Parser =
 
                     let! participants =
                         participantLines
-                        |> parseParticipants [] output domainTypes indentationLevel
+                        |> parseParticipants location [] output domainTypes indentationLevel
 
                     return { Item = participants; Lines = lines }
                 }
@@ -592,23 +651,23 @@ module Parser =
                 | _ ->
                     Error <| UnknownPart (line |> Line.error indentation)
 
-            | KeyWord.SingleLineDo indentation action ->
+            | KeyWords.SingleLineDo indentation action ->
                 match caller with
                 | None -> Error <| DoWithoutACaller (line |> Line.error indentation)
                 | Some caller -> Ok (Do { Caller = caller; Actions = [ action ] }, lines)
 
-            | KeyWord.SingleLineLeftNote indentation note ->
+            | KeyWords.SingleLineLeftNote indentation note ->
                 Ok (LeftNote { Lines = [ note ] }, lines)
 
-            | KeyWord.SingleLineRightNote indentation note ->
+            | KeyWords.SingleLineRightNote indentation note ->
                 Ok (RightNote { Lines = [ note ] }, lines)
 
-            | KeyWord.SingleLineNote indentation note ->
+            | KeyWords.SingleLineNote indentation note ->
                 match caller with
                 | None -> Error <| NoteWithoutACaller (line |> Line.error indentation)
                 | Some caller -> Ok (Note { Caller = caller; Lines = [ note ] }, lines)
 
-            | KeyWord.If indentation condition ->
+            | KeyWords.If indentation condition ->
                 match condition with
                 | String.IsEmpty -> Error <| IfWithoutCondition (line |> Line.error indentation)
                 | condition ->
@@ -620,7 +679,7 @@ module Parser =
 
                         let! elseBody, lines =
                             match lines with
-                            | KeyWord.Else indentation as elseLine :: lines ->
+                            | KeyWords.Else indentation as elseLine :: lines ->
                                 result {
                                     let! body, lines = lines |> parseBody (Depth 1)
 
@@ -640,7 +699,7 @@ module Parser =
                         return part, lines
                     }
 
-            | KeyWord.Group indentation groupName ->
+            | KeyWords.Group indentation groupName ->
                 match groupName with
                 | String.IsEmpty -> Error <| GroupWithoutName (line |> Line.error indentation)
                 | groupName ->
@@ -658,7 +717,7 @@ module Parser =
                         return part, lines
                     }
 
-            | KeyWord.Loop indentation condition ->
+            | KeyWords.Loop indentation condition ->
                 match condition with
                 | String.IsEmpty -> Error <| LoopWithoutCondition (line |> Line.error indentation)
                 | condition ->
@@ -806,7 +865,7 @@ module Parser =
                 | [] -> Error <| MissingUseCase tucName
                 | parts -> Ok (parts |> List.rev)
 
-            | KeyWord.Section section as line :: lines ->
+            | KeyWords.Section section as line :: lines ->
                 match section with
                 | String.IsEmpty -> Error <| SectionWithoutName (line |> Line.error (Indentation 0))
                 | section ->
@@ -843,30 +902,44 @@ module Parser =
                     return { Item = parts; Lines = [] }
                 }
 
-    let private parseTuc (output: MF.ConsoleApplication.Output) domainTypes indentationLevel lines =
+    let private parseTuc (output: MF.ConsoleApplication.Output) location domainTypes indentationLevel lines =
         result {
             let! name, lines =
                 match lines with
-                | (KeyWord.Tuc name as line) :: lines ->
+                | (KeyWords.Tuc (name, tucRange) as line) :: lines ->
                     match name with
                     | String.IsEmpty -> Error [ TucMustHaveName (line |> Line.error (Indentation 0)) ]
-                    | name -> Ok (TucName name, lines)
+                    | name ->
+                        Ok (
+                            Parsed.KeyWord {
+                                KeyWord = KeyWord.TucName
+                                KeyWordRange = tucRange
+                                Value = TucName name
+                                ValueLocation = tucRange |> Range.fromEnd 1 name.Length |> location
+                            },
+                            lines
+                        )
 
                 | _ ->
                     Error [ MissingTucName ]
 
             let! { Item = participants; Lines = lines } =
                 lines
-                |> Participants.parse domainTypes output indentationLevel
+                |> Participants.parse location domainTypes output indentationLevel
 
             let! { Item = parts } =
                 lines
-                |> Parts.parse name participants domainTypes output indentationLevel
+                |> Parts.parse
+                    (name |> Parsed.value)
+                    (participants |> List.map (Parsed.value >> ParsedParticipant.participant))
+                    domainTypes
+                    output
+                    indentationLevel
 
             return {
                 Name = name
                 Participants = participants
-                Parts = parts
+                Parts = [] // parts // todo
             }
         }
 
@@ -879,7 +952,7 @@ module Parser =
                 | [] -> Ok ()
                 | wrongLines -> Error <| WrongIndentationLevel (indentationLevel, wrongLines |> List.map RawLine.valuei)
 
-    let rec private parseLines (output: MF.ConsoleApplication.Output) domainTypes indentationLevel (tucAcc: Result<Tuc, ParseError list> list) = function
+    let rec private parseLines (output: MF.ConsoleApplication.Output) location domainTypes indentationLevel (tucAcc: Result<ParsedTuc, ParseError list> list) = function
         | [] ->
             match tucAcc with
             | [] -> Error [ MissingTucName ]
@@ -895,7 +968,7 @@ module Parser =
                 let currentTucLines, lines =
                     lines
                     |> List.splitBy (function
-                        | KeyWord.Tuc _ ->
+                        | KeyWords.Tuc _ ->
                             if isCurrentTuc
                             then
                                 isCurrentTuc <- false
@@ -915,9 +988,9 @@ module Parser =
 
                 let tuc =
                     currentTucLines
-                    |> parseTuc output domainTypes indentationLevel
+                    |> parseTuc output location domainTypes indentationLevel
 
-                return! lines |> parseLines output domainTypes indentationLevel (tuc :: tucAcc)
+                return! lines |> parseLines output location domainTypes indentationLevel (tuc :: tucAcc)
             }
 
     let parse (output: MF.ConsoleApplication.Output) domainTypes file = result {
@@ -957,5 +1030,5 @@ module Parser =
         return!
             rawLines
             |> List.map (Line.ofRawLine indentationLevel)
-            |> parseLines output domainTypes indentationLevel []
+            |> parseLines output (Location.create file) domainTypes indentationLevel []
     }
