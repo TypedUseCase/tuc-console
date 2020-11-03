@@ -1,6 +1,5 @@
 FSharp.Core
 FSharp.Data
-FSharp.Compiler.Service
-PlantUml.Net
+PlantUml.Net 
 MF.ConsoleApplication
 Tuc.DomainResolver

@@ -47,7 +47,7 @@ module Domain =
                 | File file -> file, WatchSubdirs.No
                 | Dir (dir, _) -> dir, WatchSubdirs.Yes
 
-            (path, "*.fsx")
+            (path, "*Domain.fsx")
             |> watch output watchSubdirs (fun _ -> execute None)
             |> Async.Start
 

@@ -59,7 +59,7 @@ module Console =
         let getDomain ((input, output): IO) =
             input
             |> Input.getArgumentValueAsString "domain"
-            |> FileOrDir.parse ".fsx"
+            |> FileOrDir.parse "Domain.fsx"
             |> tee (FileOrDir.debug output "Domain")
 
         let getTuc ((input, output): IO) =
