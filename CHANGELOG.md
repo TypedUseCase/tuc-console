@@ -2,6 +2,8 @@
 
 <!-- There is always Unreleased section on the top. Subsections (Add, Changed, Fix, Removed) should be Add as needed. -->
 ## Unreleased
+
+## 1.3.0 - 2020-11-03
 - Use `Tuc.DomainResolver` as a external library
 - Use `Tuc.` namespace for the whole application
 - Parse only `.fsx` files with Domain types (it must end with `Domain.fsx`).
