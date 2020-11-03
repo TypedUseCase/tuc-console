@@ -73,7 +73,7 @@ module Tuc =
                 (tucPath, "*.tuc")
                 |> watch output watchTucSubdirs (fun _ -> execute None |> ignore)
 
-                (domainPath, "*.fsx")
+                (domainPath, "*Domain.fsx")
                 |> watch output watchDomainSubdirs (fun _ -> execute None |> ignore)
             ]
             |> List.iter Async.Start
@@ -306,7 +306,7 @@ module Tuc =
                 (tucPath, "*.tuc")
                 |> watch output watchTucSubdirs (fun _ -> execute GeneratePuml.InWatch |> ignore)
 
-                (domainPath, "*.fsx")
+                (domainPath, "*Domain.fsx")
                 |> watch output watchDomainSubdirs (fun _ -> execute GeneratePuml.InWatch |> ignore)
             ]
             |> List.iter Async.Start

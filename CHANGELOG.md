@@ -4,6 +4,7 @@
 ## Unreleased
 - Use `Tuc.DomainResolver` as a external library
 - Use `Tuc.` namespace for the whole application
+- Parse only `.fsx` files with Domain types (it must end with `Domain.fsx`).
 
 ## 1.2.0 - 2020-09-25
 - Fix wrong error occurrence when there is undefined participant in component.
