@@ -70,7 +70,7 @@ module Parser =
 
     [<RequireQualifiedAccess>]
     module private Participants =
-        type private ParseParticipants = MF.ConsoleApplication.Output -> DomainTypes -> IndentationLevel -> Line list -> Result<Parsed<ParsedParticipant> list, ParseError list>
+        type private ParseParticipants = MF.ConsoleApplication.Output -> DomainTypes -> IndentationLevel -> Line list -> Result<ParsedParticipant list, ParseError list>
 
         [<RequireQualifiedAccess>]
         module private Participants =
@@ -82,26 +82,49 @@ module Parser =
                     Some ((componentName, componentNameRange), (domainName, domainNameRange))
                 | _ -> None
 
-        let private findParticipantRanges context domainName alias line =
-            let serviceRange = line |> Line.findRangeForWord context
-            let domainRange = line |> Line.tryFindRangeForWordAfter (serviceRange |> Range.endPosition |> Position.character) (domainName |> DomainName.value)
-            let aliasRange =
-                match domainRange with
-                | Some domainRange -> line |> Line.tryFindRangeForWordAfter (domainRange |> Range.endPosition |> Position.character) alias
-                | _ -> line |> Line.tryFindRangeForWordAfter (serviceRange |> Range.endPosition |> Position.character) alias
+        let private findParticipantLocations location context domainName alias line =
+            let context = {
+                Value = context
+                Location = line |> Line.findRangeForWord context |> location
+            }
 
-            serviceRange, domainRange, aliasRange
+            let domain = maybe {
+                let domain = domainName |> DomainName.value
+
+                let! range =
+                    line
+                    |> Line.tryFindRangeForWordAfter (context |> ParsedLocation.endChar) domain
+
+                return {
+                    Value = domain
+                    Location = range |> location
+                }
+            }
+
+            let alias = maybe {
+                let! range =
+                    match domain with
+                    | Some domain -> line |> Line.tryFindRangeForWordAfter (domain |> ParsedLocation.endChar) alias
+                    | _ -> line |> Line.tryFindRangeForWordAfter (context |> ParsedLocation.endChar) alias
+
+                return {
+                    Value = alias
+                    Location = range |> location
+                }
+            }
+
+            context, domain, alias
 
         let private parseService location serviceName serviceDomain alias indentation line domainTypes =
             let service (service: ServiceParticipant) =
-                let serviceRange, domainRange, aliasRange =
-                    line |> findParticipantRanges service.Context service.Domain service.Alias
+                let context, domain, alias =
+                    line |> findParticipantLocations location service.Context service.Domain service.Alias
 
                 Ok (Parsed.Participant {
                     Value = Service service
-                    ValueLocation = location serviceRange
-                    DomainRange = domainRange
-                    AliasRange = aliasRange
+                    Context = context
+                    Domain = domain
+                    Alias = alias
                 })
 
             match domainTypes with
@@ -123,14 +146,14 @@ module Parser =
 
         let private parseDataObject location streamName dataObjectDomain alias indentation line domainTypes =
             let dataObject (dataObject: DataObjectParticipant) =
-                let serviceRange, domainRange, aliasRange =
-                    line |> findParticipantRanges dataObject.Context dataObject.Domain dataObject.Alias
+                let context, domain, alias =
+                    line |> findParticipantLocations location dataObject.Context dataObject.Domain dataObject.Alias
 
                 Ok (Parsed.Participant {
                     Value = DataObject dataObject
-                    ValueLocation = location serviceRange
-                    DomainRange = domainRange
-                    AliasRange = aliasRange
+                    Context = context
+                    Domain = domain
+                    Alias = alias
                 })
 
             match domainTypes with
@@ -145,14 +168,14 @@ module Parser =
 
         let private parseStream location streamName streamDomain alias indentation line domainTypes =
             let stream (stream: StreamParticipant) =
-                let serviceRange, domainRange, aliasRange =
-                    line |> findParticipantRanges stream.Context stream.Domain stream.Alias
+                let context, domain, alias =
+                    line |> findParticipantLocations location stream.Context stream.Domain stream.Alias
 
                 Ok (Parsed.Participant {
                     Value = ActiveParticipant.Stream stream
-                    ValueLocation = location serviceRange
-                    DomainRange = domainRange
-                    AliasRange = aliasRange
+                    Context = context
+                    Domain = domain
+                    Alias = alias
                 })
 
             match domainTypes with
@@ -257,7 +280,7 @@ module Parser =
                 | error -> error
             )
 
-        let private parseParticipant location (domainTypes: DomainTypes) indentationLevel lines line: Result<Parsed<ParsedParticipant> * Line list, ParseError list> =
+        let private parseParticipant location (domainTypes: DomainTypes) indentationLevel lines line: Result<ParsedParticipant * Line list, ParseError list> =
             let participantIndentation = indentationLevel |> IndentationLevel.indentation
 
             match line with
@@ -290,11 +313,20 @@ module Parser =
                                     componentFields
 
                             return
-                                Parsed.Participant {
-                                    Value = Component { Name = componentName; Participants = componentParticipants }
-                                    ValueLocation = location componentRange
-                                    DomainRange = Some domainRange
-                                    AliasRange = None
+                                Parsed.Component {
+                                    Value = Component {
+                                        Name = componentName
+                                        Participants = componentParticipants |> List.map Parsed.value
+                                    }
+                                    Context = {
+                                        Value = componentName
+                                        Location = componentRange |> location
+                                    }
+                                    Domain = {
+                                        Value = domainName |> DomainName.value
+                                        Location = domainRange |> location
+                                    }
+                                    Participants = componentParticipants
                                 },
                                 lines
                         }
@@ -353,7 +385,7 @@ module Parser =
                     WrongParticipantIndentation (line |> Line.error (indentationLevel |> IndentationLevel.indentation))
                 ]
 
-        let parse location domainTypes: ParseLines<Parsed<ParsedParticipant> list> = fun output indentationLevel -> function
+        let parse location domainTypes: ParseLines<ParsedParticipant list> = fun output indentationLevel -> function
             | [] -> Error [ MissingParticipants ]
 
             | KeyWords.Participants :: lines ->
@@ -912,10 +944,15 @@ module Parser =
                     | name ->
                         Ok (
                             Parsed.KeyWord {
-                                KeyWord = KeyWord.TucName
-                                KeyWordRange = tucRange
                                 Value = TucName name
-                                ValueLocation = tucRange |> Range.fromEnd 1 name.Length |> location
+                                KeyWord = {
+                                    Value = "tuc"
+                                    Location = location tucRange
+                                }
+                                ValueLocation = {
+                                    Value = name
+                                    Location = tucRange |> Range.fromEnd 1 name.Length |> location
+                                }
                             },
                             lines
                         )
@@ -931,7 +968,7 @@ module Parser =
                 lines
                 |> Parts.parse
                     (name |> Parsed.value)
-                    (participants |> List.map (Parsed.value >> ParsedParticipant.participant))
+                    (participants |> List.map Parsed.value)
                     domainTypes
                     output
                     indentationLevel
@@ -994,6 +1031,7 @@ module Parser =
             }
 
     let parse (output: MF.ConsoleApplication.Output) domainTypes file = result {
+        let _parse = Diagnostics.Stopwatch.StartNew()
         if output.IsVerbose() then output.Title <| sprintf "Parse %A" file
 
         let domainTypes =
@@ -1004,13 +1042,16 @@ module Parser =
             |> Map.ofList
             |> DomainTypes
 
+        let _readFiles = Diagnostics.Stopwatch.StartNew()
         let rawLines =
             file
             |> File.ReadAllLines
             |> Seq.mapi RawLine.parse
             |> Seq.filter (RawLine.isEmpty >> not)
             |> Seq.toList
+        _readFiles.Stop()
 
+        let _indentationLevel = Diagnostics.Stopwatch.StartNew()
         let! indentationLevel =
             rawLines
             |> List.tryPick (function
@@ -1018,17 +1059,34 @@ module Parser =
                 | _ -> None
             )
             |> Result.ofOption [ MissingIndentation ]
+        _indentationLevel.Stop()
 
         if output.IsVerbose() then
             output.Message <| sprintf "[Tuc] Current indentation level is <c:magenta>%d</c>" (indentationLevel |> IndentationLevel.size)
 
+        let _assertLines = Diagnostics.Stopwatch.StartNew()
         do!
             rawLines
             |> assertLinesIndentation indentationLevel
             |> Validation.ofResult
+        _assertLines.Stop()
 
-        return!
+        let _parseLines = Diagnostics.Stopwatch.StartNew()
+        let! res =
             rawLines
             |> List.map (Line.ofRawLine indentationLevel)
             |> parseLines output (Location.create file) domainTypes indentationLevel []
+        _parseLines.Stop()
+        _parse.Stop()
+
+        output.Table [ "Task"; "Duration (ms)" ] [
+            [ "ReadFiles"; sprintf "%f" _readFiles.Elapsed.TotalMilliseconds ]
+            [ "IndentationLevel"; sprintf "%f" _indentationLevel.Elapsed.TotalMilliseconds ]
+            [ "AssertLines"; sprintf "%f" _assertLines.Elapsed.TotalMilliseconds ]
+            [ "ParseLines"; sprintf "%f" _parseLines.Elapsed.TotalMilliseconds ]
+            [ "---"; "---" ]
+            [ "Parse Total"; sprintf "%f" _parse.Elapsed.TotalMilliseconds ]
+        ]
+
+        return res
     }

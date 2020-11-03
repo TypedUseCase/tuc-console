@@ -81,6 +81,19 @@ type Location = {
     Range: Range
 }
 
+type ParsedLocation = {
+    Value: string
+    Location: Location
+}
+
+[<RequireQualifiedAccess>]
+module ParsedLocation =
+    let startChar { Location = { Range = range } } =
+        range |> Range.startPosition |> Position.character
+
+    let endChar { Location = { Range = range } } =
+        range |> Range.endPosition |> Position.character
+
 [<RequireQualifiedAccess>]
 module Location =
     let create uri range =
@@ -95,21 +108,10 @@ module Location =
 // Tuc parsed types
 //
 
-[<RequireQualifiedAccess>]
-type KeyWord =
-    | TucName
-    | Section
-    | Group
-    | Loop
-    | Do
-    | If
-    | Else
-
 type ParsedKeyWord<'Type> = {
-    KeyWord: KeyWord
-    KeyWordRange: Range
     Value: 'Type
-    ValueLocation: Location
+    KeyWord: ParsedLocation
+    ValueLocation: ParsedLocation
 }
 
 [<RequireQualifiedAccess>]
@@ -120,33 +122,34 @@ type ParticipantType =
 
 type ParsedParticipantDefinition<'Type> = {
     Value: 'Type
-    ValueLocation: Location
-    DomainRange: Range option
-    AliasRange: Range option
+    Context: ParsedLocation
+    Domain: ParsedLocation option
+    Alias: ParsedLocation option
 }
 
-type ParsedValue<'Type> = {
+type ParsedComponentDefinition<'Type> = {
     Value: 'Type
-    Location: Location
+    Context: ParsedLocation
+    Domain: ParsedLocation
+    Participants: Parsed<ActiveParticipant> list
 }
 
-[<RequireQualifiedAccess>]
-type Parsed<'Type> =
+and [<RequireQualifiedAccess>] Parsed<'Type> =
     | KeyWord of ParsedKeyWord<'Type>
     | Participant of ParsedParticipantDefinition<'Type>
-    | Value of ParsedValue<'Type>
+    | Component of ParsedComponentDefinition<'Type>
 
 [<RequireQualifiedAccess>]
 module Parsed =
     let value = function
         | Parsed.KeyWord { Value = value }
         | Parsed.Participant { Value = value }
-        | Parsed.Value { Value = value } -> value
+        | Parsed.Component { Value = value } -> value
 
     let map (f: 'a -> 'b) = function
-        | Parsed.KeyWord p -> Parsed.KeyWord { KeyWord = p.KeyWord; KeyWordRange = p.KeyWordRange; Value = p.Value |> f; ValueLocation = p.ValueLocation }
-        | Parsed.Participant p -> Parsed.Participant { Value = p.Value |> f; ValueLocation = p.ValueLocation; DomainRange = p.DomainRange; AliasRange = p.AliasRange }
-        | Parsed.Value p -> Parsed.Value { Value = p.Value |> f; Location = p.Location }
+        | Parsed.KeyWord p -> Parsed.KeyWord { KeyWord = p.KeyWord; ValueLocation = p.ValueLocation; Value = p.Value |> f }
+        | Parsed.Participant p -> Parsed.Participant { Context = p.Context; Domain = p.Domain; Alias = p.Alias; Value = p.Value |> f }
+        | Parsed.Component p -> Parsed.Component { Context = p.Context; Domain = p.Domain; Participants = p.Participants; Value = p.Value |> f }
 
 type ParsedTucName = Parsed<TucName>
 type ParsedData = Parsed<Data>
@@ -154,21 +157,21 @@ type ParsedEvent = Parsed<Event>
 
 type ParsedTuc = {
     Name: ParsedTucName
-    Participants: Parsed<ParsedParticipant> list
+    Participants: ParsedParticipant list
     Parts: ParsedTucPart list
 }
 
-(* and ParsedParticipant = Parsed<Participant>
-and ParsedParticipantComponent = Parsed<ParticipantComponent> *)
+and ParsedParticipant = Parsed<Participant>
 
-and ParsedParticipant =
-    | Component of ParsedParticipantComponent
-    | Participant of ActiveParticipant
-
+(* and ParsedParticipant =
+    | Component of Parsed<ParsedParticipantComponent>
+    | Participant of ParsedActiveParticipant
 and ParsedParticipantComponent = {
     Name: string
     Participants: ParsedActiveParticipant list
 }
+*)
+
 and ParsedActiveParticipant = Parsed<ActiveParticipant>
 
 and ParsedServiceParticipant = Parsed<ServiceParticipant>
@@ -176,23 +179,25 @@ and ParsedDataObjectParticipant = Parsed<DataObjectParticipant>
 and ParsedStreamParticipant = Parsed<StreamParticipant>
 
 and ParsedTucPart = Parsed<TucPart>
-
+(*
 [<RequireQualifiedAccess>]
 module ParsedParticipant =
     let participant: ParsedParticipant -> Participant = function
-        | Component c ->
+        | Component pc ->
+            let c = pc |> Parsed.value
+
             Participant.Component {
                 Name = c.Name
                 Participants = c.Participants |> List.map Parsed.value
             }
-        | Participant p -> Participant.Participant p
+        | Participant p -> Participant.Participant (p |> Parsed.value) *)
 
 [<RequireQualifiedAccess>]
 module ParsedTuc =
     let tuc (parsed: ParsedTuc): Tuc =
         {
             Name = parsed.Name |> Parsed.value
-            Participants = parsed.Participants |> List.map (Parsed.value >> ParsedParticipant.participant)
+            Participants = parsed.Participants |> List.map Parsed.value
             Parts = parsed.Parts |> List.map Parsed.value
         }
 
