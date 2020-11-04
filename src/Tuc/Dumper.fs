@@ -134,66 +134,163 @@ module Dump =
         |> List.iter (Parsed.value >> formatPart indentSize >> output.Message)
         |> output.NewLine
 
-    let private formatParsedValue<'a> (formatValue: 'a -> string) (parsed: Parsed<'a>) =
-        let value = parsed |> Parsed.value |> formatValue
+    [<RequireQualifiedAccess>]
+    module FormatParsed =
+        let private formatLocation parsedType (parsedLocation: ParsedLocation) =
+            sprintf " - <c:dark-yellow>%s</c> <c:yellow>%s</c> at <c:magenta>%03i</c> -> <c:magenta>%03i</c>: <c:cyan>%s</c> [<c:magenta>%d</c>]  <c:gray>// %s</c>"
+                parsedLocation.Location.Uri
+                (parsedLocation.Location.Range |> Range.lineString)
+                (parsedLocation.Location.Range |> Range.startPosition |> Position.character)
+                (parsedLocation.Location.Range |> Range.endPosition |> Position.character)
+                parsedLocation.Value
+                parsedLocation.Value.Length
+                parsedType
 
-        let positions =
-            let formatLocation parsedType (parsedLocation: ParsedLocation) =
-                sprintf " - <c:dark-yellow>%s</c> <c:yellow>%s</c> at <c:magenta>%03i</c> -> <c:magenta>%03i</c>: <c:cyan>%s</c> [<c:magenta>%d</c>]  <c:gray>// %s</c>"
-                    parsedLocation.Location.Uri
-                    (parsedLocation.Location.Range |> Range.lineString)
-                    (parsedLocation.Location.Range |> Range.startPosition |> Position.character)
-                    (parsedLocation.Location.Range |> Range.endPosition |> Position.character)
-                    parsedLocation.Value
-                    parsedLocation.Value.Length
-                    parsedType
+        let private format formatValue findPositions parsed =
+            let value =
+                match parsed with
+                | Parsed.KeyWordWithoutValue { KeyWord = { Value = value } } -> value
+                | p -> p |> Parsed.value |> formatValue
 
-            match parsed with
-            | Parsed.KeyWord k ->
-                [
-                    k.KeyWord |> formatLocation "KeyWord"
-                    k.ValueLocation |> formatLocation "Value"
-                ]
-            | Parsed.Participant p ->
-                [
-                    Some (p.Context |> formatLocation "Context")
-                    p.Domain |> Option.map (formatLocation "Domain")
-                    p.Alias |> Option.map (formatLocation "Alias")
-                ]
-                |> List.choose id
-            | Parsed.Component c ->
-                [
-                    yield c.Context |> formatLocation "Context"
-                    yield c.Domain |> formatLocation "Domain"
+            let positions = parsed |> findPositions
 
-                    yield! c.Participants |> List.choose (fun p ->
-                        match p with
-                        | Parsed.Participant p ->
-                            [
-                                Some (p.Context |> formatLocation "Context")
-                                p.Domain |> Option.map (formatLocation "Domain")
-                                p.Alias |> Option.map (formatLocation "Alias")
-                            ]
-                            |> List.choose id
-                            |> List.formatLines "" id
-                            |> Some
-                        | _ -> None
-                    )
-                ]
+            sprintf "%s%s" value (positions |> List.formatLines "" id)
 
-        sprintf "%s%s" value (positions |> List.formatLines "" id)
+        let value<'a> (formatValue: 'a -> string) =
+            format formatValue (function
+                | Parsed.KeyWord k ->
+                    [
+                        k.KeyWord |> formatLocation "KeyWord"
+                        k.ValueLocation |> formatLocation "Value"
+                    ]
+                | Parsed.KeyWordWithoutValue k ->
+                    [
+                        k.KeyWord |> formatLocation "KeyWord"
+                    ]
+                | Parsed.ParticipantDefinition p ->
+                    [
+                        Some (p.Context |> formatLocation "Context")
+                        p.Domain |> Option.map (formatLocation "Domain")
+                        p.Alias |> Option.map (formatLocation "Alias")
+                    ]
+                    |> List.choose id
+                | Parsed.ComponentDefinition c ->
+                    [
+                        yield c.Context |> formatLocation "Context"
+                        yield c.Domain |> formatLocation "Domain"
+
+                        yield! c.Participants |> List.choose (fun p ->
+                            match p with
+                            | Parsed.ParticipantDefinition p ->
+                                [
+                                    Some (p.Context |> formatLocation "Context")
+                                    p.Domain |> Option.map (formatLocation "Domain")
+                                    p.Alias |> Option.map (formatLocation "Alias")
+                                ]
+                                |> List.choose id
+                                |> List.formatLines "" id
+                                |> Some
+                            | _ -> None
+                        )
+                    ]
+                | _ -> []
+            )
+
+        let rec tucPart showIgnored (formatValue: TucPart -> string) =
+            let subType = function
+                | Section _ -> "Section"
+                | Group _ -> "Group"
+                | If _ -> "If"
+                | Loop _ -> "Loop"
+                | Lifeline _ -> "Lifeline"
+                | ServiceMethodCall _ -> "ServiceMethodCall"
+                | PostData _ -> "PostData"
+                | ReadData _ -> "ReadData"
+                | PostEvent _ -> "PostEvent"
+                | ReadEvent _ -> "ReadEvent"
+                | HandleEventInStream _ -> "HandleEventInStream"
+                | Do _ -> "Do"
+                | LeftNote _ -> "LeftNote"
+                | Note _ -> "Note"
+                | RightNote _ -> "RightNote"
+
+            format formatValue (function
+                | Parsed.KeyWord k ->
+                    [
+                        k.KeyWord |> formatLocation "KeyWord"
+                        k.ValueLocation |> formatLocation "Value"
+                    ]
+                | Parsed.KeyWordWithBody k ->
+                    [
+                        yield k.KeyWord |> formatLocation "KeyWord"
+                        yield k.ValueLocation |> formatLocation "Value"
+                        yield! k.Body |> List.map (tucPart showIgnored formatValue)
+                    ]
+                | Parsed.KeyWordIf k ->
+                    [
+                        yield k.IfLocation |> formatLocation "KeyWord"
+                        yield k.ConditionLocation |> formatLocation "Condition"
+                        yield! k.Body |> List.map (tucPart showIgnored formatValue)
+
+                        match k.ElseLocation, k.ElseBody with
+                        | Some elseLocation, Some body ->
+                            yield elseLocation |> formatLocation "KeyWord"
+                            yield! body |> List.map (tucPart showIgnored formatValue)
+                        | _ -> ()
+                    ]
+                | Parsed.Lifeline p ->
+                    [
+                        yield p.ParticipantLocation |> formatLocation "Lifeline"
+                        yield! p.Execution |> List.map (tucPart showIgnored formatValue)
+                    ]
+                | Parsed.MethodCall m ->
+                    [
+                        yield m.ServiceLocation |> formatLocation "Service"
+                        yield m.MethodLocation |> formatLocation "Method"
+                        yield! m.Execution |> List.map (tucPart showIgnored formatValue)
+                    ]
+                | Parsed.HandleEvent h ->
+                    [
+                        yield h.StreamLocation |> formatLocation "Stream"
+                        yield h.ServiceLocation |> formatLocation "Service"
+                        yield h.MethodLocation |> formatLocation "Method"
+                        yield! h.Execution |> List.map (tucPart showIgnored formatValue)
+                    ]
+                | Parsed.PostData p ->
+                    [
+                        yield! p.DataLocation |> List.map (formatLocation "Data")
+                        yield p.OperatorLocation |> formatLocation "Operator"
+                        yield p.DataObjectLocation |> formatLocation "DataObject"
+                    ]
+                | Parsed.ReadData r ->
+                    [
+                        yield r.DataObjectLocation |> formatLocation "DataObject"
+                        yield r.OperatorLocation |> formatLocation "Operator"
+                        yield! r.DataLocation |> List.map (formatLocation "Data")
+                    ]
+                | Parsed.Ignored v ->
+                    [
+                        if showIgnored then
+                            yield sprintf " - <c:gray>// ignored %s</c>" (v |> subType)
+                    ]
+                | _ -> []
+            )
 
     let detailedParsedTuc (output: MF.ConsoleApplication.Output) (tuc: ParsedTuc) =
         tuc.Name
-        |> formatParsedValue (TucName.value >> sprintf "Tuc: %s")
+        |> FormatParsed.value (TucName.value >> sprintf "Tuc: %s")
+        |> output.Message
+        |> output.NewLine
+
+        tuc.ParticipantsKeyWord
+        |> FormatParsed.value string
         |> output.Message
         |> output.NewLine
 
         tuc.Participants
-        |> List.iter (formatParsedValue (formatParticipant indentSize) >> tee (ignore >> output.NewLine) >> output.Message)
+        |> List.iter (FormatParsed.value (formatParticipant indentSize) >> tee (ignore >> output.NewLine) >> output.Message)
         |> output.NewLine
 
-        // todo:
         tuc.Parts
-        |> List.iter (Parsed.value >> formatPart indentSize >> output.Message)
+        |> List.iter (FormatParsed.tucPart (output.IsVerbose()) (formatPart indentSize) >> tee (ignore >> output.NewLine) >> output.Message)
         |> output.NewLine

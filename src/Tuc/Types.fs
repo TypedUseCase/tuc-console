@@ -220,3 +220,8 @@ module ActiveParticipant =
         | Service { ServiceType = t }
         | DataObject { DataObjectType = t }
         | Stream { StreamType = t } -> t |> DomainType.nameValue
+
+    let value = function
+        | Service { ServiceType = t } -> t |> DomainType.nameValue
+        | DataObject { DataObjectType = t }
+        | Stream { StreamType = t } -> t |> DomainType.nameValue |> sprintf "[%s]"

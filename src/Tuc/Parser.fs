@@ -29,11 +29,18 @@ module Parser =
             | _ -> None
 
         let (|Participants|_|): Line -> _ = function
-            | { Content = "participants"; Depth = Depth 0 } -> Some ()
+            | { Content = "participants"; Depth = Depth 0 } as line ->
+                Some (
+                    Range.singleLine (line.Number - 1) (0, "participants".Length)
+                )
             | _ -> None
 
         let (|Section|_|): Line -> _ = function
-            | { Tokens = "section" :: section; Depth = Depth 0 } -> Some (section |> String.concat " ")
+            | { Tokens = "section" :: section; Depth = Depth 0 } as line ->
+                Some (
+                    section |> String.concat " ",
+                    Range.singleLine (line.Number - 1) (0, "section".Length)
+                )
             | _ -> None
 
         let (|SingleLineDo|_|) indentation: Line -> _ = function
@@ -53,19 +60,34 @@ module Parser =
             | _ -> None
 
         let (|If|_|) indentation: Line -> _ = function
-            | IndentedLine indentation { Tokens = "if" :: condition } -> Some (condition |> String.concat " ")
+            | IndentedLine indentation { Tokens = "if" :: condition } as line ->
+                Some (
+                    condition |> String.concat " ",
+                    Range.singleLine (line.Number - 1) (0, "if".Length) |> Range.indent (line.Indentation |> Indentation.size)
+                )
             | _ -> None
 
         let (|Else|_|) indentation: Line -> _ = function
-            | IndentedLine indentation { Tokens = [ "else" ] } -> Some ()
+            | IndentedLine indentation { Tokens = [ "else" ] } as line ->
+                Some (
+                    Range.singleLine (line.Number - 1) (0, "else".Length) |> Range.indent (line.Indentation |> Indentation.size)
+                )
             | _ -> None
 
         let (|Group|_|) indentation: Line -> _ = function
-            | IndentedLine indentation { Tokens = "group" :: group } -> Some (group |> String.concat " ")
+            | IndentedLine indentation { Tokens = "group" :: group } as line ->
+                Some (
+                    group |> String.concat " ",
+                    Range.singleLine (line.Number - 1) (0, "group".Length) |> Range.indent (line.Indentation |> Indentation.size)
+                )
             | _ -> None
 
         let (|Loop|_|) indentation: Line -> _ = function
-            | IndentedLine indentation { Tokens = "loop" :: condition } -> Some (condition |> String.concat " ")
+            | IndentedLine indentation { Tokens = "loop" :: condition } as line ->
+                Some (
+                    condition |> String.concat " ",
+                    Range.singleLine (line.Number - 1) (0, "loop".Length) |> Range.indent (line.Indentation |> Indentation.size)
+                )
             | _ -> None
 
     [<RequireQualifiedAccess>]
@@ -82,18 +104,22 @@ module Parser =
                     Some ((componentName, componentNameRange), (domainName, domainNameRange))
                 | _ -> None
 
-        let private findParticipantLocations location context domainName alias line =
+        let private findParticipantLocations location participant domainName alias line =
+            let contextValue = participant |> ActiveParticipant.value
+
             let context = {
-                Value = context
-                Location = line |> Line.findRangeForWord context |> location
+                Value = contextValue
+                Location = line |> Line.findRangeForWord contextValue |> location
             }
 
             let domain = maybe {
                 let domain = domainName |> DomainName.value
+                let offset = context |> ParsedLocation.endChar
 
                 let! range =
-                    line
-                    |> Line.tryFindRangeForWordAfter (context |> ParsedLocation.endChar) domain
+                    match line |> Line.tryFindRangeForWordAfter offset domain with
+                    | Some range -> Some range
+                    | _ -> line |> Line.tryFindRangeForWordAfter offset (domain |> String.lcFirst)
 
                 return {
                     Value = domain
@@ -118,9 +144,9 @@ module Parser =
         let private parseService location serviceName serviceDomain alias indentation line domainTypes =
             let service (service: ServiceParticipant) =
                 let context, domain, alias =
-                    line |> findParticipantLocations location service.Context service.Domain service.Alias
+                    line |> findParticipantLocations location (Service service) service.Domain service.Alias
 
-                Ok (Parsed.Participant {
+                Ok (Parsed.ParticipantDefinition {
                     Value = Service service
                     Context = context
                     Domain = domain
@@ -147,9 +173,9 @@ module Parser =
         let private parseDataObject location streamName dataObjectDomain alias indentation line domainTypes =
             let dataObject (dataObject: DataObjectParticipant) =
                 let context, domain, alias =
-                    line |> findParticipantLocations location dataObject.Context dataObject.Domain dataObject.Alias
+                    line |> findParticipantLocations location (DataObject dataObject) dataObject.Domain dataObject.Alias
 
-                Ok (Parsed.Participant {
+                Ok (Parsed.ParticipantDefinition {
                     Value = DataObject dataObject
                     Context = context
                     Domain = domain
@@ -169,9 +195,9 @@ module Parser =
         let private parseStream location streamName streamDomain alias indentation line domainTypes =
             let stream (stream: StreamParticipant) =
                 let context, domain, alias =
-                    line |> findParticipantLocations location stream.Context stream.Domain stream.Alias
+                    line |> findParticipantLocations location (ActiveParticipant.Stream stream) stream.Domain stream.Alias
 
-                Ok (Parsed.Participant {
+                Ok (Parsed.ParticipantDefinition {
                     Value = ActiveParticipant.Stream stream
                     Context = context
                     Domain = domain
@@ -313,7 +339,7 @@ module Parser =
                                     componentFields
 
                             return
-                                Parsed.Component {
+                                Parsed.ComponentDefinition {
                                     Value = Component {
                                         Name = componentName
                                         Participants = componentParticipants |> List.map Parsed.value
@@ -385,10 +411,10 @@ module Parser =
                     WrongParticipantIndentation (line |> Line.error (indentationLevel |> IndentationLevel.indentation))
                 ]
 
-        let parse location domainTypes: ParseLines<ParsedParticipant list> = fun output indentationLevel -> function
+        let parse location domainTypes: ParseLines<Parsed<unit> * ParsedParticipant list> = fun output indentationLevel -> function
             | [] -> Error [ MissingParticipants ]
 
-            | KeyWords.Participants :: lines ->
+            | KeyWords.Participants participantsRange :: lines ->
                 result {
                     let participantLines, lines =
                         lines
@@ -398,7 +424,14 @@ module Parser =
                         participantLines
                         |> parseParticipants location [] output domainTypes indentationLevel
 
-                    return { Item = participants; Lines = lines }
+                    let participantsKeyWord = Parsed.KeyWordWithoutValue {
+                        KeyWord = {
+                            Value = "participants"
+                            Location = participantsRange |> location
+                        }
+                    }
+
+                    return { Item = participantsKeyWord, participants; Lines = lines }
                 }
 
             | _ -> Error [ MissingParticipants ]
@@ -406,7 +439,7 @@ module Parser =
     [<RequireQualifiedAccess>]
     module private Parts =
         type private Participants = Participants of Map<string, ActiveParticipant>
-        type private ParseParts = MF.ConsoleApplication.Output -> TucName -> Participants -> DomainTypes -> IndentationLevel -> Line list -> Result<TucPart list, ParseError>
+        type private ParseParts = MF.ConsoleApplication.Output -> TucName -> Participants -> DomainTypes -> IndentationLevel -> Line list -> Result<ParsedTucPart list, ParseError>
 
         let private (|IsParticipant|_|) (Participants participants) token =
             participants |> Map.tryFind token
@@ -455,20 +488,62 @@ module Parser =
             | @""">""" -> Some ()
             | _ -> None
 
+        let private dataLocations offset location line data =
+            let rec loop acc = function
+                | _, [] -> acc
+                | None, [ onlyOne ] ->
+                    {
+                        Value = onlyOne
+                        Location =
+                            match offset with
+                            | Some offset -> line |> Line.findRangeForWordAfter offset onlyOne |> location
+                            | _ -> line |> Line.findRangeForWord onlyOne |> location
+                    }
+                    :: acc
+
+                | Some previous, [ last ] ->
+                    {
+                        Value = last
+                        Location = line |> Line.findRangeForWordAfter (previous |> ParsedLocation.endChar) last |> location
+                    }
+                    :: acc
+
+                | None, first :: rest ->
+                    let itemLocation = {
+                        Value = first + "."
+                        Location =
+                            match offset with
+                            | Some offset -> line |> Line.findRangeForWordAfter offset first |> location
+                            | _ -> line |> Line.findRangeForWord first |> location
+                    }
+                    (Some itemLocation, rest) |> loop (itemLocation :: acc)
+
+                | Some previous, current :: rest ->
+                    let itemLocation = {
+                        Value = current + "."
+                        Location = line |> Line.findRangeForWordAfter (previous |> ParsedLocation.endChar) current |> location
+                    }
+                    (Some itemLocation, rest) |> loop (itemLocation :: acc)
+
+            (None, data.Path)
+            |> loop []
+            |> List.rev
+
         let rec private parsePart
             (output: MF.ConsoleApplication.Output)
+            location
             participants
             domainTypes
             indentationLevel
             indentation
             caller
             lines
-            line: Result<TucPart * Line list, _> =
+            line: Result<ParsedTucPart * Line list, _> =
 
             let currentDepth = indentation |> Depth.ofIndentation indentationLevel
 
             let parsePart =
-                parsePart output participants domainTypes indentationLevel
+                parsePart output location participants domainTypes indentationLevel
 
             /// Parses an execution of a caller, it goes as deep as possible, starting at 1 level deeper than current indenation.
             let parseExecution caller lines = result {
@@ -516,10 +591,20 @@ module Parser =
 
                         let! execution, lines = lines |> parseExecution participant
 
-                        let part = Lifeline {
-                            Initiator = participant
-                            Execution = execution
-                        }
+                        let part =
+                            let participantName = participant |> ActiveParticipant.name
+
+                            Parsed.Lifeline {
+                                Value = Lifeline {
+                                    Initiator = participant
+                                    Execution = execution |> List.map Parsed.value
+                                }
+                                ParticipantLocation = {
+                                    Value = participantName
+                                    Location = line |> Line.findRangeForWord participantName |> location
+                                }
+                                Execution = execution
+                            }
 
                         return part, lines
                     }
@@ -530,12 +615,17 @@ module Parser =
 
                         let! handlerCall =
                             match execution with
-                            | [ HandleEventInStream handlerCall ] when handlerCall.Stream = stream ->
-                                Ok handlerCall
+                            | [ Parsed.IncompleteHandleEvent ({ Value = HandleEventInStream handlerCall } as p) ] when handlerCall.Stream = stream ->
+                                let streamPosition = {
+                                    Value = stream |> ActiveParticipant.value
+                                    Location = line |> Line.findRangeForWord (stream |> ActiveParticipant.value) |> location
+                                }
+
+                                Ok (p |> ParsedIncompleteHandleEvent.complete streamPosition)
                             | _ ->
                                 Error <| MissingEventHandlerMethodCall (line |> Line.error indentation)
 
-                        return HandleEventInStream handlerCall, lines
+                        return handlerCall, lines
                     }
 
                 | IsMethodCall (serviceName, methodName) ->
@@ -559,10 +649,25 @@ module Parser =
 
                             let! execution, lines = lines |> parseExecution service
 
-                            let part = ServiceMethodCall {
-                                Caller = caller
-                                Service = service
-                                Method = { Name = methodName; Function = method }
+                            let serviceCall = serviceName + "."
+                            let serviceCallRange = line |> Line.findRangeForWord serviceCall
+                            let serviceLocation = {
+                                Value = serviceCall
+                                Location = serviceCallRange |> location
+                            }
+
+                            let part = Parsed.MethodCall {
+                                Value = ServiceMethodCall {
+                                    Caller = caller
+                                    Service = service
+                                    Method = { Name = methodName; Function = method }
+                                    Execution = execution |> List.map Parsed.value
+                                }
+                                ServiceLocation = serviceLocation
+                                MethodLocation = {
+                                    Value = methodName |> FieldName.value
+                                    Location = line |> Line.findRangeForWordAfter (serviceLocation |> ParsedLocation.endChar) (methodName |> FieldName.value) |> location
+                                }
                                 Execution = execution
                             }
 
@@ -585,10 +690,25 @@ module Parser =
 
                             let! execution, lines = lines |> parseExecution service
 
-                            let part = HandleEventInStream {
-                                Stream = caller
-                                Service = service
-                                Handler = { Name = handlerName; Handler = handler }
+                            let serviceCall = serviceName + "."
+                            let serviceCallRange = line |> Line.findRangeForWord serviceCall
+                            let serviceLocation = {
+                                Value = serviceCall
+                                Location = serviceCallRange |> location
+                            }
+
+                            let part = Parsed.IncompleteHandleEvent {
+                                Value = HandleEventInStream {
+                                    Stream = caller
+                                    Service = service
+                                    Handler = { Name = handlerName; Handler = handler }
+                                    Execution = execution |> List.map Parsed.value
+                                }
+                                ServiceLocation = serviceLocation
+                                MethodLocation = {
+                                    Value = handlerName |> FieldName.value
+                                    Location = line |> Line.findRangeForWordAfter (serviceLocation |> ParsedLocation.endChar) (handlerName |> FieldName.value) |> location
+                                }
                                 Execution = execution
                             }
 
@@ -617,7 +737,7 @@ module Parser =
                                 | IndentedLine indentation { Content = @"""""""" } :: lines -> Ok lines
                                 | _ -> Error <| InvalidMultilineNote (line |> Line.error indentation)
 
-                            return Note { Caller = caller; Lines = noteLines |> List.map Line.content }, lines
+                            return Note { Caller = caller; Lines = noteLines |> List.map Line.content } |> Parsed.Ignored, lines
                         }
 
                 | IsMultilineLeftNote ->
@@ -634,7 +754,7 @@ module Parser =
                             | IndentedLine indentation { Content = @"""<""" } :: lines -> Ok lines
                             | _ -> Error <| InvalidMultilineLeftNote (line |> Line.error indentation)
 
-                        return LeftNote { Lines = noteLines |> List.map Line.content }, lines
+                        return LeftNote { Lines = noteLines |> List.map Line.content } |> Parsed.Ignored, lines
                     }
 
                 | IsMultilineRightNote ->
@@ -651,7 +771,7 @@ module Parser =
                             | IndentedLine indentation { Content = @""">""" } :: lines -> Ok lines
                             | _ -> Error <| InvalidMultilineRightNote (line |> Line.error indentation)
 
-                        return RightNote { Lines = noteLines |> List.map Line.content }, lines
+                        return RightNote { Lines = noteLines |> List.map Line.content } |> Parsed.Ignored, lines
                     }
 
                 | IsMultilineDo ->
@@ -672,7 +792,7 @@ module Parser =
                             if actionLines |> List.isEmpty then
                                 return! Error <| DoMustHaveActions (line |> Line.error indentation)
 
-                            return Do { Caller = caller; Actions = actionLines |> List.map Line.content }, lines
+                            return Do { Caller = caller; Actions = actionLines |> List.map Line.content } |> Parsed.Ignored, lines
                         }
 
                 | "if" -> Error <| IfWithoutCondition (line |> Line.error indentation)
@@ -686,20 +806,20 @@ module Parser =
             | KeyWords.SingleLineDo indentation action ->
                 match caller with
                 | None -> Error <| DoWithoutACaller (line |> Line.error indentation)
-                | Some caller -> Ok (Do { Caller = caller; Actions = [ action ] }, lines)
+                | Some caller -> Ok (Do { Caller = caller; Actions = [ action ] } |> Parsed.Ignored, lines)
 
             | KeyWords.SingleLineLeftNote indentation note ->
-                Ok (LeftNote { Lines = [ note ] }, lines)
+                Ok (LeftNote { Lines = [ note ] } |> Parsed.Ignored, lines)
 
             | KeyWords.SingleLineRightNote indentation note ->
-                Ok (RightNote { Lines = [ note ] }, lines)
+                Ok (RightNote { Lines = [ note ] } |> Parsed.Ignored, lines)
 
             | KeyWords.SingleLineNote indentation note ->
                 match caller with
                 | None -> Error <| NoteWithoutACaller (line |> Line.error indentation)
-                | Some caller -> Ok (Note { Caller = caller; Lines = [ note ] }, lines)
+                | Some caller -> Ok (Note { Caller = caller; Lines = [ note ] } |> Parsed.Ignored, lines)
 
-            | KeyWords.If indentation condition ->
+            | KeyWords.If indentation (condition, ifRange) ->
                 match condition with
                 | String.IsEmpty -> Error <| IfWithoutCondition (line |> Line.error indentation)
                 | condition ->
@@ -709,29 +829,47 @@ module Parser =
                         if body |> List.isEmpty then
                             return! Error <| IfMustHaveBody (line |> Line.error indentation)
 
-                        let! elseBody, lines =
+                        let! elseBody, elseRange, lines =
                             match lines with
-                            | KeyWords.Else indentation as elseLine :: lines ->
+                            | KeyWords.Else indentation elseRange as elseLine :: lines ->
                                 result {
                                     let! body, lines = lines |> parseBody (Depth 1)
 
                                     if body |> List.isEmpty then
                                         return! Error <| ElseMustHaveBody (elseLine |> Line.error indentation)
 
-                                    return Some body, lines
+                                    return Some body, Some elseRange, lines
                                 }
-                            | lines -> Ok (None, lines)
+                            | lines -> Ok (None, None, lines)
 
-                        let part = If {
-                            Condition = condition
+                        let part = Parsed.KeyWordIf {
+                            Value = If {
+                                Condition = condition
+                                Body = body |> List.map Parsed.value
+                                Else = elseBody |> Option.map (List.map Parsed.value)
+                            }
+                            IfLocation = {
+                                Value = "if"
+                                Location = ifRange |> location
+                            }
+                            ConditionLocation = {
+                                Value = condition
+                                Location = ifRange |> Range.fromEnd 1 condition.Length |> location
+                            }
+                            ElseLocation = elseRange |> Option.map (fun elseRange ->
+                                {
+                                    Value = "else"
+                                    Location = elseRange |> location
+                                }
+                            )
                             Body = body
-                            Else = elseBody
+                            ElseBody = elseBody
                         }
 
                         return part, lines
                     }
 
-            | KeyWords.Group indentation groupName ->
+            | KeyWords.Group indentation (groupName, groupRange) ->
                 match groupName with
                 | String.IsEmpty -> Error <| GroupWithoutName (line |> Line.error indentation)
                 | groupName ->
@@ -741,15 +879,26 @@ module Parser =
                         if body |> List.isEmpty then
                             return! Error <| GroupMustHaveBody (line |> Line.error indentation)
 
-                        let part = Group {
-                            Name = groupName
+                        let part = Parsed.KeyWordWithBody {
+                            Value = Group {
+                                Name = groupName
+                                Body = body |> List.map Parsed.value
+                            }
+                            ValueLocation = {
+                                Value = groupName
+                                Location = groupRange |> Range.fromEnd 1 groupName.Length |> location
+                            }
+                            KeyWord = {
+                                Value = "group"
+                                Location = groupRange |> location
+                            }
                             Body = body
                         }
 
                         return part, lines
                     }
 
-            | KeyWords.Loop indentation condition ->
+            | KeyWords.Loop indentation (condition, loopRange) ->
                 match condition with
                 | String.IsEmpty -> Error <| LoopWithoutCondition (line |> Line.error indentation)
                 | condition ->
@@ -759,8 +908,19 @@ module Parser =
                         if body |> List.isEmpty then
                             return! Error <| LoopMustHaveBody (line |> Line.error indentation)
 
-                        let part = Loop {
-                            Condition = condition
+                        let part = Parsed.KeyWordWithBody {
+                            Value = Loop {
+                                Condition = condition
+                                Body = body |> List.map Parsed.value
+                            }
+                            ValueLocation = {
+                                Value = condition
+                                Location = loopRange |> Range.fromEnd 1 condition.Length |> location
+                            }
+                            KeyWord = {
+                                Value = "loop"
+                                Location = loopRange |> location
+                            }
                             Body = body
                         }
 
@@ -778,10 +938,25 @@ module Parser =
                             dataName
                             |> Assert.data output indentation line domainTypes expectedDataType domain
 
-                        let part = PostData {
-                            Caller = caller
-                            DataObject = dataObject
-                            Data = data
+                        let dataLocations = data |> dataLocations None location line
+
+                        let operatorLocation = {
+                            Value = "->"
+                            Location = line |> Line.findRangeForWordAfter (dataLocations |> List.last |> ParsedLocation.endChar) "->" |> location
+                        }
+
+                        let part = Parsed.PostData {
+                            Value = PostData {
+                                Caller = caller
+                                DataObject = dataObject
+                                Data = data
+                            }
+                            DataLocation = dataLocations
+                            OperatorLocation = operatorLocation
+                            DataObjectLocation = {
+                                Value = dataObject |> ActiveParticipant.value
+                                Location = line |> Line.findRangeForWordAfter (operatorLocation |> ParsedLocation.endChar) (dataObject |> ActiveParticipant.value) |> location
+                            }
                         }
 
                         return part, lines
@@ -803,10 +978,27 @@ module Parser =
                             dataName
                             |> Assert.data output indentation line domainTypes expectedDataType domain
 
-                        let part = ReadData {
-                            Caller = caller
-                            DataObject = dataObject
-                            Data = data
+                        let dataObjectLocation = {
+                            Value = dataObject |> ActiveParticipant.value
+                            Location = line |> Line.findRangeForWord (dataObject |> ActiveParticipant.value) |> location
+                        }
+
+                        let operatorLocation = {
+                            Value = "->"
+                            Location = line |> Line.findRangeForWordAfter (dataObjectLocation |> ParsedLocation.endChar) "->" |> location
+                        }
+
+                        let dataLocations = data |> dataLocations (operatorLocation |> ParsedLocation.endChar |> Some) location line
+
+                        let part = Parsed.ReadData {
+                            Value = ReadData {
+                                Caller = caller
+                                DataObject = dataObject
+                                Data = data
+                            }
+                            DataObjectLocation = dataObjectLocation
+                            OperatorLocation = operatorLocation
+                            DataLocation = dataLocations
                         }
 
                         return part, lines
@@ -828,10 +1020,25 @@ module Parser =
                             eventName
                             |> Assert.event output indentation line domainTypes expectedEventTypeName domain
 
-                        let part = PostEvent {
-                            Caller = caller
-                            Stream = stream
-                            Event = event
+                        let dataLocations = event |> Event.data |> dataLocations None location line
+
+                        let operatorLocation = {
+                            Value = "->"
+                            Location = line |> Line.findRangeForWordAfter (dataLocations |> List.last |> ParsedLocation.endChar) "->" |> location
+                        }
+
+                        let part = Parsed.PostData {
+                            Value = PostEvent {
+                                Caller = caller
+                                Stream = stream
+                                Event = event
+                            }
+                            DataLocation = dataLocations
+                            OperatorLocation = operatorLocation
+                            DataObjectLocation = {
+                                Value = stream |> ActiveParticipant.value
+                                Location = line |> Line.findRangeForWordAfter (operatorLocation |> ParsedLocation.endChar) (stream |> ActiveParticipant.value) |> location
+                            }
                         }
 
                         return part, lines
@@ -853,10 +1060,27 @@ module Parser =
                             eventName
                             |> Assert.event output indentation line domainTypes eventTypeName domain
 
-                        let part = ReadEvent {
-                            Caller = caller
-                            Stream = stream
-                            Event = event
+                        let dataObjectLocation = {
+                            Value = stream |> ActiveParticipant.value
+                            Location = line |> Line.findRangeForWord (stream |> ActiveParticipant.value) |> location
+                        }
+
+                        let operatorLocation = {
+                            Value = "->"
+                            Location = line |> Line.findRangeForWordAfter (dataObjectLocation |> ParsedLocation.endChar) "->" |> location
+                        }
+
+                        let dataLocations = event |> Event.data |> dataLocations (operatorLocation |> ParsedLocation.endChar |> Some) location line
+
+                        let part = Parsed.ReadData {
+                            Value = ReadEvent {
+                                Caller = caller
+                                Stream = stream
+                                Event = event
+                            }
+                            DataLocation = dataLocations
+                            OperatorLocation = operatorLocation
+                            DataObjectLocation = dataObjectLocation
                         }
 
                         return part, lines
@@ -871,7 +1095,7 @@ module Parser =
             | lineWithUnknownPart ->
                 Error <| UnknownPart (lineWithUnknownPart |> Line.error indentation)
 
-        and private parseBodyParts body parsePart = function
+        and private parseBodyParts body parsePart: Line list -> Result<ParsedTucPart list, _> = function
             | [] -> body |> List.rev |> Ok
             | line :: lines ->
                 result {
@@ -884,12 +1108,12 @@ module Parser =
                         |> parseBodyParts (part :: body) parsePart
                 }
 
-        let rec private parseParts parts depth: ParseParts = fun output tucName participants domainTypes indentationLevel lines ->
+        let rec private parseParts location parts depth: ParseParts = fun output tucName participants domainTypes indentationLevel lines ->
             let currentIndentation =
                 Indentation ((depth |> Depth.value) * (indentationLevel |> IndentationLevel.size))
 
             let parseParts parts depth lines =
-                parseParts parts depth output tucName participants domainTypes indentationLevel lines
+                parseParts location parts depth output tucName participants domainTypes indentationLevel lines
 
             match lines with
             | [] ->
@@ -897,23 +1121,36 @@ module Parser =
                 | [] -> Error <| MissingUseCase tucName
                 | parts -> Ok (parts |> List.rev)
 
-            | KeyWords.Section section as line :: lines ->
+            | KeyWords.Section (section, sectionRange) as line :: lines ->
                 match section with
                 | String.IsEmpty -> Error <| SectionWithoutName (line |> Line.error (Indentation 0))
                 | section ->
+                    let section =
+                        Parsed.KeyWord {
+                            Value = Section { Value = section }
+                            ValueLocation = {
+                                Value = section
+                                Location = sectionRange |> Range.fromEnd 1 section.Length |> location
+                            }
+                            KeyWord = {
+                                Value = "section"
+                                Location = sectionRange |> location
+                            }
+                        }
+
                     lines
-                    |> parseParts (Section { Value = section } :: parts) depth
+                    |> parseParts (section :: parts) depth
 
             | line :: lines ->
                 result {
                     let! part, lines =
                         line
-                        |> parsePart output participants domainTypes indentationLevel currentIndentation None lines
+                        |> parsePart output location participants domainTypes indentationLevel currentIndentation None lines
 
                     return! lines |> parseParts (part :: parts) depth
                 }
 
-        let parse tucName participants domainTypes: ParseLines<TucPart list> = fun output indentationLevel lines ->
+        let parse location tucName participants domainTypes: ParseLines<ParsedTucPart list> = fun output indentationLevel lines ->
             match lines with
             | [] -> Error [ MissingUseCase tucName ]
 
@@ -928,7 +1165,7 @@ module Parser =
 
                     let! parts =
                         lines
-                        |> parseParts [] (Depth 0) output tucName participants domainTypes indentationLevel
+                        |> parseParts location [] (Depth 0) output tucName participants domainTypes indentationLevel
                         |> Validation.ofResult
 
                     return { Item = parts; Lines = [] }
@@ -945,13 +1182,13 @@ module Parser =
                         Ok (
                             Parsed.KeyWord {
                                 Value = TucName name
-                                KeyWord = {
-                                    Value = "tuc"
-                                    Location = location tucRange
-                                }
                                 ValueLocation = {
                                     Value = name
                                     Location = tucRange |> Range.fromEnd 1 name.Length |> location
+                                }
+                                KeyWord = {
+                                    Value = "tuc"
+                                    Location = location tucRange
                                 }
                             },
                             lines
@@ -960,13 +1197,14 @@ module Parser =
                 | _ ->
                     Error [ MissingTucName ]
 
-            let! { Item = participants; Lines = lines } =
+            let! { Item = participantsKeyWord, participants; Lines = lines } =
                 lines
                 |> Participants.parse location domainTypes output indentationLevel
 
             let! { Item = parts } =
                 lines
                 |> Parts.parse
+                    location
                     (name |> Parsed.value)
                     (participants |> List.map Parsed.value)
                     domainTypes
@@ -975,8 +1213,9 @@ module Parser =
 
             return {
                 Name = name
+                ParticipantsKeyWord = participantsKeyWord
                 Participants = participants
-                Parts = [] // parts // todo
+                Parts = parts
             }
         }
 

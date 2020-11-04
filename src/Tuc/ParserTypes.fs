@@ -142,16 +142,22 @@ module private Line =
 
     let findRangeForWord word line =
         match line |> tryFindRangeForWord word with
-        | None -> failwithf "Word %A is not found on the line:\n%s" word (line |> valuei)
         | Some range -> range
+        | _ -> failwithf "Word %A is not found on the line:\n%s" word (line |> valuei)
 
-    let tryFindRangeForWordAfter offset word line = maybe {
-        let! range = line |> tryFindRangeForWord word
+    let tryFindRangeForWordAfter (offset: int) (word: string) line =
+        let start = line.Original.IndexOf(word, offset)
 
-        if range |> Range.startPosition |> Position.character < offset
-            then return! None
-            else return range
-    }
+        if start < 0 then None
+        else Some {
+            Start = { Line = line.Number - 1; Character = start }
+            End = { Line = line.Number - 1; Character = start + word.Length }
+        }
+
+    let findRangeForWordAfter offset word line =
+        match tryFindRangeForWordAfter offset word line with
+        | Some range -> range
+        | _ -> failwithf "Word %A is not found on the line after char %A:\n%s" word offset (line |> valuei)
 
 [<RequireQualifiedAccess>]
 module private Errors =

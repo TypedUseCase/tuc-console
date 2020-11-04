@@ -55,6 +55,11 @@ module String =
         | [] -> ""
         | first :: rest -> (string first).ToUpper() :: (rest |> List.map string) |> String.concat ""
 
+    let lcFirst (value: string) =
+        match value |> Seq.toList with
+        | [] -> ""
+        | first :: rest -> (string first).ToLower() :: (rest |> List.map string) |> String.concat ""
+
     let split (separator: string) (value: string) =
         value.Split(separator) |> Seq.toList
 
