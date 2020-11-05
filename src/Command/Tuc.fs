@@ -15,6 +15,11 @@ module Tuc =
         let domain = (input, output) |> Input.getDomain
         let tucFileOrDir = (input, output) |> Input.getTucFileOrDir
 
+        let withDiagnostics =
+            match input with
+            | Input.HasOption "diagnostics" _ -> true
+            | _ -> false
+
         let baseIndentation =
             if output.IsVerbose() then "[yyyy-mm-dd HH:MM:SS]    ".Length else 0
 
@@ -29,7 +34,7 @@ module Tuc =
 
             match tucFileOrDir with
             | File tucFile ->
-                match tucFile |> Parser.parse output domainTypes with
+                match tucFile |> Parser.parse output withDiagnostics domainTypes with
                 | Ok tucs ->
                     output.Message <| sprintf "\n<c:gray>%s</c>\n" ("-" |> String.replicate 100)
 
@@ -59,7 +64,7 @@ module Tuc =
 
                 tucFiles
                 |> List.map (fun tucFile ->
-                    match tucFile |> Parser.parse output domainTypes with
+                    match tucFile |> Parser.parse output withDiagnostics domainTypes with
                     | Ok tucs -> [ tucFile; (tucs |> List.length |> string); "OK"; "" ]
                     | Error errors ->
                         exitCode <- ExitCode.Error
@@ -101,6 +106,11 @@ module Tuc =
         let domain = (input, output) |> Input.getDomain
         let tucFileOrDir = (input, output) |> Input.getTucFileOrDir
         let style = (input, output) |> Input.getStyle
+
+        let withDiagnostics =
+            match input with
+            | Input.HasOption "diagnostics" _ -> true
+            | _ -> false
 
         let generateAll =
             match input with
@@ -157,7 +167,7 @@ module Tuc =
 
             let! tucs =
                 tucFile
-                |> Parser.parse output domainTypes
+                |> Parser.parse output withDiagnostics domainTypes
                 |> Result.mapError (List.map (ParseError.format baseIndentation))
 
             let generateTucs prefix specificTuc outputFile outputImage tucs = result {

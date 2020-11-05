@@ -1269,63 +1269,62 @@ module Parser =
                 return! lines |> parseLines output location domainTypes indentationLevel (tuc :: tucAcc)
             }
 
-    let parse (output: MF.ConsoleApplication.Output) domainTypes file = result {
-        let _parse = Diagnostics.Stopwatch.StartNew()
-        if output.IsVerbose() then output.Title <| sprintf "Parse %A" file
+    let parse (output: MF.ConsoleApplication.Output) withDiagnostics domainTypes file = result {
+        let run name execution = Diagnostics.run withDiagnostics name execution
 
-        let domainTypes =
-            domainTypes
-            |> List.map (fun (DomainType t) ->
-                (t |> ResolvedType.domain, t |> ResolvedType.name), t
+        let res, _parse = run "Parse" (fun () -> result {
+            if output.IsVerbose() then output.Title <| sprintf "Parse %A" file
+
+            let domainTypes =
+                domainTypes
+                |> List.map (fun (DomainType t) ->
+                    (t |> ResolvedType.domain, t |> ResolvedType.name), t
+                )
+                |> Map.ofList
+                |> DomainTypes
+
+            let rawLines, _readFiles = run "Read Files" (fun () ->
+                file
+                |> File.ReadAllLines
+                |> Seq.mapi RawLine.parse
+                |> Seq.filter (RawLine.isEmpty >> not)
+                |> Seq.toList
             )
-            |> Map.ofList
-            |> DomainTypes
 
-        let _readFiles = Diagnostics.Stopwatch.StartNew()
-        let rawLines =
-            file
-            |> File.ReadAllLines
-            |> Seq.mapi RawLine.parse
-            |> Seq.filter (RawLine.isEmpty >> not)
-            |> Seq.toList
-        _readFiles.Stop()
-
-        let _indentationLevel = Diagnostics.Stopwatch.StartNew()
-        let! indentationLevel =
-            rawLines
-            |> List.tryPick (function
-                | { Indentation = indentation } when indentation |> Indentation.size > 0 ->  Some (IndentationLevel indentation)
-                | _ -> None
+            let indentationLevel, _indentationLevel = run "Indentation Level" (fun () ->
+                rawLines
+                |> List.tryPick (function
+                    | { Indentation = indentation } when indentation |> Indentation.size > 0 ->  Some (IndentationLevel indentation)
+                    | _ -> None
+                )
+                |> Result.ofOption [ MissingIndentation ]
             )
-            |> Result.ofOption [ MissingIndentation ]
-        _indentationLevel.Stop()
+            let! indentationLevel = indentationLevel
 
-        if output.IsVerbose() then
-            output.Message <| sprintf "[Tuc] Current indentation level is <c:magenta>%d</c>" (indentationLevel |> IndentationLevel.size)
+            if output.IsVerbose() then
+                output.Message <| sprintf "[Tuc] Current indentation level is <c:magenta>%d</c>" (indentationLevel |> IndentationLevel.size)
 
-        let _assertLines = Diagnostics.Stopwatch.StartNew()
-        do!
-            rawLines
-            |> assertLinesIndentation indentationLevel
-            |> Validation.ofResult
-        _assertLines.Stop()
+            let assertLines, _assertLines = run "Assert Lines" (fun () ->
+                rawLines
+                |> assertLinesIndentation indentationLevel
+                |> Validation.ofResult
+            )
+            do! assertLines
 
-        let _parseLines = Diagnostics.Stopwatch.StartNew()
-        let! res =
-            rawLines
-            |> List.map (Line.ofRawLine indentationLevel)
-            |> parseLines output (Location.create file) domainTypes indentationLevel []
-        _parseLines.Stop()
-        _parse.Stop()
+            let res, _parseLines = run "Parse Lines" (fun () ->
+                rawLines
+                |> List.map (Line.ofRawLine indentationLevel)
+                |> parseLines output (Location.create file) domainTypes indentationLevel []
+            )
+            let! res = res
 
-        output.Table [ "Task"; "Duration (ms)" ] [
-            [ "ReadFiles"; sprintf "%f" _readFiles.Elapsed.TotalMilliseconds ]
-            [ "IndentationLevel"; sprintf "%f" _indentationLevel.Elapsed.TotalMilliseconds ]
-            [ "AssertLines"; sprintf "%f" _assertLines.Elapsed.TotalMilliseconds ]
-            [ "ParseLines"; sprintf "%f" _parseLines.Elapsed.TotalMilliseconds ]
-            [ "---"; "---" ]
-            [ "Parse Total"; sprintf "%f" _parse.Elapsed.TotalMilliseconds ]
-        ]
+            return res, [_readFiles; _indentationLevel; _assertLines; _parseLines]
+        })
+
+        let! res, diagnostics = res
+
+        if withDiagnostics then
+            diagnostics @ [ _parse ] |> Diagnostics.showResults output
 
         return res
     }

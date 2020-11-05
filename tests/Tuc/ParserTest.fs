@@ -55,7 +55,7 @@ module Common =
     let test output domainTypes { Tuc = tuc; Expected = expected; Description = description } =
         let parsedTucs =
             tuc
-            |> Parser.parse output domainTypes
+            |> Parser.parse output false domainTypes
 
         match expected, parsedTucs with
         | Ok expected, Ok actual ->
