@@ -55,6 +55,11 @@ module String =
         | [] -> ""
         | first :: rest -> (string first).ToUpper() :: (rest |> List.map string) |> String.concat ""
 
+    let lcFirst (value: string) =
+        match value |> Seq.toList with
+        | [] -> ""
+        | first :: rest -> (string first).ToLower() :: (rest |> List.map string) |> String.concat ""
+
     let split (separator: string) (value: string) =
         value.Split(separator) |> Seq.toList
 
@@ -191,3 +196,26 @@ module Utils =
     let tee f a =
         f a
         a
+
+[<RequireQualifiedAccess>]
+module Diagnostics =
+    open System
+
+    let private diagnostics name execution =
+        let stopWatch = Diagnostics.Stopwatch.StartNew()
+        let ret = execution()
+        stopWatch.Stop()
+
+        ret, Some (name, stopWatch)
+
+    let run withDiagnostics name execution =
+        if withDiagnostics then diagnostics name execution
+        else execution(), None
+
+    let showResults (output: MF.ConsoleApplication.Output) diagnostics =
+        diagnostics
+        |> List.choose id
+        |> List.map (fun (name, (stopWatch: Diagnostics.Stopwatch)) ->
+            [name; sprintf "%f" stopWatch.Elapsed.TotalMilliseconds]
+        )
+        |> output.Table [ "Task"; "Duration (ms)" ]

@@ -15,6 +15,11 @@ module Tuc =
         let domain = (input, output) |> Input.getDomain
         let tucFileOrDir = (input, output) |> Input.getTucFileOrDir
 
+        let withDiagnostics =
+            match input with
+            | Input.HasOption "diagnostics" _ -> true
+            | _ -> false
+
         let baseIndentation =
             if output.IsVerbose() then "[yyyy-mm-dd HH:MM:SS]    ".Length else 0
 
@@ -29,12 +34,17 @@ module Tuc =
 
             match tucFileOrDir with
             | File tucFile ->
-                match tucFile |> Parser.parse output domainTypes with
+                match tucFile |> Parser.parse output withDiagnostics domainTypes with
                 | Ok tucs ->
                     output.Message <| sprintf "\n<c:gray>%s</c>\n" ("-" |> String.replicate 100)
 
+                    let dump =
+                        match input with
+                        | Input.HasOption "detail" _ -> Dump.detailedParsedTuc
+                        | _ -> Dump.parsedTuc
+
                     tucs
-                    |> List.iter (Dump.parsedTuc output)
+                    |> List.iter (dump output)
 
                     ExitCode.Success
                 | Error errors ->
@@ -54,7 +64,7 @@ module Tuc =
 
                 tucFiles
                 |> List.map (fun tucFile ->
-                    match tucFile |> Parser.parse output domainTypes with
+                    match tucFile |> Parser.parse output withDiagnostics domainTypes with
                     | Ok tucs -> [ tucFile; (tucs |> List.length |> string); "OK"; "" ]
                     | Error errors ->
                         exitCode <- ExitCode.Error
@@ -96,6 +106,11 @@ module Tuc =
         let domain = (input, output) |> Input.getDomain
         let tucFileOrDir = (input, output) |> Input.getTucFileOrDir
         let style = (input, output) |> Input.getStyle
+
+        let withDiagnostics =
+            match input with
+            | Input.HasOption "diagnostics" _ -> true
+            | _ -> false
 
         let generateAll =
             match input with
@@ -152,7 +167,7 @@ module Tuc =
 
             let! tucs =
                 tucFile
-                |> Parser.parse output domainTypes
+                |> Parser.parse output withDiagnostics domainTypes
                 |> Result.mapError (List.map (ParseError.format baseIndentation))
 
             let generateTucs prefix specificTuc outputFile outputImage tucs = result {
@@ -208,7 +223,10 @@ module Tuc =
                 )
             }
 
-            do! tucs |> generateTucs "" specificTuc outputFile outputImage
+            do!
+                tucs
+                |> List.map ParsedTuc.tuc
+                |> generateTucs "" specificTuc outputFile outputImage
 
             if generateAll && tucs |> List.length > 1 then
                 let inline (/) a b = IO.Path.Combine(a, b)
@@ -235,7 +253,7 @@ module Tuc =
 
                 do!
                     tucs
-                    |> List.map (fun tuc ->
+                    |> List.map (ParsedTuc.tuc >> fun tuc ->
                         [ tuc ]
                         |> generateTucs "<c:gray>[Sub]</c>" None (outputFile tuc.Name) (Some (imagePath tuc.Name, imageFormat))
                     )

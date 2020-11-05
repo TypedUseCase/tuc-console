@@ -3,3 +3,4 @@ FSharp.Data
 PlantUml.Net 
 MF.ConsoleApplication
 Tuc.DomainResolver
+Tuc.Parser

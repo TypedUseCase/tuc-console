@@ -2,9 +2,12 @@
 
 <!-- There is always Unreleased section on the top. Subsections (Add, Changed, Fix, Removed) should be Add as needed. -->
 ## Unreleased
+- Add more information to parsed tuc types
+- Add diagnostics to tuc parse
+- Use `Tuc.Parser` as an external library
 
 ## 1.3.0 - 2020-11-03
-- Use `Tuc.DomainResolver` as a external library
+- Use `Tuc.DomainResolver` as an external library
 - Use `Tuc.` namespace for the whole application
 - Parse only `.fsx` files with Domain types (it must end with `Domain.fsx`).
 

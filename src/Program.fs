@@ -37,6 +37,8 @@ let main argv =
                 Argument.tucFileOrDir
             ]
             Options = [
+                Option.noValue "detail" (Some "d") "Whether to show detailed information about parsed Tuc file."
+                Option.noValue "diagnostics" None "Whether to show diagnostics."
                 Option.noValue "watch" (Some "w") "Whether to watch domain file(s) and tuc file for changes."
             ]
             Initialize = None
@@ -62,6 +64,7 @@ let main argv =
                 Option.noValue "watch" (Some "w") "Whether to watch a domain and tuc file/dir, to change an output file on the fly."
                 Option.optional "tuc" (Some "t") "Tuc name, which should only be generated (from multi-tuc file)." None
                 Option.noValue "all" None "Whether to generate a dir with all multi-tucs (from multi-tuc file)."
+                Option.noValue "diagnostics" None "Whether to show diagnostics."
             ]
             Initialize = None
             Interact = None

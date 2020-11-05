@@ -58,7 +58,7 @@ module Generate =
                 [ PumlPart (sprintf "collections %A as %s <<%s>>" (alias |> Format.format) context (domain |> DomainName.value)) ]
 
         let generate: Generate<Participant> = fun output -> function
-            | Component { Name = name; Participants = participants } ->
+            | Participant.Component { Name = name; Participants = participants } ->
                 [
                     yield PumlPart (sprintf "box %A" name)
 
@@ -72,7 +72,7 @@ module Generate =
                     yield PumlPart "end box"
                 ]
 
-            | Participant active -> active |> generateActive output
+            | Participant.Participant active -> active |> generateActive output
 
         let activate participant =
             PumlPart (participant |> ActiveParticipant.name |> sprintf "activate %s")
