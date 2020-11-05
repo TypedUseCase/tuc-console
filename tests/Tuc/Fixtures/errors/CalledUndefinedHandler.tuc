@@ -1,7 +1,0 @@
-tuc parse error test
-participants
-    [InputStream] parts
-    StreamListener parts
-
-[InputStream]
-    StreamListener.UndefinedHandler

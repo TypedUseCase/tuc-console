@@ -1,7 +1,0 @@
-tuc parse error test
-participants
-    GenericService parts
-    [InputStream] parts
-
-GenericService
-    [InputStream] -> InputEvent.
