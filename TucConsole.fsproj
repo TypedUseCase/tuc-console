@@ -5,7 +5,12 @@
     <OutputType>Exe</OutputType>
     <TargetFramework>netcoreapp3.1</TargetFramework>
     <PackageId>Tuc.Console</PackageId>
+    <Description>Console application for managing .tuc files.</Description>
     <Version>1.3.0</Version>
+    <PackageProjectUrl>https://github.com/TypedUseCase/tuc-console</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/TypedUseCase/tuc-console.git</RepositoryUrl>
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    <PackageTags>typed-use-case;tuc;tuc-language;console-application</PackageTags>
   </PropertyGroup>
 
   <ItemGroup>
