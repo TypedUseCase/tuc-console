@@ -2,6 +2,8 @@
 
 <!-- There is always Unreleased section on the top. Subsections (Add, Changed, Fix, Removed) should be Add as needed. -->
 ## Unreleased
+
+## 1.4.0 - 2020-11-13
 - Add more information to parsed tuc types
 - Add diagnostics to tuc parse
 - Use `Tuc.Parser` as an external library
