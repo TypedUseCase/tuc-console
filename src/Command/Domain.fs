@@ -48,10 +48,10 @@ module Domain =
                 | Dir (dir, _) -> dir, WatchSubdirs.Yes
 
             (path, "*Domain.fsx")
-            |> watch output watchSubdirs (fun _ -> execute None)
+            |> Watch.watch output watchSubdirs (fun _ -> execute None)
             |> Async.Start
 
-            executeAndWaitForWatch output (fun _ -> execute (Some domain))
+            Watch.executeAndWaitForWatch output (fun _ -> execute (Some domain))
             |> Async.RunSynchronously
         | _ ->
             execute (Some domain)
