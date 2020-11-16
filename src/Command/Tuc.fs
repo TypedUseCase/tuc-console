@@ -81,14 +81,14 @@ module Tuc =
 
             [
                 (tucPath, "*.tuc")
-                |> watch output watchTucSubdirs (fun _ -> execute None |> ignore)
+                |> Watch.watch output watchTucSubdirs (fun _ -> execute None |> ignore)
 
                 (domainPath, "*Domain.fsx")
-                |> watch output watchDomainSubdirs (fun _ -> execute None |> ignore)
+                |> Watch.watch output watchDomainSubdirs (fun _ -> execute None |> ignore)
             ]
             |> List.iter Async.Start
 
-            executeAndWaitForWatch output (fun _ -> execute (Some domain) |> ignore)
+            Watch.executeAndWaitForWatch output (fun _ -> execute (Some domain) |> ignore)
             |> Async.RunSynchronously
 
             ExitCode.Success
@@ -322,14 +322,14 @@ module Tuc =
 
             [
                 (tucPath, "*.tuc")
-                |> watch output watchTucSubdirs (fun _ -> execute GeneratePuml.InWatch |> ignore)
+                |> Watch.watch output watchTucSubdirs (fun _ -> execute GeneratePuml.InWatch |> ignore)
 
                 (domainPath, "*Domain.fsx")
-                |> watch output watchDomainSubdirs (fun _ -> execute GeneratePuml.InWatch |> ignore)
+                |> Watch.watch output watchDomainSubdirs (fun _ -> execute GeneratePuml.InWatch |> ignore)
             ]
             |> List.iter Async.Start
 
-            executeAndWaitForWatch output (fun _ -> execute (GeneratePuml.Immediately domain) |> ignore)
+            Watch.executeAndWaitForWatch output (fun _ -> execute (GeneratePuml.Immediately domain) |> ignore)
             |> Async.RunSynchronously
 
             ExitCode.Success

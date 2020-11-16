@@ -90,80 +90,82 @@ module Console =
                 Some (styleFile |> File.ReadAllText)
             | _ -> None
 
-    let private runForever = async {
-        while true do
-            do! Async.Sleep 1000
-    }
+    [<RequireQualifiedAccess>]
+    module internal Watch =
+        let private runForever = async {
+            while true do
+                do! Async.Sleep 1000
+        }
 
-    let watch output watchSubdirs execute (path, filter) = async {
-        let includeSubDirs =
-            match watchSubdirs with
-            | WatchSubdirs.Yes -> true
-            | WatchSubdirs.No -> false
+        let watch output watchSubdirs execute (path, filter) = async {
+            let includeSubDirs =
+                match watchSubdirs with
+                | WatchSubdirs.Yes -> true
+                | WatchSubdirs.No -> false
 
-        let pathDir, fileName =
-            if path |> Directory.Exists then path, None
-            elif path |> File.Exists then Path.GetDirectoryName(path), Some path
-            else failwithf "Path %A is invalid." path
+            let pathDir, fileName =
+                if path |> Directory.Exists then path, None
+                elif path |> File.Exists then Path.GetDirectoryName(path), Some path
+                else failwithf "Path %A is invalid." path
 
-        use watcher =
-            new FileSystemWatcher(
-                Path = pathDir,
-                EnableRaisingEvents = true,
-                IncludeSubdirectories = includeSubDirs
-            )
+            use watcher =
+                new FileSystemWatcher(
+                    Path = pathDir,
+                    EnableRaisingEvents = true,
+                    IncludeSubdirectories = includeSubDirs
+                )
 
-        watcher.Filters.Add(filter)
+            watcher.Filters.Add(filter)
 
-        match fileName with
-        | Some fileName ->
-            watcher.Filters.Add(fileName)
-        | _ -> ()
+            match fileName with
+            | Some fileName ->
+                watcher.Filters.Add(fileName)
+            | _ -> ()
 
-        if output.IsDebug() then
-            sprintf "<c:gray>[Watch]</c> Path: <c:cyan>%s</c> | Filters: <c:yellow>%s</c> | With subdirs: <c:magenta>%A</c>"
+            if output.IsDebug() then
+                sprintf "<c:gray>[Watch]</c> Path: <c:cyan>%s</c> | Filters: <c:yellow>%s</c> | With subdirs: <c:magenta>%A</c>"
+                    path
+                    (watcher.Filters |> String.concat "; ")
+                    includeSubDirs
+                |> output.Message
+
+            watcher.NotifyFilter <- watcher.NotifyFilter ||| NotifyFilters.LastWrite
+            watcher.SynchronizingObject <- null
+
+            let notifyWatch () =
                 path
-                (watcher.Filters |> String.concat "; ")
-                includeSubDirs
-            |> output.Message
+                |> sprintf "<c:gray>[Watch]</c> Watching path <c:dark-yellow>%A</c> (Press <c:yellow>ctrl + c</c> to stop) ...\n"
+                |> output.Message
 
-        watcher.NotifyFilter <- watcher.NotifyFilter ||| NotifyFilters.LastWrite
-        watcher.SynchronizingObject <- null
+            let executeOnWatch event =
+                if output.IsDebug() then output.Message <| sprintf "<c:gray>[Watch]</c> Source %s." event
 
-        let notifyWatch () =
-            path
-            |> sprintf "<c:gray>[Watch]</c> Watching path <c:dark-yellow>%A</c> (Press <c:yellow>ctrl + c</c> to stop) ...\n"
-            |> output.Message
+                output.Message "<c:gray>[Watch]</c> Executing ...\n"
 
-        let executeOnWatch event =
-            if output.IsDebug() then output.Message <| sprintf "<c:gray>[Watch]</c> Source %s." event
+                try execute()
+                with e -> output.Error <| sprintf "%A" e
 
-            output.Message "<c:gray>[Watch]</c> Executing ...\n"
+                notifyWatch ()
 
+            watcher.Changed.Add(fun _ -> executeOnWatch "changed")
+            watcher.Created.Add(fun _ -> executeOnWatch "created")
+            watcher.Deleted.Add(fun _ -> executeOnWatch "deleted")
+            watcher.Renamed.Add(fun _ -> executeOnWatch "renamed")
+
+            if output.IsVerbose() then
+                output.Message <| sprintf "<c:gray>[Watch]</c> Enabled for %A" path
+
+            notifyWatch()
+
+            do! runForever
+        }
+
+        let executeAndWaitForWatch output execute = async {
             try execute()
             with e -> output.Error <| sprintf "%A" e
 
-            notifyWatch ()
-
-        watcher.Changed.Add(fun _ -> executeOnWatch "changed")
-        watcher.Created.Add(fun _ -> executeOnWatch "created")
-        watcher.Deleted.Add(fun _ -> executeOnWatch "deleted")
-        watcher.Renamed.Add(fun _ -> executeOnWatch "renamed")
-
-        if output.IsVerbose() then
-            output.Message <| sprintf "<c:gray>[Watch]</c> Enabled for %A" path
-
-        notifyWatch()
-
-        do! runForever
-    }
-
-    let executeAndWaitForWatch output execute = async {
-        try execute()
-        with e -> output.Error <| sprintf "%A" e
-
-        do! runForever
-    }
+            do! runForever
+        }
 
     open Tuc.Domain
     open ErrorHandling
