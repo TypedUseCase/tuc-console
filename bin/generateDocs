@@ -1,6 +1,6 @@
 #!/bin/bash
 
-DOC_PATH="docs/tuc/examples"
+DOC_PATH="../TypedUseCase.github.io/tuc/examples"
 
 bin/console tuc:generate "$DOC_PATH" "$DOC_PATH"
 
