@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 DOC_PATH="../TypedUseCase.github.io/tuc/examples"
 
