@@ -176,8 +176,10 @@ Target.create "Tests" (fun _ ->
 let zipRelease releaseDir =
     if releaseDir </> "zipCompiled" |> File.exists
     then
+        let zipReleaseProcess = createProcess (releaseDir </> "zipCompiled")
+
         Trace.tracefn "\nZipping released files in %s ..." releaseDir
-        run (createProcess "zipCompiled") "" releaseDir
+        run zipReleaseProcess "" "."
         |> Trace.tracefn "Zip result:\n%A\n"
     else
         Trace.tracefn "\nZip compiled files"
