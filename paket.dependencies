@@ -6,8 +6,8 @@ nuget FSharp.Core ~> 5.0
 nuget FSharp.Data ~> 4.0
 nuget PlantUml.Net ~> 1.2
 nuget MF.ConsoleApplication ~> 2.0
-nuget Tuc.DomainResolver ~> 2.1
-nuget Tuc.Parser ~> 4.1
+nuget Tuc.DomainResolver ~> 3.0
+nuget Tuc.Parser ~> 4.2
 
 nuget Expecto
 nuget YoloDev.Expecto.TestSdk

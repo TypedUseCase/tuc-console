@@ -7,6 +7,7 @@ open Tuc.Console.Console
 [<RequireQualifiedAccess>]
 module Domain =
     open Tuc.Domain
+    open ErrorHandling
 
     let check: ExecuteCommand = fun (input, output) ->
         let domain = (input, output) |> Input.getDomain
@@ -16,13 +17,17 @@ module Domain =
             | Input.HasOption "only-resolved" _ ->
                 domain
                 |> parseDomain (input, output)
+                |> runOrShowErrors
                 |> List.iter (Dump.parsedDomain output)
 
             | _ ->
-                let domainResult = domain |> checkDomain (input, output)
+                let domainResult =
+                    domain
+                    |> checkDomain (input, output)
+                    |> Async.RunSynchronously
 
                 match input, domainResult with
-                | _, Error error -> error |> showParseDomainError output
+                | _, Error errors -> errors |> List.iter (showCheckError output)
 
                 | Input.HasOption "count" _, Ok domainTypes ->
                     domainTypes

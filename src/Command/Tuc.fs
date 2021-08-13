@@ -28,7 +28,7 @@ module Tuc =
             let domainTypes =
                 domain
                 |> checkDomain (input, output)
-                |> Result.orFail
+                |> runOrShowErrors
 
             if output.IsVerbose() then output.Section "Parsing Tuc ..."
 
@@ -275,7 +275,7 @@ module Tuc =
             let domainTypes =
                 domain
                 |> checkDomain (input, output)
-                |> Result.orFail
+                |> runOrShowErrors
 
             if output.IsVerbose() then output.Section "Parsing Tuc ..."
 

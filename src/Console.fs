@@ -169,43 +169,58 @@ module Console =
 
     open Tuc.Domain
     open ErrorHandling
+    open ErrorHandling.AsyncResult.Operators
+
+    type CheckError =
+    | ParseDomainError of Tuc.Domain.ParseError
+    | ParseDomainTypesError of Tuc.Domain.ParseDomainError
 
     let parseDomain (input, output) domain =
         match domain with
         | Some domain -> domain
         | _ -> (input, output) |> Input.getDomain
         |> FileOrDir.files
-        |> List.map (Parser.parse output)
+        |> Parser.parseParallely output
 
     let checkDomain (input, output) domain =
-        result {
-            let parsedDomains =
+        asyncResult {
+            let! parsedDomains =
                 domain
-                |> parseDomain (input, output)
+                |> parseDomain (input, output) <@> List.map ParseDomainError
 
             let! resolvedTypes =
                 parsedDomains
                 |> Resolver.resolve output
-                |> Result.mapError UnresolvedTypes
+                |> AsyncResult.ofResult <@> (function
+                    | ResolveError.UnresolvedTypes types -> [ types |> UnresolvedTypes |> ParseDomainTypesError ]
+                )
 
             let! domainTypes =
                 resolvedTypes
                 |> Checker.check output
-                |> Result.mapError UndefinedTypes
+                |> AsyncResult.ofResult <@> (UndefinedTypes >> ParseDomainTypesError >> List.singleton)
 
             return domainTypes
         }
 
-    let showParseDomainError output = function
-        | UnresolvedTypes unresolvedTypes ->
+    let showCheckError output = function
+        | ParseDomainError error -> error |> ParseError.format |> output.Error
+
+        | ParseDomainTypesError (UnresolvedTypes unresolvedTypes) ->
             unresolvedTypes
             |> List.map (TypeName.value >> List.singleton)
             |> output.Options (sprintf "Unresolved types [%d]:" (unresolvedTypes |> List.length))
 
             output.Error "You have to solve unresolved types first.\n"
-        | UndefinedTypes undefinedTypes ->
+
+        | ParseDomainTypesError (UndefinedTypes undefinedTypes) ->
             undefinedTypes
             |> List.map (TypeName.value >> List.singleton)
             |> output.Options (sprintf "Undefined types [%d]:" (undefinedTypes |> List.length))
 
             output.Error "You have to define all types first.\n"
+
+    let runOrShowErrors xR =
+        xR
+        |> Async.RunSynchronously
+        |> Result.orFail

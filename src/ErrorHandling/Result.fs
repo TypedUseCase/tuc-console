@@ -473,7 +473,7 @@ module internal AsyncResult =
 /// The `asyncResult` computation expression is available globally without qualification
 /// See https://github.com/cmeeren/Cvdm.ErrorHandling/blob/master/src/Cvdm.ErrorHandling/AsyncResultBuilder.fs
 [<AutoOpen>]
-module AsyncResultComputationExpression =
+module internal AsyncResultComputationExpression =
     type AsyncResultBuilder() =
         member __.Return (value: 'Success): AsyncResult<'Success, 'Error> =
             async.Return <| result.Return value

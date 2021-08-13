@@ -585,16 +585,16 @@ NUGET
       System.Runtime.Handles (>= 4.3)
     System.Windows.Extensions (5.0)
       System.Drawing.Common (>= 5.0)
-    Tuc.DomainResolver (2.1)
+    Tuc.DomainResolver (3.0.1)
       FSharp.Compiler.Service (>= 40.0)
       FSharp.Core (>= 5.0.2)
       FSharp.Data (>= 4.2.2)
       MF.ConsoleApplication (>= 2.0)
-    Tuc.Parser (4.1)
+    Tuc.Parser (4.2)
       FSharp.Core (>= 5.0.2)
       FSharp.Data (>= 4.2.2)
       MF.ConsoleApplication (>= 2.0)
-      Tuc.DomainResolver (>= 2.1)
+      Tuc.DomainResolver (>= 3.0.1)
     YoloDev.Expecto.TestSdk (0.12.6)
       Expecto (>= 9.0 < 10.0)
       FSharp.Core (>= 4.6)
@@ -778,21 +778,21 @@ NUGET
       Microsoft.Build.Tasks.Core (>= 16.4) - restriction: >= netstandard2.0
       Microsoft.Build.Utilities.Core (>= 16.4) - restriction: >= netstandard2.0
     Newtonsoft.Json (13.0.1) - restriction: >= netstandard2.0
-    NuGet.Common (5.10) - restriction: >= netstandard2.0
-      NuGet.Frameworks (>= 5.10) - restriction: || (>= net45) (>= netstandard2.0)
-    NuGet.Configuration (5.10) - restriction: >= netstandard2.0
-      NuGet.Common (>= 5.10) - restriction: || (>= net45) (>= netstandard2.0)
+    NuGet.Common (5.11) - restriction: >= netstandard2.0
+      NuGet.Frameworks (>= 5.11) - restriction: || (>= net45) (>= netstandard2.0)
+    NuGet.Configuration (5.11) - restriction: >= netstandard2.0
+      NuGet.Common (>= 5.11) - restriction: || (>= net45) (>= netstandard2.0)
       System.Security.Cryptography.ProtectedData (>= 4.4) - restriction: && (< net45) (>= netstandard2.0)
-    NuGet.Frameworks (5.10) - restriction: >= netstandard2.0
-    NuGet.Packaging (5.10) - restriction: >= netstandard2.0
+    NuGet.Frameworks (5.11) - restriction: >= netstandard2.0
+    NuGet.Packaging (5.11) - restriction: >= netstandard2.0
       Newtonsoft.Json (>= 9.0.1) - restriction: >= netstandard2.0
-      NuGet.Configuration (>= 5.10) - restriction: >= netstandard2.0
-      NuGet.Versioning (>= 5.10) - restriction: >= netstandard2.0
+      NuGet.Configuration (>= 5.11) - restriction: >= netstandard2.0
+      NuGet.Versioning (>= 5.11) - restriction: >= netstandard2.0
       System.Security.Cryptography.Cng (>= 5.0) - restriction: || (&& (< net472) (>= netstandard2.0)) (>= net50)
       System.Security.Cryptography.Pkcs (>= 5.0) - restriction: || (&& (< net472) (>= netstandard2.0)) (>= net50)
-    NuGet.Protocol (5.10) - restriction: >= netstandard2.0
-      NuGet.Packaging (>= 5.10) - restriction: >= netstandard2.0
-    NuGet.Versioning (5.10) - restriction: >= netstandard2.0
+    NuGet.Protocol (5.11) - restriction: >= netstandard2.0
+      NuGet.Packaging (>= 5.11) - restriction: >= netstandard2.0
+    NuGet.Versioning (5.11) - restriction: >= netstandard2.0
     System.Buffers (4.5.1) - restriction: || (&& (>= monoandroid) (>= net50) (< netcoreapp2.0)) (&& (>= monoandroid) (< netcoreapp2.0) (>= netstandard2.0)) (&& (< monoandroid) (< net45) (< netcoreapp2.0) (>= netstandard2.0)) (&& (< monoandroid) (< net46) (< netcoreapp2.0) (>= netstandard2.0) (< netstandard2.1) (< xamarintvos) (< xamarinwatchos)) (&& (< monoandroid) (>= net50) (< netcoreapp2.0) (< xamarintvos) (< xamarinwatchos)) (&& (< monoandroid) (< netstandard1.1) (>= netstandard2.0) (< win8)) (&& (>= monotouch) (>= net50)) (&& (>= monotouch) (>= netstandard2.0)) (&& (>= net461) (>= net50)) (&& (>= net461) (>= netstandard2.0)) (>= net472) (&& (>= net50) (< netstandard2.0) (>= xamarintvos)) (&& (>= net50) (< netstandard2.0) (>= xamarinwatchos)) (&& (< netstandard1.1) (>= netstandard2.0) (>= win8)) (&& (>= netstandard2.0) (>= uap10.1)) (&& (>= netstandard2.0) (>= xamarintvos)) (&& (>= netstandard2.0) (>= xamarinwatchos)) (>= xamarinios) (>= xamarinmac)
     System.CodeDom (5.0) - restriction: && (< net472) (>= netstandard2.0)
     System.Collections.Immutable (5.0) - restriction: >= netstandard2.0
