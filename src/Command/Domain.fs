@@ -1,6 +1,7 @@
 namespace Tuc.Console.Command
 
 open MF.ConsoleApplication
+open MF.ErrorHandling
 open Tuc.Console
 open Tuc.Console.Console
 
@@ -8,52 +9,62 @@ open Tuc.Console.Console
 module Domain =
     open Tuc.Domain
 
-    let check: ExecuteCommand = fun (input, output) ->
+    let check = ExecuteAsync <| fun (input, output) ->
         let domain = (input, output) |> Input.getDomain
 
-        let execute domain =
+        let execute domain: Async<unit> =
             match input with
-            | Input.HasOption "only-resolved" _ ->
-                domain
-                |> parseDomain (input, output)
-                |> List.iter (Dump.parsedDomain output)
+            | Input.Option.Has "only-resolved" _ ->
+                async {
+                    let! domains =
+                        domain
+                        |> parseDomain (input, output)
+
+                    match domains with
+                    | Ok domains -> domains |> List.iter (Dump.parsedDomain output)
+                    | Error errors -> errors |> List.iter (ParseError.format >> output.Error)
+                }
 
             | _ ->
-                let domainResult = domain |> checkDomain (input, output)
+                async {
+                    let! domainResult = domain |> checkDomain (input, output)
 
-                match input, domainResult with
-                | _, Error error -> error |> showParseDomainError output
+                    match input, domainResult with
+                    | _, Error error ->
+                        error |> CheckDomainError.show output
 
-                | Input.HasOption "count" _, Ok domainTypes ->
-                    domainTypes
-                    |> List.length
-                    |> sprintf "Count of resolved types: <c:magenta>%d</c>"
-                    |> output.Message
+                    | Input.Option.Has "count" _, Ok domainTypes ->
+                        domainTypes
+                        |> List.length
+                        |> sprintf "Count of resolved types: <c:magenta>%d</c>"
+                        |> output.Message
 
-                    output.NewLine()
-
-                | _, Ok domainTypes ->
-                    domainTypes
-                    |> tee (fun _ ->
                         output.NewLine()
-                        output.Section <| sprintf "Domain types [%d]" (domainTypes |> List.length)
-                    )
-                    |> List.iter (fun (DomainType domainType) -> domainType |> Dump.parsedType output)
 
-        match input with
-        | Input.HasOption "watch" _ ->
-            let path, watchSubdirs =
-                match domain with
-                | File file -> file, WatchSubdirs.No
-                | Dir (dir, _) -> dir, WatchSubdirs.Yes
+                    | _, Ok domainTypes ->
+                        domainTypes
+                        |> tee (fun _ ->
+                            output.NewLine()
+                            output.Section <| sprintf "Domain types [%d]" (domainTypes |> List.length)
+                        )
+                        |> List.iter (fun (DomainType domainType) -> domainType |> Dump.parsedType output)
+                }
 
-            (path, "*Domain.fsx")
-            |> Watch.watch output watchSubdirs (fun _ -> execute None)
-            |> Async.Start
+        async {
+            match input with
+            | Input.Option.Has "watch" _ ->
+                let path, watchSubdirs =
+                    match domain with
+                    | File file -> file, WatchSubdirs.No
+                    | Dir (dir, _) -> dir, WatchSubdirs.Yes
 
-            Watch.executeAndWaitForWatch output (fun _ -> execute (Some domain))
-            |> Async.RunSynchronously
-        | _ ->
-            execute (Some domain)
+                (path, "*Domain.fsx")
+                |> Watch.watch output watchSubdirs (execute None)
+                |> Async.Start
 
-        ExitCode.Success
+                do! Watch.executeAndWaitForWatch output (execute (Some domain))
+            | _ ->
+                do! execute (Some domain)
+
+            return ExitCode.Success
+        }

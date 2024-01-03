@@ -219,3 +219,14 @@ module Diagnostics =
             [name; sprintf "%f" stopWatch.Elapsed.TotalMilliseconds]
         )
         |> output.Table [ "Task"; "Duration (ms)" ]
+
+
+[<RequireQualifiedAccess>]
+module AsyncResult =
+    open MF.ConsoleApplication
+    open MF.ErrorHandling
+
+    let handleAsyncResults (output: Output) =
+        if output.IsVerbose() 
+        then AsyncResult.ofSequentialAsyncResults
+        else AsyncResult.ofParallelAsyncResults

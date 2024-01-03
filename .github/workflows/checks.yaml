@@ -1,46 +1,55 @@
 name: Check
 
 on:
-    #push:
-    pull_request:
-    schedule:
-        -   cron: '0 3 * * *'
+  #push:
+  pull_request:
+  schedule:
+      -   cron:  '0 3 * * *'
 
 jobs:
-    build:
-        strategy:
-            matrix:
-                os: [windows-latest, macos-latest, ubuntu-latest]
-                dotnet: [5.0.300]
-        runs-on: ${{ matrix.os }}
+  build:
+    strategy:
+      matrix:
+        os:
+          - name: macos-latest
+            run: ./build.sh
+          - name: ubuntu-latest
+            run: ./build.sh
+          - name: windows-latest
+            run: ./build.cmd
+        dotnet: [8.0.100]
+    runs-on: ${{ matrix.os.name }}
 
-        steps:
-            -   uses: actions/checkout@v2
+    steps:
+      - uses: actions/checkout@v2
 
-            -   name: Setup .NET Core
-                uses: actions/setup-dotnet@v1
-                with:
-                    dotnet-version: ${{ matrix.dotnet }}
+      - name: Setup .NET Core
+        uses: actions/setup-dotnet@v1
+        with:
+          dotnet-version: ${{ matrix.dotnet }}
 
-            -   name: Restore tools
-                run: dotnet tool restore
+      - name: Restore tools
+        run: dotnet tool restore
 
-            -   name: Run tests
-                run: dotnet fake build
+      - name: Run tests
+        run: ${{ matrix.os.run }}
 
-    tests:
-        runs-on: macos-latest
+  tests:
+    strategy:
+      matrix:
+        os:
+          - name: macos-latest
+            run: ./build.sh
+        dotnet: [8.0.100]
+    runs-on: ${{ matrix.os.name }}
 
-        steps:
-            -   uses: actions/checkout@v2
+    steps:
+      - uses: actions/checkout@v2
 
-            -   name: Setup .NET Core
-                uses: actions/setup-dotnet@v1
-                with:
-                    dotnet-version: 5.0.300
+      - name: Setup .NET Core
+        uses: actions/setup-dotnet@v1
+        with:
+          dotnet-version: ${{ matrix.dotnet }}
 
-            -   name: Restore tools
-                run: dotnet tool restore
-
-            -   name: Run tests
-                run: dotnet fake build -t tests no-clean
+      - name: Run tests
+        run: ${{ matrix.os.run }} -t tests

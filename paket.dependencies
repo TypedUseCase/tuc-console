@@ -1,14 +1,15 @@
-framework: net5.0
+framework: net8.0
 storage: none
 
 source https://api.nuget.org/v3/index.json
-nuget FSharp.Core ~> 5.0
-nuget FSharp.Data ~> 4.0
+nuget FSharp.Core ~> 8.0
+nuget FSharp.Data ~> 6.0
 nuget PlantUml.Net ~> 1.2
-nuget MF.ConsoleApplication ~> 2.0
-nuget Tuc.DomainResolver ~> 2.1
-nuget Tuc.Parser ~> 4.1
+nuget MF.ConsoleApplication ~> 6.0
+nuget Tuc.DomainResolver ~> 3.1
+nuget Tuc.Parser ~> 4.2
 
+// Tests
 nuget Expecto
 nuget YoloDev.Expecto.TestSdk
 
@@ -20,6 +21,7 @@ group Build
     nuget Fake.IO.FileSystem
     nuget Fake.IO.Zip
     nuget Fake.Core.Target
+    nuget Fake.Core.UserInput
     nuget Fake.DotNet.AssemblyInfoFile
     nuget Fake.Core.ReleaseNotes
     nuget Fake.Tools.Git

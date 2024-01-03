@@ -3,7 +3,7 @@ namespace Tuc.Puml
 open Tuc.Console
 open Tuc.Domain
 open Tuc
-open ErrorHandling
+open MF.ErrorHandling
 
 type PumlError =
     | NoTucProvided
