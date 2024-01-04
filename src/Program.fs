@@ -9,9 +9,14 @@ open MF.ErrorHandling
 [<EntryPoint>]
 let main argv =
     consoleApplication {
+        name AssemblyVersionInformation.AssemblyProduct
         title AssemblyVersionInformation.AssemblyProduct
         info ApplicationInfo.MainTitle
         version AssemblyVersionInformation.AssemblyVersion
+        description AssemblyVersionInformation.AssemblyDescription
+
+        gitBranch AssemblyVersionInformation.AssemblyMetadata_gitbranch
+        gitCommit AssemblyVersionInformation.AssemblyMetadata_gitcommit
 
         command "domain:check" {
             Description = "Checks given domains."
