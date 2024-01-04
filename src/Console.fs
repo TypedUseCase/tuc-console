@@ -4,11 +4,6 @@ module Console =
     open System.IO
     open MF.ConsoleApplication
 
-    let commandHelp lines = lines |> String.concat "\n\n" |> Some
-
-    /// Concat two lines into one line for command help, so they won't be separated by other empty line
-    let inline (<+>) line1 line2 = sprintf "%s\n%s" line1 line2
-
     [<RequireQualifiedAccess>]
     module Argument =
         let domain = Argument.required "domain" "Path to a file or dir containing a domain specification (in F# type notation)."
@@ -38,7 +33,7 @@ module Console =
 
             | invalidPath -> failwithf "Path to file(s) %A is invalid." invalidPath
 
-        let debug output title = output.Options (sprintf "%s file(s):" title) << function
+        let debug (output: Output) title = output.Options (sprintf "%s file(s):" title) << function
             | File file -> [[ file ]]
             | Dir (_, files) -> files |> List.map List.singleton
 
@@ -58,12 +53,12 @@ module Console =
     module Input =
         let getDomain ((input, output): IO) =
             input
-            |> Input.getArgumentValueAsString "domain"
+            |> Input.Argument.asString "domain"
             |> FileOrDir.parse "Domain.fsx"
             |> tee (FileOrDir.debug output "Domain")
 
         let getTuc ((input, output): IO) =
-            let path = input |> Input.getArgumentValueAsString "tuc"
+            let path = input |> Input.Argument.asString "tuc"
 
             path
             |> FileOrDir.parse ".tuc"
@@ -75,13 +70,13 @@ module Console =
 
         let getTucFileOrDir ((input, output): IO) =
             input
-            |> Input.getArgumentValueAsString "tuc"
+            |> Input.Argument.asString "tuc"
             |> FileOrDir.parse ".tuc"
             |> tee (FileOrDir.debug output "Tuc")
 
         let getStyle ((input, output): IO) =
             match input with
-            | Input.HasOption "style" styleFile ->
+            | Input.Option.Has "style" styleFile ->
                 let styleFile = styleFile |> OptionValue.value "style"
 
                 if styleFile |> File.Exists |> not
@@ -97,7 +92,7 @@ module Console =
                 do! Async.Sleep 1000
         }
 
-        let watch output watchSubdirs execute (path, filter) = async {
+        let watch (output: Output) watchSubdirs execute (path, filter) = async {
             let includeSubDirs =
                 match watchSubdirs with
                 | WatchSubdirs.Yes -> true
@@ -111,6 +106,7 @@ module Console =
             use watcher =
                 new FileSystemWatcher(
                     Path = pathDir,
+                    // fsharplint:disable-next-line
                     EnableRaisingEvents = true,
                     IncludeSubdirectories = includeSubDirs
                 )
@@ -142,7 +138,7 @@ module Console =
 
                 output.Message "<c:gray>[Watch]</c> Executing ...\n"
 
-                try execute()
+                try execute |> Async.RunSynchronously
                 with e -> output.Error <| sprintf "%A" e
 
                 notifyWatch ()
@@ -160,15 +156,15 @@ module Console =
             do! runForever
         }
 
-        let executeAndWaitForWatch output execute = async {
-            try execute()
+        let executeAndWaitForWatch (output: Output) execute = async {
+            try do! execute
             with e -> output.Error <| sprintf "%A" e
 
             do! runForever
         }
 
     open Tuc.Domain
-    open ErrorHandling
+    open MF.ErrorHandling
 
     let parseDomain (input, output) domain =
         match domain with
@@ -176,36 +172,61 @@ module Console =
         | _ -> (input, output) |> Input.getDomain
         |> FileOrDir.files
         |> List.map (Parser.parse output)
+        |> AsyncResult.handleAsyncResults output ParseError
 
-    let checkDomain (input, output) domain =
-        result {
-            let parsedDomains =
+    [<RequireQualifiedAccess>]
+    type CheckDomainError =
+        | ParseErrors of ParseError list
+        | ResolveError of ResolveError
+        | ParseDomainError of ParseDomainError
+
+    let checkDomain (input, output) domain: AsyncResult<DomainType list, CheckDomainError> =
+        asyncResult {
+            let! parsedDomains =
                 domain
                 |> parseDomain (input, output)
+                |> AsyncResult.mapError CheckDomainError.ParseErrors
 
             let! resolvedTypes =
                 parsedDomains
                 |> Resolver.resolve output
-                |> Result.mapError UnresolvedTypes
+                |> Result.mapError CheckDomainError.ResolveError
 
             let! domainTypes =
                 resolvedTypes
                 |> Checker.check output
-                |> Result.mapError UndefinedTypes
+                |> Result.mapError (UndefinedTypes >> CheckDomainError.ParseDomainError)
 
             return domainTypes
         }
 
-    let showParseDomainError output = function
-        | UnresolvedTypes unresolvedTypes ->
-            unresolvedTypes
-            |> List.map (TypeName.value >> List.singleton)
-            |> output.Options (sprintf "Unresolved types [%d]:" (unresolvedTypes |> List.length))
+    module CheckDomainError =
+        let show (output: Output) = function
+            | CheckDomainError.ParseErrors errors ->
+                errors
+                |> List.map (ParseError.format >> List.singleton)
+                |> List.distinct
+                |> output.Options "Parse errors:"
 
-            output.Error "You have to solve unresolved types first.\n"
-        | UndefinedTypes undefinedTypes ->
-            undefinedTypes
-            |> List.map (TypeName.value >> List.singleton)
-            |> output.Options (sprintf "Undefined types [%d]:" (undefinedTypes |> List.length))
+                output.Error "You have to fix all parse errors first.\n"
 
-            output.Error "You have to define all types first.\n"
+            | CheckDomainError.ResolveError (ResolveError.UnresolvedTypes unresolvedTypes) ->
+                unresolvedTypes
+                |> List.map (TypeName.value >> List.singleton)
+                |> output.Options (sprintf "Unresolved types [%d]:" (unresolvedTypes |> List.length))
+
+                output.Error "You have to solve unresolved types first.\n"
+
+            | CheckDomainError.ParseDomainError (UnresolvedTypes unresolvedTypes) ->
+                unresolvedTypes
+                |> List.map (TypeName.value >> List.singleton)
+                |> output.Options (sprintf "Unresolved types [%d]:" (unresolvedTypes |> List.length))
+
+                output.Error "You have to solve unresolved types first.\n"
+
+            | CheckDomainError.ParseDomainError (UndefinedTypes undefinedTypes) ->
+                undefinedTypes
+                |> List.map (TypeName.value >> List.singleton)
+                |> output.Options (sprintf "Undefined types [%d]:" (undefinedTypes |> List.length))
+
+                output.Error "You have to define all types first.\n"

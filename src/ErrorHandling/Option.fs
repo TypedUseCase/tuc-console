@@ -1,20 +1,25 @@
-namespace ErrorHandling
+namespace MF.ErrorHandling
+
+open System
 
 [<RequireQualifiedAccess>]
 module Option =
-    open System
 
-    let retn x = Some x
+    let retn (x: 'a): 'a option = Some x
 
-    let mapNone f = function
+    let bindNone (f: unit -> 'a option): 'a option -> 'a option = function
         | Some v -> Some v
         | None -> f ()
 
-    let ofChoice = function
+    let mapNone (f: unit -> 'a): 'a option -> 'a option = function
+        | Some v -> Some v
+        | None -> Some (f ())
+
+    let ofChoice: Choice<'a, 'b> -> 'a option = function
         | Choice1Of2 x -> Some x
         | _ -> None
 
-    let toChoice case2 = function
+    let toChoice (case2: unit -> 'b): 'a option -> Choice<'a, 'b> = function
         | Some x -> Choice1Of2 x
         | None -> Choice2Of2 (case2 ())
 
@@ -23,33 +28,30 @@ module Option =
         | null -> None // CLR null
         | :? Nullable<'a> as n when not n.HasValue -> None // CLR struct
         | :? Nullable<'a> as n when n.HasValue -> Some (n.Value) // CLR struct
-        | x when x.Equals (DBNull.Value) -> None // useful when reading from the db into F#
         | x -> Some (unbox x) // anything else
 
-    let toNullable = function
+    let toNullable: 'a option -> Nullable<'a> = function
         | Some item -> new Nullable<_>(item)
         | None -> new Nullable<_>()
 
-    let orDefault x = function
+    let orDefault (x: unit -> 'a): 'a option -> 'a = function
         | None -> x ()
         | Some y -> y
 
-    let tee f = function
+    let tee (f: 'a -> unit): 'a option -> 'a option = function
         | Some x -> f x; Some x
         | None -> None
 
-    let teeNone f = function
+    let teeNone (f: unit -> unit): 'a option -> 'a option = function
         | Some x -> Some x
         | None -> f(); None
-
-    let toResult = function
-        | Some (Ok success) -> Ok (Some success)
-        | Some (Error error) -> Error error
-        | None -> Ok None
 
     module Operators =
         /// Option.bind
         let inline (>>=) o f = Option.bind f o
+
+        /// Option.bindNone
+        let inline (>>-) o f = bindNone f o
 
         /// Option.tee
         let inline (>>*) o f = tee f o
@@ -101,19 +103,19 @@ module OptionComputationExpression =
             try this.ReturnFrom(body())
             finally compensation()
 
-        member this.Using(disposable:#System.IDisposable, body) =
+        member this.Using(disposable: #IDisposable, body) =
             let body' = fun () -> body disposable
             this.TryFinally(body', fun () ->
                 match disposable with
                 | null -> ()
                 | disp -> disp.Dispose())
 
-        member this.For(sequence:seq<_>, body) =
+        member this.For(sequence: seq<_>, body) =
             this.Using(sequence.GetEnumerator(),fun enum ->
                 this.While(enum.MoveNext,
                     this.Delay(fun () -> body enum.Current)))
 
-        member this.Combine (a,b) =
+        member this.Combine (a, b) =
             this.Bind(a, fun () -> b())
 
     let maybe = MaybeBuilder()

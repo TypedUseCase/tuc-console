@@ -4,7 +4,7 @@ open MF.ConsoleApplication
 open Tuc.Console
 open Tuc.Console.Console
 open Tuc.Domain
-open ErrorHandling
+open MF.ErrorHandling
 
 [<EntryPoint>]
 let main argv =
@@ -69,16 +69,6 @@ let main argv =
             Initialize = None
             Interact = None
             Execute = Command.Tuc.generate
-        }
-
-        command "about" {
-            Description = "Displays information about the current project."
-            Help = None
-            Arguments = []
-            Options = []
-            Initialize = None
-            Interact = None
-            Execute = Command.Common.about
         }
     }
     |> run argv

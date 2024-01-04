@@ -9,91 +9,98 @@ open Tuc.Console.Console
 module Tuc =
     open Tuc
     open Tuc.Parser
-    open ErrorHandling
+    open MF.ErrorHandling
 
-    let check: ExecuteCommand = fun (input, output) ->
+    let check = ExecuteAsync <| fun (input, output) ->
         let domain = (input, output) |> Input.getDomain
         let tucFileOrDir = (input, output) |> Input.getTucFileOrDir
 
         let withDiagnostics =
             match input with
-            | Input.HasOption "diagnostics" _ -> true
+            | Input.Option.Has "diagnostics" _ -> true
             | _ -> false
 
         let baseIndentation =
             if output.IsVerbose() then "[yyyy-mm-dd HH:MM:SS]    ".Length else 0
 
-        let execute domain =
+        let execute domain: Async<ExitCode> = async {
             if output.IsVerbose() then output.Section "Parsing Domain ..."
-            let domainTypes =
-                domain
-                |> checkDomain (input, output)
-                |> Result.orFail
 
-            if output.IsVerbose() then output.Section "Parsing Tuc ..."
+            match! domain |> checkDomain (input, output) with
+            | Error error ->
+                error
+                |> CheckDomainError.show output
+                |> output.NewLine
 
-            match tucFileOrDir with
-            | File tucFile ->
-                match tucFile |> Parser.parse output withDiagnostics domainTypes with
-                | Ok tucs ->
-                    output.Message <| sprintf "\n<c:gray>%s</c>\n" ("-" |> String.replicate 100)
+                return ExitCode.Error
 
-                    let dump =
-                        match input with
-                        | Input.HasOption "detail" _ -> Dump.detailedParsedTuc
-                        | _ -> Dump.parsedTuc
+            | Ok domainTypes ->
+                if output.IsVerbose() then output.Section "Parsing Tuc ..."
 
-                    tucs
-                    |> List.iter (dump output)
-
-                    ExitCode.Success
-                | Error errors ->
-                    output.Message <| sprintf "\n<c:gray>%s</c>\n" ("-" |> String.replicate 100)
-
-                    errors
-                    |> List.iter (
-                        ParseError.format baseIndentation
-                        >> output.Message
-                        >> output.NewLine
-                    )
-
-                    ExitCode.Error
-
-            | Dir (_, tucFiles) ->
-                let mutable exitCode = ExitCode.Success
-
-                tucFiles
-                |> List.map (fun tucFile ->
+                match tucFileOrDir with
+                | File tucFile ->
                     match tucFile |> Parser.parse output withDiagnostics domainTypes with
-                    | Ok tucs -> [ tucFile; (tucs |> List.length |> string); "OK"; "" ]
+                    | Ok tucs ->
+                        output.Message <| sprintf "\n<c:gray>%s</c>\n" ("-" |> String.replicate 100)
+
+                        let dump =
+                            match input with
+                            | Input.Option.Has "detail" _ -> Dump.detailedParsedTuc
+                            | _ -> Dump.parsedTuc
+
+                        tucs
+                        |> List.iter (dump output)
+
+                        return ExitCode.Success
                     | Error errors ->
-                        exitCode <- ExitCode.Error
-                        [ tucFile; "0"; "Error"; errors |> List.map (ParseError.errorName) |> List.distinct |> String.concat ", " ]
-                )
-                |> output.Table [ "Tuc file"; "Tucs in file"; "Status"; "Detail" ]
+                        output.Message <| sprintf "\n<c:gray>%s</c>\n" ("-" |> String.replicate 100)
 
-                exitCode
+                        errors
+                        |> List.iter (
+                            ParseError.format baseIndentation
+                            >> output.Message
+                            >> output.NewLine
+                        )
 
-        match input with
-        | Input.HasOption "watch" _ ->
-            let domainPath, watchDomainSubdirs = domain |> FileOrDir.watch
-            let tucPath, watchTucSubdirs = tucFileOrDir |> FileOrDir.watch
+                        return ExitCode.Error
 
-            [
-                (tucPath, "*.tuc")
-                |> Watch.watch output watchTucSubdirs (fun _ -> execute None |> ignore)
+                | Dir (_, tucFiles) ->
+                    let mutable exitCode = ExitCode.Success
 
-                (domainPath, "*Domain.fsx")
-                |> Watch.watch output watchDomainSubdirs (fun _ -> execute None |> ignore)
-            ]
-            |> List.iter Async.Start
+                    tucFiles
+                    |> List.map (fun tucFile ->
+                        match tucFile |> Parser.parse output withDiagnostics domainTypes with
+                        | Ok tucs -> [ tucFile; (tucs |> List.length |> string); "OK"; "" ]
+                        | Error errors ->
+                            exitCode <- ExitCode.Error
+                            [ tucFile; "0"; "Error"; errors |> List.map (ParseError.errorName) |> List.distinct |> String.concat ", " ]
+                    )
+                    |> output.Table [ "Tuc file"; "Tucs in file"; "Status"; "Detail" ]
 
-            Watch.executeAndWaitForWatch output (fun _ -> execute (Some domain) |> ignore)
-            |> Async.RunSynchronously
+                    return exitCode
+        }
 
-            ExitCode.Success
-        | _ ->
-            execute (Some domain)
+        async {
+            match input with
+            | Input.Option.Has "watch" _ ->
+                let domainPath, watchDomainSubdirs = domain |> FileOrDir.watch
+                let tucPath, watchTucSubdirs = tucFileOrDir |> FileOrDir.watch
+
+                [
+                    (tucPath, "*.tuc")
+                    |> Watch.watch output watchTucSubdirs (execute None |> Async.Ignore)
+
+                    (domainPath, "*Domain.fsx")
+                    |> Watch.watch output watchDomainSubdirs (execute None |> Async.Ignore)
+                ]
+                |> List.iter Async.Start
+
+                do! Watch.executeAndWaitForWatch output (execute (Some domain) |> Async.Ignore)
+
+                return ExitCode.Success
+            | _ ->
+                return! execute (Some domain)
+        }
 
     open Tuc.Puml
 
@@ -102,19 +109,19 @@ module Tuc =
         | InWatch
         | Immediately of FileOrDir
 
-    let generate: ExecuteCommand = fun (input, output) ->
+    let generate = ExecuteAsync <| fun (input, output) ->
         let domain = (input, output) |> Input.getDomain
         let tucFileOrDir = (input, output) |> Input.getTucFileOrDir
         let style = (input, output) |> Input.getStyle
 
         let withDiagnostics =
             match input with
-            | Input.HasOption "diagnostics" _ -> true
+            | Input.Option.Has "diagnostics" _ -> true
             | _ -> false
 
         let generateAll =
             match input with
-            | Input.HasOption "all" _ -> true
+            | Input.Option.Has "all" _ -> true
             | _ -> false
 
         let baseIndentation =
@@ -122,8 +129,8 @@ module Tuc =
 
         let specificTuc =
             match tucFileOrDir, input with
-            | Dir _, Input.OptionValue "tuc" _ -> failwithf "Specific tuc can be generated only for a single file, not a directory."
-            | File _, Input.OptionValue "tuc" tuc ->
+            | Dir _, Input.Option.Value "tuc" _ -> failwithf "Specific tuc can be generated only for a single file, not a directory."
+            | File _, Input.Option.Value "tuc" tuc ->
                 if generateAll
                     then failwithf "You can not mix --all and --tuc option. Use either of them."
                     else Some tuc
@@ -131,8 +138,8 @@ module Tuc =
 
         let outputFile =
             match tucFileOrDir, input with
-            | Dir _, Input.OptionValue "output" _ -> failwithf "Output can be explicitelly defined only for a single file, not a directory."
-            | File _, Input.OptionValue "output" output ->
+            | Dir _, Input.Option.Value "output" _ -> failwithf "Output can be explicitly defined only for a single file, not a directory."
+            | File _, Input.Option.Value "output" output ->
                 if output.EndsWith ".puml"
                     then Some output
                     else failwithf "Output file must be a .puml file."
@@ -141,8 +148,8 @@ module Tuc =
 
         let outputImage =
             match tucFileOrDir, input with
-            | Dir _, Input.OptionValue "output" _ -> failwithf "Image can be explicitelly defined only for a single file, not a directory."
-            | File _, Input.OptionValue "image" image ->
+            | Dir _, Input.Option.Value "output" _ -> failwithf "Image can be explicitly defined only for a single file, not a directory."
+            | File _, Input.Option.Value "image" image ->
                 let imageFormat =
                     image
                     |> IO.Path.GetExtension
@@ -265,73 +272,80 @@ module Tuc =
             return "Done"
         }
 
-        let execute generate =
+        let execute generate: Async<ExitCode> = async {
             let domain =
                 match generate with
                 | GeneratePuml.InWatch -> None
                 | GeneratePuml.Immediately domain -> Some domain
 
             if output.IsVerbose() then output.Section "Parsing Domain ..."
-            let domainTypes =
-                domain
-                |> checkDomain (input, output)
-                |> Result.orFail
 
-            if output.IsVerbose() then output.Section "Parsing Tuc ..."
+            match! domain |> checkDomain (input, output) with
+            | Error error ->
+                error |> CheckDomainError.show output
+                |> output.NewLine
 
-            match tucFileOrDir with
-            | File tucFile ->
-                tucFile
-                |> generatePumlForTuc generate domainTypes specificTuc outputFile outputImage
-                |> function
-                    | Ok message ->
-                        output.Success message
-                        ExitCode.Success
-                    | Error messages ->
-                        messages
-                        |> List.iter (output.Message >> output.NewLine)
-                        ExitCode.Error
+                return ExitCode.Error
 
-            | Dir (_, tucFiles) ->
-                let mutable exitCode = ExitCode.Success
+            | Ok domainTypes ->
+                if output.IsVerbose() then output.Section "Parsing Tuc ..."
 
-                tucFiles
-                |> List.map (fun tucFile ->
-                    let tucFilePath = tucFile |> IO.Path.GetDirectoryName
-                    let tucFileName = tucFile |> Path.fileNameWithoutExtension
-                    let outputTucName = IO.Path.Combine (tucFilePath, tucFileName)
+                match tucFileOrDir with
+                | File tucFile ->
+                    return
+                        tucFile
+                        |> generatePumlForTuc generate domainTypes specificTuc outputFile outputImage
+                        |> function
+                            | Ok message ->
+                                output.Success message
+                                ExitCode.Success
+                            | Error messages ->
+                                messages
+                                |> List.iter (output.Message >> output.NewLine)
+                                ExitCode.Error
 
-                    tucFile
-                    |> generatePumlForTuc generate domainTypes None
-                        (Some (outputTucName + ".puml"))
-                        (Some (outputTucName + ".svg", Generate.ImageFormat.Svg))
-                    |> function
-                        | Ok message -> [ tucFile; message |> sprintf "<c:green>%s</c>"; "" ]
-                        | Error errors ->
-                            exitCode <- ExitCode.Error
-                            [ tucFile; "<c:red>Error</c>"; errors |> List.distinct |> String.concat ", " ]
-                )
-                |> output.Table [ "Tuc file"; "Status"; "Detail" ]
+                | Dir (_, tucFiles) ->
+                    let mutable exitCode = ExitCode.Success
 
-                exitCode
+                    tucFiles
+                    |> List.map (fun tucFile ->
+                        let tucFilePath = tucFile |> IO.Path.GetDirectoryName
+                        let tucFileName = tucFile |> Path.fileNameWithoutExtension
+                        let outputTucName = IO.Path.Combine (tucFilePath, tucFileName)
 
-        match input with
-        | Input.HasOption "watch" _ ->
-            let domainPath, watchDomainSubdirs = domain |> FileOrDir.watch
-            let tucPath, watchTucSubdirs = tucFileOrDir |> FileOrDir.watch
+                        tucFile
+                        |> generatePumlForTuc generate domainTypes None
+                            (Some (outputTucName + ".puml"))
+                            (Some (outputTucName + ".svg", Generate.ImageFormat.Svg))
+                        |> function
+                            | Ok message -> [ tucFile; message |> sprintf "<c:green>%s</c>"; "" ]
+                            | Error errors ->
+                                exitCode <- ExitCode.Error
+                                [ tucFile; "<c:red>Error</c>"; errors |> List.distinct |> String.concat ", " ]
+                    )
+                    |> output.Table [ "Tuc file"; "Status"; "Detail" ]
 
-            [
-                (tucPath, "*.tuc")
-                |> Watch.watch output watchTucSubdirs (fun _ -> execute GeneratePuml.InWatch |> ignore)
+                    return exitCode
+        }
 
-                (domainPath, "*Domain.fsx")
-                |> Watch.watch output watchDomainSubdirs (fun _ -> execute GeneratePuml.InWatch |> ignore)
-            ]
-            |> List.iter Async.Start
+        async {
+            match input with
+            | Input.Option.Has "watch" _ ->
+                let domainPath, watchDomainSubdirs = domain |> FileOrDir.watch
+                let tucPath, watchTucSubdirs = tucFileOrDir |> FileOrDir.watch
 
-            Watch.executeAndWaitForWatch output (fun _ -> execute (GeneratePuml.Immediately domain) |> ignore)
-            |> Async.RunSynchronously
+                [
+                    (tucPath, "*.tuc")
+                    |> Watch.watch output watchTucSubdirs (execute GeneratePuml.InWatch |> Async.Ignore)
 
-            ExitCode.Success
-        | _ ->
-            execute (GeneratePuml.Immediately domain)
+                    (domainPath, "*Domain.fsx")
+                    |> Watch.watch output watchDomainSubdirs (execute GeneratePuml.InWatch |> Async.Ignore)
+                ]
+                |> List.iter Async.Start
+
+                do! Watch.executeAndWaitForWatch output (execute (GeneratePuml.Immediately domain) |> Async.Ignore)
+
+                return ExitCode.Success
+            | _ ->
+                return! execute (GeneratePuml.Immediately domain)
+        }
