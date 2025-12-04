@@ -1,10 +1,13 @@
 name: Check
 
 on:
-  #push:
+  push:
+    branches:
+      - master
+      - main
   pull_request:
   schedule:
-      -   cron:  '0 3 * * *'
+    - cron: "0 3 * * *"
 
 jobs:
   build:
@@ -17,39 +20,33 @@ jobs:
             run: ./build.sh
           - name: windows-latest
             run: ./build.cmd
-        dotnet: [8.0.100]
+        dotnet: [10.0.100]
     runs-on: ${{ matrix.os.name }}
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v6
 
       - name: Setup .NET Core
-        uses: actions/setup-dotnet@v1
+        uses: actions/setup-dotnet@v5
         with:
           dotnet-version: ${{ matrix.dotnet }}
-
-      - name: Restore tools
-        run: dotnet tool restore
 
       - name: Run tests
         run: ${{ matrix.os.run }}
 
   tests:
-    strategy:
-      matrix:
-        os:
-          - name: macos-latest
-            run: ./build.sh
-        dotnet: [8.0.100]
-    runs-on: ${{ matrix.os.name }}
+    runs-on: macos-latest
+    name: "Check application"
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v6
 
       - name: Setup .NET Core
-        uses: actions/setup-dotnet@v1
+        uses: actions/setup-dotnet@v5
         with:
-          dotnet-version: ${{ matrix.dotnet }}
+          dotnet-version: 10.x
 
       - name: Run tests
-        run: ${{ matrix.os.run }} -t tests
+        env:
+          DOTNET_ROLL_FORWARD: latestMajor
+        run: ./build.sh -t tests no-lint

@@ -1,8 +1,9 @@
 TUC console
 ===========
 
-![Check](https://github.com/TypedUseCase/tuc-console/workflows/Check/badge.svg)
-[![Version](https://vsmarketplacebadge.apphb.com/version/TypedUseCase.tuc.svg)](https://marketplace.visualstudio.com/items?itemName=TypedUseCase.tuc)
+[![NuGet](https://img.shields.io/nuget/v/Tuc.Console.svg)](https://www.nuget.org/packages/Tuc.Console)
+[![NuGet Downloads](https://img.shields.io/nuget/dt/Tuc.Console.svg)](https://www.nuget.org/packages/Tuc.Console)
+[![Checks](https://github.com/TypedUseCase/tuc-console/actions/workflows/tests.yaml/badge.svg)](https://github.com/TypedUseCase/tuc-console/actions/workflows/tests.yaml)
 [![tuc-docs](https://img.shields.io/badge/documentation-tuc-orange.svg)](https://typedusecase.github.io/)
 
 > Console application for managing `.tuc` files.

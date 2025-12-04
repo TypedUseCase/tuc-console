@@ -1,10 +1,10 @@
 open System
 open System.IO
-open MF.ConsoleApplication
+open Feather.ConsoleApplication
 open Tuc.Console
 open Tuc.Console.Console
 open Tuc.Domain
-open MF.ErrorHandling
+open Feather.ErrorHandling
 
 [<EntryPoint>]
 let main argv =

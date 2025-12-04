@@ -2,7 +2,7 @@ namespace Tuc.Console
 
 module Console =
     open System.IO
-    open MF.ConsoleApplication
+    open Feather.ConsoleApplication
 
     [<RequireQualifiedAccess>]
     module Argument =
@@ -164,7 +164,7 @@ module Console =
         }
 
     open Tuc.Domain
-    open MF.ErrorHandling
+    open Feather.ErrorHandling
 
     let parseDomain (input, output) domain =
         match domain with
