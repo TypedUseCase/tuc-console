@@ -1,7 +1,7 @@
 namespace Tuc.Console.Command
 
 open System
-open MF.ConsoleApplication
+open Feather.ConsoleApplication
 open Tuc.Console
 open Tuc.Console.Console
 
@@ -9,7 +9,7 @@ open Tuc.Console.Console
 module Tuc =
     open Tuc
     open Tuc.Parser
-    open MF.ErrorHandling
+    open Feather.ErrorHandling
 
     let check = ExecuteAsync <| fun (input, output) ->
         let domain = (input, output) |> Input.getDomain

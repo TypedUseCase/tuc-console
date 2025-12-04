@@ -3,7 +3,7 @@ namespace Tuc.Puml
 open Tuc.Console
 open Tuc.Domain
 open Tuc
-open MF.ErrorHandling
+open Feather.ErrorHandling
 
 type PumlError =
     | NoTucProvided
@@ -16,8 +16,8 @@ module PumlError =
 [<RequireQualifiedAccess>]
 module Generate =
     type private PumlPart = PumlPart of string
-    type private Generate<'TucPart> = MF.ConsoleApplication.Output -> 'TucPart -> PumlPart list
-    type private GenerateTuc = MF.ConsoleApplication.Output -> Map<string, ActiveParticipant> -> PumlPart list -> Tuc list -> Map<string, ActiveParticipant> * PumlPart list
+    type private Generate<'TucPart> = Feather.ConsoleApplication.Output -> 'TucPart -> PumlPart list
+    type private GenerateTuc = Feather.ConsoleApplication.Output -> Map<string, ActiveParticipant> -> PumlPart list -> Tuc list -> Map<string, ActiveParticipant> * PumlPart list
 
     let private indentSize = 4
 
@@ -352,7 +352,7 @@ module Generate =
             |> Puml
             |> Ok
 
-    let puml (output: MF.ConsoleApplication.Output) style pumlName (tucs: Tuc list) =
+    let puml (output: Feather.ConsoleApplication.Output) style pumlName (tucs: Tuc list) =
         let activatedMainInitiators, parts =
             tucs
             |> generate output Map.empty []

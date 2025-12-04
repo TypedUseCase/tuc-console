@@ -10,10 +10,10 @@ module FileSystem =
     let writeSeqToFile (filePath: string) (data: string seq) =
         File.WriteAllLines(filePath, data)
 
-    let writeToFile (filePath: string) data =
+    let writeToFile (filePath: string) (data: string) =
         File.WriteAllText(filePath, data)
 
-    let appendToFile (filePath: string) data =
+    let appendToFile (filePath: string) (data: string) =
         File.AppendAllText(filePath, data)
 
     let readLines (filePath: string) =
@@ -212,7 +212,7 @@ module Diagnostics =
         if withDiagnostics then diagnostics name execution
         else execution(), None
 
-    let showResults (output: MF.ConsoleApplication.Output) diagnostics =
+    let showResults (output: Feather.ConsoleApplication.Output) diagnostics =
         diagnostics
         |> List.choose id
         |> List.map (fun (name, (stopWatch: Diagnostics.Stopwatch)) ->
@@ -223,10 +223,10 @@ module Diagnostics =
 
 [<RequireQualifiedAccess>]
 module AsyncResult =
-    open MF.ConsoleApplication
-    open MF.ErrorHandling
+    open Feather.ConsoleApplication
+    open Feather.ErrorHandling
 
     let handleAsyncResults (output: Output) =
-        if output.IsVerbose() 
+        if output.IsVerbose()
         then AsyncResult.ofSequentialAsyncResults
         else AsyncResult.ofParallelAsyncResults

@@ -1,6 +1,7 @@
 FSharp.Core
 FSharp.Data
 PlantUml.Net 
-MF.ConsoleApplication
+Feather.ConsoleApplication
+Feather.ErrorHandling
 Tuc.DomainResolver
 Tuc.Parser

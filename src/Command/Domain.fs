@@ -1,7 +1,7 @@
 namespace Tuc.Console.Command
 
-open MF.ConsoleApplication
-open MF.ErrorHandling
+open Feather.ConsoleApplication
+open Feather.ErrorHandling
 open Tuc.Console
 open Tuc.Console.Console
 
