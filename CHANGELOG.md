@@ -2,6 +2,8 @@
 
 <!-- There is always Unreleased section on the top. Subsections (Add, Changed, Fix, Removed) should be Add as needed. -->
 ## Unreleased
+
+## 1.8.0 - 2025-12-04
 - Use `Feather.ErrorHandling` and `Feather.ConsoleApplication`
 - [**BC**] Use net10
 
