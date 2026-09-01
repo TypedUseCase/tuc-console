@@ -7,7 +7,7 @@ module FileSystem =
     let private writeContent (writer: StreamWriter) content =
         writer.WriteLine(sprintf "%s" content)
 
-    let writeSeqToFile (filePath: string) (data: string seq) =
+    let writeSeqToFile (filePath: string) (data: seq<string>) =
         File.WriteAllLines(filePath, data)
 
     let writeToFile (filePath: string) (data: string) =

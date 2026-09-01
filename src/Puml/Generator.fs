@@ -82,6 +82,7 @@ module Generate =
 
     [<RequireQualifiedAccess>]
     module private Part =
+        [<TailCall>]
         let rec generate mainActor indentation: Generate<TucPart> = fun output ->
             let currentIndentation = indent indentation
             let deeper = indentation + indentSize

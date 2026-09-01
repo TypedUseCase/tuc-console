@@ -20,7 +20,8 @@ AssemblyInfo.fs
 .ionide/
 
 # Paket dependency manager
-.paket/paket.exe
+.paket/
+packages/
 paket-files/
 
 # FAKE - F# Make
