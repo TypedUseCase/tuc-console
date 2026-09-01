@@ -1,5 +1,7 @@
 namespace Tuc.Puml
 
+open System
+open System.IO
 open Tuc.Console
 open Tuc.Domain
 open Tuc
@@ -362,8 +364,6 @@ module Generate =
         @ (activatedMainInitiators |> Map.toList |> List.map (snd >> Participant.deactivate))
         |> createPuml style pumlName
 
-    open PlantUml.Net
-
     type ImageFormat =
         | Png
         | Svg
@@ -400,18 +400,18 @@ module Generate =
                     format
                     (formats |> String.concat "\n  - ")
 
-        let outputFormat = function
-            | Png -> OutputFormat.Png
-            | Svg -> OutputFormat.Svg
-            | Eps -> OutputFormat.Eps
-            | Pdf -> OutputFormat.Pdf
-            | Vdx -> OutputFormat.Vdx
-            | Xmi -> OutputFormat.Xmi
-            | Scxml -> OutputFormat.Scxml
-            | Html -> OutputFormat.Html
-            | Ascii -> OutputFormat.Ascii
-            | AsciiUnicode -> OutputFormat.Ascii_Unicode
-            | LaTeX -> OutputFormat.LaTeX
+        let renderFormat = function
+            | Png -> RenderFormat.Png
+            | Svg -> RenderFormat.Svg
+            | Eps -> RenderFormat.Eps
+            | Pdf -> RenderFormat.Pdf
+            | Vdx -> RenderFormat.Vdx
+            | Xmi -> RenderFormat.Xmi
+            | Scxml -> RenderFormat.Scxml
+            | Html -> RenderFormat.Html
+            | Ascii -> RenderFormat.Ascii
+            | AsciiUnicode -> RenderFormat.AsciiUnicode
+            | LaTeX -> RenderFormat.LaTeX
 
         let extension = function
             | Png -> "png"
@@ -426,13 +426,17 @@ module Generate =
             | AsciiUnicode -> "ascii_Unicode"
             | LaTeX -> "laTeX"
 
-    let image imageFormat (Puml puml) = asyncResult {
-        let factory = RendererFactory()
-        let renderer = factory.CreateRenderer(PlantUmlSettings())
+    let private bundledRendererSettings () =
+        let jarPath = Path.Combine(AppContext.BaseDirectory, "plantuml", "plantuml.jar")
 
+        { PlantUmlJar = PlantUmlJar.create jarPath }
+
+    let image imageFormat (Puml puml) = asyncResult {
+        let settings = bundledRendererSettings ()
+        let! renderer = Renderer.create settings |> Result.mapError RenderError.format
         let! image =
-            renderer.RenderAsync(puml, imageFormat |> ImageFormat.outputFormat)
-            |> AsyncResult.ofTaskCatch (fun e -> e.Message)
+            Renderer.render renderer (imageFormat |> ImageFormat.renderFormat) puml
+            |> Async.map (Result.mapError RenderError.format)
 
         return PumlImage image
     }

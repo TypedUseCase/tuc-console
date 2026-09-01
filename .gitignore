@@ -31,5 +31,8 @@ paket-files/
 output
 .neo4j.json
 
+# Downloaded local PlantUML renderer
+tools/plantuml/plantuml.jar
+
 docs
 dist

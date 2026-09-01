@@ -260,3 +260,7 @@ Run tests locally
 ```sh
 fake build target Tests
 ```
+
+PlantUML diagrams render locally with the bundled MIT JAR. Install Java 21 to generate image output. The build verifies the JAR against [tools/plantuml/manifest.txt](tools/plantuml/manifest.txt) and downloads it when absent.
+
+Update the pinned renderer with `tools/plantuml/update.sh [VERSION]`. Without a version, the script resolves the latest PlantUML release; it requires `curl` and `jq`.

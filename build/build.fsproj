@@ -10,6 +10,7 @@
     <ItemGroup>
         <Compile Include="Utils.fs" />
         <Compile Include="SafeBuildHelpers.fs" />
+        <Compile Include="PlantUml.fs" />
         <Compile Include="Targets.fs" />
         <Compile Include="Build.fs" />
     </ItemGroup>

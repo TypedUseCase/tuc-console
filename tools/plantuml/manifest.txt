@@ -1,0 +1,4 @@
+version=1.2026.7
+url=https://github.com/plantuml/plantuml/releases/download/v1.2026.7/plantuml-mit-1.2026.7.jar
+sha256=249ae0234a03acf999c3845eb683b495415b512bbfc7e7a4a173528c0892ec2e
+license=MIT
