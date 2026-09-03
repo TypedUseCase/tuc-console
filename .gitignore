@@ -20,7 +20,8 @@ AssemblyInfo.fs
 .ionide/
 
 # Paket dependency manager
-.paket/paket.exe
+.paket/
+packages/
 paket-files/
 
 # FAKE - F# Make
@@ -29,6 +30,9 @@ paket-files/
 # application
 output
 .neo4j.json
+
+# Downloaded local PlantUML renderer
+tools/plantuml/plantuml.jar
 
 docs
 dist

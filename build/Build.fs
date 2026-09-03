@@ -1,5 +1,5 @@
 // ========================================================================================================
-// === F# / Project fake build ==================================================================== 1.3.0 =
+// === F# / Project fake build ==================================================================== 1.6.0 =
 // --------------------------------------------------------------------------------------------------------
 // Options:
 //  - no-clean   - disables clean of dirs in the first step (required on CI)
@@ -7,6 +7,7 @@
 // ========================================================================================================
 
 open Fake.Core
+open Fake.Core.TargetOperators
 open Fake.IO.FileSystemOperators
 open Fake.IO.Globbing.Operators
 
@@ -30,5 +31,13 @@ let main args =
                 Linux
             ]
     }
+
+    Target.create "PlantUml" (fun _ ->
+        match PlantUml.ensure () with
+        | PlantUml.Verified version -> Trace.tracefn "[PlantUML] Using verified v%s JAR." version
+        | PlantUml.Downloaded version -> Trace.tracefn "[PlantUML] Downloaded and verified v%s JAR." version
+    )
+
+    "PlantUml" ==> "Build" |> ignore
 
     args |> Args.run

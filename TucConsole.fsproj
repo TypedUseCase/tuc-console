@@ -24,6 +24,7 @@
   <ItemGroup>
     <Compile Include="src/Puml/Types.fs" />
     <Compile Include="src/Puml/Formatter.fs" />
+    <Compile Include="src/Puml/Renderer.fs" />
     <Compile Include="src/Puml/Generator.fs" />
   </ItemGroup>
 
@@ -37,6 +38,16 @@
 
   <ItemGroup>
     <Compile Include="src/Program.fs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="tools/plantuml/plantuml.jar">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+      <Link>plantuml/plantuml.jar</Link>
+      <PackagePath>contentFiles/any/any/plantuml/plantuml.jar</PackagePath>
+      <PackageCopyToOutput>true</PackageCopyToOutput>
+    </Content>
   </ItemGroup>
 
   <Import Project=".paket\Paket.Restore.targets" />

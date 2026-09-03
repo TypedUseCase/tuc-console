@@ -20,7 +20,7 @@ jobs:
             run: ./build.sh
           - name: windows-latest
             run: ./build.cmd
-        dotnet: [10.0.100]
+        dotnet: ["10.x"]
     runs-on: ${{ matrix.os.name }}
 
     steps:
@@ -30,6 +30,19 @@ jobs:
         uses: actions/setup-dotnet@v5
         with:
           dotnet-version: ${{ matrix.dotnet }}
+
+      - name: Setup Java
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - name: Cache PlantUML
+        uses: actions/cache@v4
+        with:
+          path: tools/plantuml/plantuml.jar
+          key: plantuml-${{ hashFiles('tools/plantuml/manifest.txt') }}
+          enableCrossOsArchive: true
 
       - name: Run tests
         run: ${{ matrix.os.run }}
@@ -45,6 +58,19 @@ jobs:
         uses: actions/setup-dotnet@v5
         with:
           dotnet-version: 10.x
+
+      - name: Setup Java
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - name: Cache PlantUML
+        uses: actions/cache@v4
+        with:
+          path: tools/plantuml/plantuml.jar
+          key: plantuml-${{ hashFiles('tools/plantuml/manifest.txt') }}
+          enableCrossOsArchive: true
 
       - name: Run tests
         env:
