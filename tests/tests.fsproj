@@ -16,12 +16,5 @@
     <ProjectReference Include="fixture\fixture.fsproj" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Content Include="..\tools\plantuml\manifest.txt">
-      <Link>plantuml/manifest.txt</Link>
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-  </ItemGroup>
-
   <Import Project="..\.paket\Paket.Restore.targets" />
 </Project>

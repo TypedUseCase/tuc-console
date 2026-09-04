@@ -41,13 +41,21 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Content Include="tools/plantuml/plantuml.jar">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
-      <Link>plantuml/plantuml.jar</Link>
-      <PackagePath>contentFiles/any/any/plantuml/plantuml.jar</PackagePath>
-      <PackageCopyToOutput>true</PackageCopyToOutput>
-    </Content>
+    <Content Include="tools/plantuml/licenses/COPYING" Link="licenses/PlantUML/COPYING" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="tools/plantuml/licenses/NOTICE" Link="licenses/PlantUML/NOTICE" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="tools/plantuml/source-provenance.txt" Link="licenses/PlantUML/source-provenance.txt" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(RuntimeIdentifier)' == 'linux-x64'">
+    <Content Include="tools/plantuml/native/linux-x64/plantuml.zip" Link="plantuml/native/linux-x64/plantuml.zip" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(RuntimeIdentifier)' == 'win-x64'">
+    <Content Include="tools/plantuml/native/win-x64/plantuml.zip" Link="plantuml/native/win-x64/plantuml.zip" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(RuntimeIdentifier)' == 'osx-arm64'">
+    <Content Include="tools/plantuml/native/osx-arm64/plantuml.zip" Link="plantuml/native/osx-arm64/plantuml.zip" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
   </ItemGroup>
 
   <Import Project=".paket\Paket.Restore.targets" />

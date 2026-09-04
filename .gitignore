@@ -32,7 +32,7 @@ output
 .neo4j.json
 
 # Downloaded local PlantUML renderer
-tools/plantuml/plantuml.jar
+tools/plantuml/native/
 
 docs
 dist

@@ -3,9 +3,15 @@
 APP="TucConsole"
 NET="net10.0"
 
-CONSOLE="bin/Debug/$NET/$APP.dll"
+case "$(uname -s)-$(uname -m)" in
+    Linux-x86_64) RID="linux-x64" ;;
+    Darwin-arm64) RID="osx-arm64" ;;
+    *) echo "Unsupported platform: $(uname -s)-$(uname -m)" >&2; exit 1 ;;
+esac
+
+CONSOLE="bin/Debug/$NET/$RID/$APP.dll"
 if [ ! -f "$CONSOLE" ]; then
-    CONSOLE="bin/Release/$NET/$APP.dll"
+    CONSOLE="bin/Release/$NET/$RID/$APP.dll"
 fi
 
 dotnet "$CONSOLE" "$@"

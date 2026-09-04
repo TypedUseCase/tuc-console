@@ -14,11 +14,14 @@ jobs:
     strategy:
       matrix:
         os:
-          - name: macos-latest
+          - name: macos-14
+            rid: osx-arm64
             run: ./build.sh
           - name: ubuntu-latest
+            rid: linux-x64
             run: ./build.sh
           - name: windows-latest
+            rid: win-x64
             run: ./build.cmd
         dotnet: ["10.x"]
     runs-on: ${{ matrix.os.name }}
@@ -31,25 +34,31 @@ jobs:
         with:
           dotnet-version: ${{ matrix.dotnet }}
 
-      - name: Setup Java
-        uses: actions/setup-java@v5
-        with:
-          distribution: temurin
-          java-version: 21
-
       - name: Cache PlantUML
         uses: actions/cache@v4
         with:
-          path: tools/plantuml/plantuml.jar
-          key: plantuml-${{ hashFiles('tools/plantuml/manifest.txt') }}
+          path: tools/plantuml/native
+          key: plantuml-native-${{ matrix.os.rid }}-${{ hashFiles('tools/plantuml/manifest.txt') }}
           enableCrossOsArchive: true
 
-      - name: Run tests
+      - name: Build
         run: ${{ matrix.os.run }}
 
   tests:
-    runs-on: macos-latest
-    name: "Check application"
+    strategy:
+      matrix:
+        os:
+          - name: macos-14
+            rid: osx-arm64
+            run: ./build.sh -t tests no-lint
+          - name: ubuntu-latest
+            rid: linux-x64
+            run: ./build.sh -t tests no-lint
+          - name: windows-latest
+            rid: win-x64
+            run: ./build.cmd -t tests no-lint
+        dotnet: ["10.x"]
+    runs-on: ${{ matrix.os.name }}
 
     steps:
       - uses: actions/checkout@v6
@@ -57,22 +66,14 @@ jobs:
       - name: Setup .NET Core
         uses: actions/setup-dotnet@v5
         with:
-          dotnet-version: 10.x
-
-      - name: Setup Java
-        uses: actions/setup-java@v5
-        with:
-          distribution: temurin
-          java-version: 21
+          dotnet-version: ${{ matrix.dotnet }}
 
       - name: Cache PlantUML
         uses: actions/cache@v4
         with:
-          path: tools/plantuml/plantuml.jar
-          key: plantuml-${{ hashFiles('tools/plantuml/manifest.txt') }}
+          path: tools/plantuml/native
+          key: plantuml-native-${{ matrix.os.rid }}-${{ hashFiles('tools/plantuml/manifest.txt') }}
           enableCrossOsArchive: true
 
       - name: Run tests
-        env:
-          DOTNET_ROLL_FORWARD: latestMajor
-        run: ./build.sh -t tests no-lint
+        run: ${{ matrix.os.run }}

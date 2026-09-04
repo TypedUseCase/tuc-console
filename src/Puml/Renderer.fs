@@ -3,35 +3,28 @@ namespace Tuc.Puml
 open System
 open System.Diagnostics
 open System.IO
+open System.IO.Compression
+open System.Runtime.InteropServices
+open System.Security.Cryptography
 open System.Text
 open System.Threading
 open System.Threading.Tasks
 open Feather.ErrorHandling
 
-type JavaExecutable = private JavaExecutable of string
-
-type PlantUmlJar = private PlantUmlJar of string
-
-type private AvailablePlantUmlJar = private AvailablePlantUmlJar of PlantUmlJar
+type PlantUmlExecutable = private PlantUmlExecutable of string
 
 type RendererSettings = {
-    PlantUmlJar: PlantUmlJar
+    PlantUmlExecutable: PlantUmlExecutable
 }
 
 type Renderer = private {
-    JavaExecutable: JavaExecutable
-    PlantUmlJar: AvailablePlantUmlJar
+    PlantUmlExecutable: PlantUmlExecutable
 }
 
-/// Executable invocation the process protocol runs; the testable boundary beneath PlantUML rendering.
+/// Executable invocation the process protocol runs.
 type internal RenderCommand = {
-    Executable: JavaExecutable
+    Executable: PlantUmlExecutable
     Arguments: string list
-}
-
-type internal JavaEnvironment = {
-    JavaHome: string option
-    Path: string option
 }
 
 [<RequireQualifiedAccess>]
@@ -50,37 +43,20 @@ type RenderFormat =
 
 [<RequireQualifiedAccess>]
 type RenderError =
-    | JavaNotFound
-    | JarNotFound of PlantUmlJar
+    | ExecutableNotFound of PlantUmlExecutable
+    | UnsupportedRuntime of runtimeId: string
+    | RuntimeArchiveNotFound of path: string
+    | RuntimeExtractionFailed of message: string
     | StartFailed of message: string
     | RenderingFailed of exitCode: int * message: string
     | CommunicationFailed of message: string
     | Cancelled
 
 [<RequireQualifiedAccess>]
-module JavaExecutable =
-    let value (JavaExecutable path) = path
+module PlantUmlExecutable =
+    let value (PlantUmlExecutable path) = path
 
-    let create path =
-        if File.Exists path then
-            Ok (JavaExecutable path)
-        else
-            Error RenderError.JavaNotFound
-
-[<RequireQualifiedAccess>]
-module PlantUmlJar =
-    let value (PlantUmlJar path) = path
-
-    let create path = PlantUmlJar path
-
-module private AvailablePlantUmlJar =
-    let value (AvailablePlantUmlJar jar) = jar |> PlantUmlJar.value
-
-    let create jar =
-        if jar |> PlantUmlJar.value |> File.Exists then
-            Ok (AvailablePlantUmlJar jar)
-        else
-            Error (RenderError.JarNotFound jar)
+    let create path = PlantUmlExecutable path
 
 [<RequireQualifiedAccess>]
 module RenderFormat =
@@ -100,189 +76,172 @@ module RenderFormat =
 [<RequireQualifiedAccess>]
 module RenderError =
     let format = function
-        | RenderError.JavaNotFound -> "PlantUML local rendering requires Java on PATH or JAVA_HOME."
-        | RenderError.JarNotFound jar -> sprintf "PlantUML JAR is missing at %s." (PlantUmlJar.value jar)
+        | RenderError.ExecutableNotFound executable -> sprintf "PlantUML native executable is missing at %s." (PlantUmlExecutable.value executable)
+        | RenderError.UnsupportedRuntime runtimeId -> sprintf "PlantUML native runtime is unsupported on %s." runtimeId
+        | RenderError.RuntimeArchiveNotFound path -> sprintf "PlantUML native runtime archive is missing at %s." path
+        | RenderError.RuntimeExtractionFailed message -> message
         | RenderError.StartFailed message -> message
         | RenderError.RenderingFailed (exitCode, message) -> sprintf "PlantUML exited with code %d: %s" exitCode message
         | RenderError.CommunicationFailed message -> message
         | RenderError.Cancelled -> "PlantUML rendering was cancelled."
 
 [<RequireQualifiedAccess>]
+module NativeRuntime =
+    [<RequireQualifiedAccess>]
+    type private Platform =
+        | Linux
+        | Windows
+        | MacOS
+        | Unsupported
+
+    let private extractionLock = obj ()
+
+    let private currentPlatform () =
+        if OperatingSystem.IsLinux() then Platform.Linux
+        elif OperatingSystem.IsWindows() then Platform.Windows
+        elif OperatingSystem.IsMacOS() then Platform.MacOS
+        else Platform.Unsupported
+
+    let private currentRuntimeId () =
+        match currentPlatform (), RuntimeInformation.OSArchitecture with
+        | Platform.Linux, Architecture.X64 -> Some "linux-x64"
+        | Platform.Windows, Architecture.X64 -> Some "win-x64"
+        | Platform.MacOS, Architecture.Arm64 -> Some "osx-arm64"
+        | _ -> None
+
+    let private executableName () = if OperatingSystem.IsWindows() then "plantuml.exe" else "plantuml"
+
+    let private extract archivePath =
+        use archive = File.OpenRead archivePath
+        let cacheKey = archive |> SHA256.HashData |> Convert.ToHexString |> fun hash -> hash.ToLowerInvariant()
+        let destination = Path.Combine(Path.GetTempPath(), "tuc-console", "plantuml", cacheKey)
+        let executable = Path.Combine(destination, executableName ())
+
+        try
+            if File.Exists executable |> not then
+                let temporary = destination + ".tmp-" + Guid.NewGuid().ToString "N"
+                Directory.CreateDirectory temporary |> ignore
+
+                try
+                    ZipFile.ExtractToDirectory(archivePath, temporary)
+
+                    if OperatingSystem.IsWindows() |> not then
+                        File.SetUnixFileMode(Path.Combine(temporary, executableName ()), UnixFileMode.UserRead ||| UnixFileMode.UserWrite ||| UnixFileMode.UserExecute ||| UnixFileMode.GroupRead ||| UnixFileMode.GroupExecute ||| UnixFileMode.OtherRead ||| UnixFileMode.OtherExecute)
+
+                    lock extractionLock (fun () ->
+                        if File.Exists executable |> not then
+                            if Directory.Exists destination then Directory.Delete(destination, true)
+                            Directory.CreateDirectory(Path.GetDirectoryName destination) |> ignore
+                            Directory.Move(temporary, destination)
+                    )
+                finally
+                    if Directory.Exists temporary then Directory.Delete(temporary, true)
+
+            Ok (PlantUmlExecutable.create executable)
+        with error ->
+            Error (RenderError.RuntimeExtractionFailed error.Message)
+
+    let bundled () =
+        match currentRuntimeId () with
+        | None -> Error (RenderError.UnsupportedRuntime RuntimeInformation.RuntimeIdentifier)
+        | Some runtimeId ->
+            let archivePath =
+                Path.Combine(AppContext.BaseDirectory, "plantuml", "native", runtimeId, "plantuml.zip")
+
+            if File.Exists archivePath |> not then Error (RenderError.RuntimeArchiveNotFound archivePath)
+            else extract archivePath
+
+[<RequireQualifiedAccess>]
 module Renderer =
     let internal plantUmlCommand (renderer: Renderer) (format: RenderFormat): RenderCommand = {
-        Executable = renderer.JavaExecutable
-        Arguments = [
-            "-Dfile.encoding=UTF-8"
-            "-jar"
-            renderer.PlantUmlJar |> AvailablePlantUmlJar.value
-            format |> RenderFormat.toCliSwitch
-            "-pipe"
-            "-charset"
-            "UTF-8"
-        ]
+        Executable = renderer.PlantUmlExecutable
+        Arguments = [ format |> RenderFormat.toCliSwitch; "-pipe"; "-charset"; "UTF-8" ]
     }
 
     let private startInfo (command: RenderCommand) =
-        let startInfo = ProcessStartInfo(JavaExecutable.value command.Executable)
+        let startInfo = ProcessStartInfo(PlantUmlExecutable.value command.Executable)
         startInfo.UseShellExecute <- false
         startInfo.RedirectStandardInput <- true
         startInfo.RedirectStandardOutput <- true
         startInfo.RedirectStandardError <- true
         startInfo.StandardInputEncoding <- UTF8Encoding false
         startInfo.StandardErrorEncoding <- UTF8Encoding false
-
-        command.Arguments
-        |> List.iter startInfo.ArgumentList.Add
-
+        command.Arguments |> List.iter startInfo.ArgumentList.Add
         startInfo
 
-    let private communicationError (error: exn) =
-        error.Message
-        |> RenderError.CommunicationFailed
+    let private communicationError (error: exn) = error.Message |> RenderError.CommunicationFailed
 
     let private startProcess (command: RenderCommand): Result<Process, RenderError> =
-        try
-            Process.Start(startInfo command)
-            |> Ok
-        with error ->
-            Error (RenderError.StartFailed error.Message)
+        try Process.Start(startInfo command) |> Ok
+        with error -> Error (RenderError.StartFailed error.Message)
 
     let private terminateProcessTree (childProcess: Process) =
-        try
-            if not childProcess.HasExited then
-                childProcess.Kill true
-        with _ ->
-            ()
+        try if not childProcess.HasExited then childProcess.Kill true with _ -> ()
 
-    let internal createWith (findJava: unit -> Result<JavaExecutable, RenderError>) (settings: RendererSettings): Result<Renderer, RenderError> =
-        settings.PlantUmlJar
-        |> AvailablePlantUmlJar.create
-        |> Result.bind (fun jar ->
-            findJava ()
-            |> Result.map (fun java ->
-                {
-                    JavaExecutable = java
-                    PlantUmlJar = jar
-                }
-            )
-        )
-
-    let internal discoverJavaWith executable (environment: JavaEnvironment) =
-        let javaHome =
-            environment.JavaHome
-            |> Option.map (fun home -> Path.Combine(home, "bin", executable))
-            |> Option.bind (JavaExecutable.create >> Result.toOption)
-
-        let fromPath =
-            environment.Path
-            |> Option.bind (fun path ->
-                path.Split Path.PathSeparator
-                |> Array.tryPick (fun directory ->
-                    Path.Combine(directory, executable)
-                    |> JavaExecutable.create
-                    |> Result.toOption
-                )
-            )
-
-        match javaHome |> Option.orElse fromPath with
-        | Some executable -> Ok executable
-        | None -> Error RenderError.JavaNotFound
-
-    let private environmentVariable variable =
-        Environment.GetEnvironmentVariable variable
-        |> Option.ofObj
-
-    let discoverJava () =
-        let executable = if OperatingSystem.IsWindows() then "java.exe" else "java"
-
-        {
-            JavaHome = environmentVariable "JAVA_HOME"
-            Path = environmentVariable "PATH"
-        }
-        |> discoverJavaWith executable
-
-    let create = createWith discoverJava
+    let create (settings: RendererSettings) =
+        if settings.PlantUmlExecutable |> PlantUmlExecutable.value |> File.Exists then
+            Ok { PlantUmlExecutable = settings.PlantUmlExecutable }
+        else
+            Error (RenderError.ExecutableNotFound settings.PlantUmlExecutable)
 
     let private writeSource (standardInput: StreamWriter) (source: string): AsyncResult<unit, RenderError> = async {
         try
             do! standardInput.WriteAsync source |> Async.AwaitTask
             standardInput.Close()
             return Ok ()
-        with error ->
-            return Error (communicationError error)
+        with error -> return Error (communicationError error)
     }
 
-    let private liftCommunication (task: Task): AsyncResult<unit, RenderError> =
-        task |> AsyncResult.ofEmptyTaskCatch communicationError
+    let private liftCommunication (task: Task): AsyncResult<unit, RenderError> = task |> AsyncResult.ofEmptyTaskCatch communicationError
 
     let private terminateOnError (childProcess: Process) = function
         | Error _ -> terminateProcessTree childProcess
         | Ok _ -> ()
 
-    // Every step is total, so the flow always reaches the drains and disposal never races a live read.
     let private runWithCancellation (cancellationToken: CancellationToken) (command: RenderCommand) (source: string): AsyncResult<byte[], RenderError> = async {
         match startProcess command with
         | Error error -> return Error error
         | Ok childProcess ->
-            // Register owned resources, make cancellation kill the process tree
             use childProcess = childProcess
             use _ = cancellationToken.Register(fun () -> terminateProcessTree childProcess)
             use standardInput = childProcess.StandardInput
             use stdout = new MemoryStream()
-
-            // Start draining both output pipes
             let stdoutRead = childProcess.StandardOutput.BaseStream.CopyToAsync stdout |> liftCommunication
             let stderrRead = childProcess.StandardError.ReadToEndAsync() |> AsyncResult.ofTaskCatch communicationError
-
-            // Failures don't short-circuit here to prevent resource leaks, but they do kill the process tree to let the drains complete in the next stage
             let! sourceWritten = writeSource standardInput source
-            sourceWritten |> terminateOnError childProcess
             let! exited = liftCommunication (childProcess.WaitForExitAsync())
             exited |> terminateOnError childProcess
-
-            // The process has terminated, wait for both output drains to complete
             let! stdoutDrained = stdoutRead
             let! stderrDrained = stderrRead
 
-            // Check cancellation, then the protocol results, then the exit code
             return
                 if cancellationToken.IsCancellationRequested then Error RenderError.Cancelled
                 else result {
-                    do! sourceWritten
                     do! exited
                     do! stdoutDrained
                     let! stderr = stderrDrained
 
                     return!
                         match childProcess.ExitCode with
-                        | 0 -> Ok (stdout.ToArray())
+                        | 0 ->
+                            result {
+                                do! sourceWritten
+                                return stdout.ToArray()
+                            }
                         | exitCode -> Error (RenderError.RenderingFailed (exitCode, stderr))
                 }
     }
 
-    // Shields the operation from the caller's cancellation: aborting it mid-flight would abandon
-    // process cleanup, so it always runs to completion and reports cancellation as a typed result
-    // instead of an exception.
     let private withTypedCancellation operation = async {
         return!
             Async.FromContinuations(fun (complete, fail, _) ->
-                Async.StartWithContinuations(
-                    operation,
-                    complete,
-                    fail,
-                    (fun _ -> complete (Error RenderError.Cancelled)),
-                    cancellationToken = CancellationToken.None
-                )
+                Async.StartWithContinuations(operation, complete, fail, (fun _ -> complete (Error RenderError.Cancelled)), cancellationToken = CancellationToken.None)
             )
     }
 
     let internal runCommand (command: RenderCommand) (source: string): AsyncResult<byte[], RenderError> = async {
         let! cancellationToken = Async.CancellationToken
-
-        return!
-            runWithCancellation cancellationToken command source
-            |> withTypedCancellation
+        return! runWithCancellation cancellationToken command source |> withTypedCancellation
     }
 
-    let render (renderer: Renderer) (format: RenderFormat) (source: string) =
-        runCommand (plantUmlCommand renderer format) source
+    let render (renderer: Renderer) (format: RenderFormat) (source: string) = runCommand (plantUmlCommand renderer format) source

@@ -1,4 +1,6 @@
 group Build
+    FSharp.Core
+    Alma.Build
     Fake.DotNet.Cli
     Fake.IO.FileSystem
     Fake.IO.Zip

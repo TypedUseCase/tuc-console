@@ -1,20 +1,21 @@
 #!/usr/bin/env bash
 
-set -eu
-set -o pipefail
+set -euo pipefail
 
 script_directory="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 readonly script_directory
 repository_root="$(cd -- "$script_directory/../.." && pwd)"
 readonly repository_root
 readonly manifest_path="$repository_root/tools/plantuml/manifest.txt"
-readonly jar_path="$repository_root/tools/plantuml/plantuml.jar"
+readonly provenance_path="$repository_root/tools/plantuml/source-provenance.txt"
+readonly license_path="$repository_root/tools/plantuml/licenses/COPYING"
+readonly notice_path="$repository_root/tools/plantuml/licenses/NOTICE"
 readonly releases_url="https://github.com/plantuml/plantuml/releases"
 readonly releases_api_url="https://api.github.com/repos/plantuml/plantuml/releases"
 
 usage() {
     printf 'Usage: %s [VERSION]\n' "${0##*/}"
-    printf 'Download a PlantUML MIT JAR and update %s.\n' "$manifest_path"
+    printf 'Update PlantUML native archive metadata, GPLv3 text, notice, and source provenance.\n'
 }
 
 resolve_version() {
@@ -22,25 +23,12 @@ resolve_version() {
         | sed -n 's|.*/tag/v\([0-9][0-9.]*\)$|\1|p'
 }
 
-release_checksum() {
-    local version="$1"
-    local asset_name="plantuml-mit-$version.jar"
-
-    curl --fail --silent --show-error --location "$releases_api_url/tags/v$version" \
-        | jq --raw-output --arg asset_name "$asset_name" '
-            .assets[]
-            | select(.name == $asset_name)
-            | .digest // empty
-        ' \
-        | sed -n 's/^sha256://p'
-}
-
-sha256() {
-    if command -v sha256sum >/dev/null 2>&1; then
-        sha256sum "$1" | awk '{print $1}'
-    else
-        shasum -a 256 "$1" | awk '{print $1}'
-    fi
+asset_name() {
+    case "$1" in
+        linux-x64) printf 'native-plantuml-linux-amd64-%s.zip' "$2" ;;
+        win-x64) printf 'native-plantuml-windows-amd64-%s.zip' "$2" ;;
+        osx-arm64) printf 'native-plantuml-macos-arm64-%s.zip' "$2" ;;
+    esac
 }
 
 if [[ "${1:-}" == "--help" || "${1:-}" == "-h" ]]; then
@@ -48,10 +36,12 @@ if [[ "${1:-}" == "--help" || "${1:-}" == "-h" ]]; then
     exit 0
 fi
 
-if ! command -v jq >/dev/null 2>&1; then
-    printf 'PlantUML updater requires jq.\n' >&2
-    exit 1
-fi
+for command in curl jq; do
+    if ! command -v "$command" >/dev/null 2>&1; then
+        printf 'PlantUML updater requires %s.\n' "$command" >&2
+        exit 1
+    fi
+done
 
 version="${1:-$(resolve_version)}"
 
@@ -60,47 +50,81 @@ if [[ ! "$version" =~ ^[0-9]+(\.[0-9]+)+$ ]]; then
     exit 1
 fi
 
-url="$releases_url/download/v$version/plantuml-mit-$version.jar"
-checksum="$(release_checksum "$version")"
-
-if [[ ! "$checksum" =~ ^[a-f0-9]{64}$ ]]; then
-    printf 'Could not resolve an SHA-256 checksum for PlantUML %s.\n' "$version" >&2
-    exit 1
-fi
-
-current_version="$(sed -n 's/^version=//p' "$manifest_path" 2>/dev/null || true)"
-current_checksum="$(sed -n 's/^sha256=//p' "$manifest_path" 2>/dev/null || true)"
-
-if [[ "$current_version" == "$version" && "$current_checksum" == "$checksum" ]]; then
-    printf 'PlantUML %s is already current (%s)\n' "$version" "$checksum"
-    exit 0
-fi
-
-temporary_jar="$(mktemp)"
-temporary_manifest="$(mktemp)"
+release_json="$(mktemp)"
 
 cleanup() {
-    rm -f "$temporary_jar" "$temporary_manifest"
+    rm -f "$release_json"
 }
 trap cleanup EXIT
 
-curl --fail --silent --show-error --location --output "$temporary_jar" "$url"
-downloaded_checksum="$(sha256 "$temporary_jar")"
+curl --fail --silent --show-error --location "$releases_api_url/tags/v$version" --output "$release_json"
 
-if [[ "$downloaded_checksum" != "$checksum" ]]; then
-    printf 'Downloaded PlantUML SHA-256 mismatch: expected %s, got %s.\n' "$checksum" "$downloaded_checksum" >&2
-    exit 1
-fi
+asset_metadata() {
+    jq --raw-output --arg name "$1" '
+        .assets[]
+        | select(.name == $name)
+        | [.name, .browser_download_url, (.digest // "" | sub("^sha256:"; ""))]
+        | @tsv
+    ' "$release_json"
+}
 
-cat > "$temporary_manifest" <<EOF
-version=$version
-url=$url
-sha256=$checksum
-license=MIT
-EOF
+assets=()
+for rid in linux-x64 win-x64 osx-arm64; do
+    name="$(asset_name "$rid" "$version")"
+    IFS=$'\t' read -r name url checksum <<< "$(asset_metadata "$name")"
 
-mkdir -p "$(dirname "$jar_path")"
-mv "$temporary_jar" "$jar_path"
-mv "$temporary_manifest" "$manifest_path"
+    if [[ -z "$url" || ! "$checksum" =~ ^[a-f0-9]{64}$ ]]; then
+        printf 'Could not resolve an SHA-256 checksum for %s.\n' "$name" >&2
+        exit 1
+    fi
 
-printf 'Pinned PlantUML %s (%s)\n' "$version" "$checksum"
+    executable="plantuml"
+    [[ "$rid" == "win-x64" ]] && executable="plantuml.exe"
+    assets+=("$rid|$name|$url|$checksum|$executable")
+done
+
+mkdir -p "$(dirname "$license_path")"
+curl --fail --silent --show-error --location "https://raw.githubusercontent.com/plantuml/plantuml/v$version/LICENSE" --output "$license_path"
+
+{
+    printf 'version=%s\n' "$version"
+    printf 'license=GPL-3.0-only\n'
+    printf 'release=%s/tag/v%s\n' "$releases_url" "$version"
+    printf 'license-text=tools/plantuml/licenses/COPYING\n'
+    printf 'notice=tools/plantuml/licenses/NOTICE\n'
+    printf 'source-provenance=tools/plantuml/source-provenance.txt\n\n'
+
+    for index in "${!assets[@]}"; do
+        [[ "$index" -gt 0 ]] && printf '\n'
+        asset="${assets[$index]}"
+        IFS='|' read -r rid name url checksum executable <<< "$asset"
+        printf 'rid.%s.archive=%s\n' "$rid" "$name"
+        printf 'rid.%s.url=%s\n' "$rid" "$url"
+        printf 'rid.%s.sha256=%s\n' "$rid" "$checksum"
+        printf 'rid.%s.executable=%s\n' "$rid" "$executable"
+    done
+} > "$manifest_path"
+
+{
+    printf 'component=PlantUML native runtime\n'
+    printf 'version=%s\n' "$version"
+    printf 'license=GPL-3.0-only\n'
+    printf 'source_repository=https://github.com/plantuml/plantuml\n'
+    printf 'source_release=https://github.com/plantuml/plantuml/tree/v%s\n' "$version"
+    printf 'source_archive=https://github.com/plantuml/plantuml/archive/refs/tags/v%s.tar.gz\n' "$version"
+    printf 'release=%s/tag/v%s\n' "$releases_url" "$version"
+    printf 'license_text=tools/plantuml/licenses/COPYING\n'
+    printf 'notice=tools/plantuml/licenses/NOTICE\n'
+} > "$provenance_path"
+
+{
+    printf 'PlantUML\n'
+    printf 'Copyright 2009-2026 PlantUML contributors.\n\n'
+    printf 'This distribution embeds an unmodified official PlantUML native runtime archive.\n'
+    printf 'The archive is licensed under the GNU General Public License, version 3.\n\n'
+    printf 'Upstream project: https://github.com/plantuml/plantuml\n'
+    printf 'Pinned release: v%s\n' "$version"
+    printf 'Release page: %s/tag/v%s\n' "$releases_url" "$version"
+} > "$notice_path"
+
+printf 'Pinned PlantUML native archives for %s.\n' "$version"
