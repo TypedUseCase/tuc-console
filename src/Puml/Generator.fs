@@ -426,13 +426,9 @@ module Generate =
             | AsciiUnicode -> "ascii_Unicode"
             | LaTeX -> "laTeX"
 
-    let private bundledRendererSettings () =
-        let jarPath = Path.Combine(AppContext.BaseDirectory, "plantuml", "plantuml.jar")
-
-        { PlantUmlJar = PlantUmlJar.create jarPath }
-
     let image imageFormat (Puml puml) = asyncResult {
-        let settings = bundledRendererSettings ()
+        let! executable = NativeRuntime.bundled () |> Result.mapError RenderError.format
+        let settings: RendererSettings = { PlantUmlExecutable = executable }
         let! renderer = Renderer.create settings |> Result.mapError RenderError.format
         let! image =
             Renderer.render renderer (imageFormat |> ImageFormat.renderFormat) puml

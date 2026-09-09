@@ -1,0 +1,9 @@
+component=PlantUML native runtime
+version=1.2026.7
+license=GPL-3.0-only
+source_repository=https://github.com/plantuml/plantuml
+source_release=https://github.com/plantuml/plantuml/tree/v1.2026.7
+source_archive=https://github.com/plantuml/plantuml/archive/refs/tags/v1.2026.7.tar.gz
+release=https://github.com/plantuml/plantuml/releases/tag/v1.2026.7
+license_text=tools/plantuml/licenses/COPYING
+notice=tools/plantuml/licenses/NOTICE

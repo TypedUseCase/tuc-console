@@ -1,11 +1,4 @@
-// ========================================================================================================
-// === F# / Project fake build ==================================================================== 1.6.0 =
-// --------------------------------------------------------------------------------------------------------
-// Options:
-//  - no-clean   - disables clean of dirs in the first step (required on CI)
-//  - no-lint    - lint will be executed, but the result is not validated
-// ========================================================================================================
-
+open Alma.Build
 open Fake.Core
 open Fake.Core.TargetOperators
 open Fake.IO.FileSystemOperators
@@ -18,26 +11,29 @@ open Utils
 let main args =
     args |> Args.init
 
+    let runtimeTargets = [
+        OSXArm64
+        Windows
+        Linux
+    ]
+
+    let spec =
+        Spec.defaultConsoleApplication runtimeTargets
+        |> Spec.mapConsoleApplication (fun spec -> {
+            spec with
+                RuntimeMode = RuntimeMode.AutoDetect
+                PublishSingleFile = false
+        })
+
     Targets.init {
         Project = {
             Name = "TUC.Console"
             Summary = "Console application for .tuc commands."
             Git = Git.init ()
         }
-        Specs =
-            Spec.defaultConsoleApplication [
-                OSX
-                Windows
-                Linux
-            ]
+        Specs = spec
     }
 
-    Target.create "PlantUml" (fun _ ->
-        match PlantUml.ensure () with
-        | PlantUml.Verified version -> Trace.tracefn "[PlantUML] Using verified v%s JAR." version
-        | PlantUml.Downloaded version -> Trace.tracefn "[PlantUML] Downloaded and verified v%s JAR." version
-    )
-
-    "PlantUml" ==> "Build" |> ignore
+    PlantUml.init runtimeTargets
 
     args |> Args.run
